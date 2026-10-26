@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二蛋工具集</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .card-hover {
+                @apply transition-all duration-300 hover:shadow-xl;
+            }
+            .text-gradient {
+                @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400;
+            }
+            .nav-link {
+                @apply px-3 py-2 rounded-lg transition-all duration-200;
+            }
+            .submenu-item {
+                @apply block px-4 py-2 whitespace-nowrap relative transition-all duration-200;
+            }
+            /* 菜单动画 */
+            .fade-in {
+                animation: fadeIn 0.18s ease-out forwards;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(8px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .side-fade-in {
+                animation: sideFadeIn 0.18s ease-out forwards;
+            }
+            @keyframes sideFadeIn {
+                from { opacity: 0; transform: translateX(8px); }
+                to { opacity: 1; transform: translateX(0); }
+            }
+        }
+
+        /* 主题CSS变量 */
+        html[data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --card-sub: #334155;
+            --border: #475569;
+            --text-main: #e2e8f0;
+            --text-sub: #94a3b8;
+            --card-glow: rgba(59,130,246,0.08);
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --card-sub: #e2e8f0;
+            --border: #cbd5e1;
+            --text-main: #111827;
+            --text-sub: #64748b;
+            --card-glow: rgba(59,130,246,0.06);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease;
+            min-height: 100vh;
+            /* 背景纹理：暗色噪点 / 浅色网格 */
+        }
+        body::before{
+            content:"";
+            position:fixed;
+            inset:0;
+            z-index:-1;
+            opacity:0.45;
+            pointer-events:none;
+            transition:background-image 0.35s ease;
+        }
+        html[data-theme="dark"] body::before{
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+
+        .nav-bar-bg {
+            background-color: var(--card);
+            border-color: var(--border);
+            transition: background-color 0.35s ease, border-color 0.35s ease;
+        }
+        .panel-bg {
+            background-color: var(--card);
+            border-color: var(--border);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 0 0 1px var(--border);
+            transition: background-color 0.35s ease, border-color 0.35s ease;
+        }
+        .tool-card{
+            background-color: var(--card);
+            border:1px solid var(--border);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+        .tool-card:hover{
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 0 14px var(--card-glow);
+        }
+        .sub-panel-bg {
+            background-color: var(--card-sub);
+        }
+        .text-sub-color {
+            color: var(--text-sub);
+        }
+
+        .dropdown-level1 {
+            position: absolute;
+            left: 0;
+            top: 100%;
+            @apply panel-bg rounded-lg z-50 hidden min-w-[160px];
+        }
+        .dropdown-level1.open {
+            display:block;
+            @apply fade-in;
+        }
+        .dropdown-level2 {
+            position:absolute;
+            left:100%;
+            top:0;
+            @apply panel-bg rounded-lg z-50 hidden group-hover:block min-w-[160px] side-fade-in;
+        }
+        .nav-link:hover{
+            background-color: var(--card-sub);
+        }
+        .submenu-item:hover{
+            background-color: var(--card-sub);
+        }
+    </style>
+</head>
+<body class="flex flex-col">
+    <!-- 顶部导航栏 -->
+    <nav class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center relative">
+            <a href="./index.html" class="text-xl font-bold text-gradient">
+                <i class="fa-solid fa-wrench mr-2"></i>二蛋工具集
+            </a>
+            <!-- 桌面菜单【居中】 -->
+            <div class="hidden md:flex items-center justify-center gap-2 absolute left-1/2 -translate-x-1/2" id="desktopMenu">
+            </div>
+            <!-- 右侧：主题切换 + 移动端汉堡 -->
+            <div class="flex items-center gap-3 ml-auto">
+                <button id="themeToggle" class="nav-link text-lg" title="切换深浅主题">
+                    <i class="fa-solid fa-moon" id="themeIcon"></i>
+                </button>
+                <button id="menuBtn" class="md:hidden text-xl">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+        <!-- 移动端下拉菜单 -->
+        <div id="mobileMenu" class="md:hidden hidden px-4 pb-3 border-t nav-bar-bg">
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-10 max-w-6xl flex-grow">
+        <!-- 头部标题+搜索 -->
+        <header class="text-center mb-12">
+            <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold text-gradient mb-3">
+                常用在线工具
+            </h1>
+            <p class="text-sub-color text-lg">常用在线小工具，快速打开、方便使用</p>
+            <div class="mt-8 max-w-xl mx-auto">
+                <div class="relative">
+                    <input id="searchInput" type="text" placeholder="搜索工具名称..."
+                        class="w-full panel-bg rounded-xl py-3 px-4 pl-10 outline-none focus:border-primary transition-all duration-200">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-sub-color"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- 工具容器（JS渲染） -->
+        <div id="toolContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        </div>
+    </main>
+
+    <!-- 底部版权归属 -->
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 静态本地网页，不上传用户数据</p>
+        </div>
+    </footer>
+
+    <script>
+        // ===================== 菜单配置【支持三级 children 嵌套】 =====================
+        const menuList = [
+            { name: '首页', url: './index.html', icon: 'fa-house' },
+            {
+                name: '开发工具',
+                icon: 'fa-code',
+                children: [
+                    { name: 'JSON工具', url: './dev/json.html', icon: 'fa-brackets-curly' },
+                    {
+                        name: '编码转换',
+                        icon: 'fa-lock',
+                        children: [
+                            { name: 'Base64', url: './dev/base64.html', icon: 'fa-lock' },
+                            { name: 'MD5', url: './dev/md5.html', icon: 'fa-fingerprint' },
+                            { name: 'SHA', url: './dev/sha.html', icon: 'fa-shield-halved' },
+							{ name: 'JWT', url: './dev/encrypt/jwt.html', icon: 'fa-shield-halved' },
+                        ]
+                    },
+                    { name: '时间工具', url: './dev/timestamp.html', icon: 'fa-clock' },
+                ]
+            },
+            {
+                name: '文本工具',
+                icon: 'fa-file-lines',
+                children: [
+                    { name: '大小写转换', url: './text/case.html', icon: 'fa-font' },
+                    {
+                        name: '文本处理',
+                        icon: 'fa-list',
+                        children: [
+                            { name: '去重统计', url: './text/unique.html', icon: 'fa-list-check' },
+                            { name: '正则测试', url: './text/regex.html', icon: 'fa-asterisk' },
+                        ]
+                    }
+                ]
+            },
+            {
+                name: '图片媒体',
+                icon: 'fa-image',
+                children: [
+                    { name: '图片压缩', url: './image/compress.html', icon: 'fa-compress' },
+                    { name: '取色器', url: './image/color.html', icon: 'fa-droplet' },
+                ]
+            },
+            { name: '其他工具', url: './other.html', icon: 'fa-ellipsis' },
+        ];
+
+        // ===================== 首页工具配置 =====================
+        const toolList = [
+            {
+                groupName: "开发工具",
+                groupIcon: "fa-code",
+                groupColor: "text-primary",
+                bgColor: "bg-primary/15",
+                tools: [
+                    { name: "JSON格式化", desc: "JSON压缩、美化、校验", url: "./dev/json.html", icon: "fa-brackets-curly" },
+                    { name: "时间戳转换", desc: "时间戳与日期互转", url: "./dev/timestamp.html", icon: "fa-clock" },
+                    { name: "Base64编解码", desc: "文本Base64加密解密", url: "./dev/base64.html", icon: "fa-lock" },
+                ]
+            },
+            {
+                groupName: "文本工具",
+                groupIcon: "fa-file-lines",
+                groupColor: "text-emerald-400",
+                bgColor: "bg-emerald-400/15",
+                tools: [
+                    { name: "大小写转换", desc: "大写、小写、首字母大写", url: "./text/case.html", icon: "fa-font" },
+                    { name: "文本去重统计", desc: "行去重、计数、排序", url: "./text/unique.html", icon: "fa-list-check" },
+                ]
+            },
+            {
+                groupName: "图片媒体",
+                groupIcon: "fa-image",
+                groupColor: "text-amber-400",
+                bgColor: "bg-amber-400/15",
+                tools: [
+                    { name: "图片压缩", desc: "本地无损压缩图片", url: "./image/compress.html", icon: "fa-compress" },
+                    { name: "颜色取色器", desc: "HEX/RGB颜色转换", url: "./image/color.html", icon: "fa-droplet" },
+                ]
+            },
+            {
+                groupName: "其他工具",
+                groupIcon: "fa-ellipsis",
+                groupColor: "text-rose-400",
+                bgColor: "bg-rose-400/15",
+                tools: [
+                    { name: "二维码生成", desc: "文本链接生成二维码", url: "./other/qrcode.html", icon: "fa-qrcode" },
+                    { name: "随机密码生成", desc: "高强度密码批量生成", url: "./other/pwd.html", icon: "fa-key" },
+                ]
+            }
+        ];
+
+        // ========== 主题切换逻辑 localStorage持久 ==========
+        function initTheme() {
+            const saveTheme = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", saveTheme);
+            updateThemeIcon(saveTheme);
+        }
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById("themeIcon");
+            icon.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        }
+        function bindThemeToggle() {
+            const btn = document.getElementById("themeToggle");
+            btn.addEventListener("click", ()=>{
+                const current = document.documentElement.getAttribute("data-theme");
+                const next = current === "dark" ? "light" : "dark";
+                document.documentElement.setAttribute("data-theme", next);
+                localStorage.setItem("toolTheme", next);
+                updateThemeIcon(next);
+            })
+        }
+
+        // ========== 递归渲染PC端一级菜单 ==========
+        function renderDesktopMenu(items) {
+            let html = '';
+            items.forEach((item, idx) => {
+                if (item.children && item.children.length > 0) {
+                    const uid = `pc_drop_${idx}`;
+                    html += `
+                        <div class="relative">
+                            <button class="nav-link flex items-center gap-1 pc-menu-toggle" data-drop="${uid}">
+                                <i class="fa-solid ${item.icon} mr-1"></i>${item.name}
+                                <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200"></i>
+                            </button>
+                            <div id="${uid}" class="dropdown-level1">
+                                ${renderDesktopLevel2(item.children)}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html += `<a href="${item.url}" class="nav-link"><i class="fa-solid ${item.icon} mr-1"></i>${item.name}</a>`;
+                }
+            })
+            return html;
+        }
+
+        // ========== 渲染二级菜单（二级条目hover才弹出三级） ==========
+        function renderDesktopLevel2(items) {
+            let html = '';
+            items.forEach(item => {
+                if (item.children && item.children.length > 0) {
+                    html += `
+                        <div class="group relative">
+                            <div class="submenu-item flex items-center justify-between">
+                                <span><i class="fa-solid ${item.icon} mr-1"></i>${item.name}</span>
+                                <i class="fa-solid fa-chevron-right text-xs transition-transform duration-200 group-hover:translate-x-1"></i>
+                            </div>
+                            <div class="dropdown-level2">
+                                ${renderDesktopLevel3(item.children)}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html += `<a href="${item.url}" class="submenu-item"><i class="fa-solid ${item.icon} mr-1"></i>${item.name}</a>`;
+                }
+            })
+            return html;
+        }
+
+        // ========== 渲染三级菜单 ==========
+        function renderDesktopLevel3(items) {
+            let html = '';
+            items.forEach(item => {
+                html += `<a href="${item.url}" class="submenu-item"><i class="fa-solid ${item.icon} mr-1"></i>${item.name}</a>`;
+            })
+            return html;
+        }
+
+        // ========== 递归渲染移动端菜单（点击展开） ==========
+        function renderMobileMenu(items, level = 0) {
+            let html = '';
+            items.forEach((item, idx) => {
+                const uid = `mmenu_${level}_${idx}`;
+                if (item.children && item.children.length > 0) {
+                    html += `
+                        <div class="mobile-group">
+                            <button class="w-full flex items-center justify-between py-2 rounded-lg transition-all" style="padding-left:${level * 16}px" data-target="${uid}">
+                                <span><i class="fa-solid ${item.icon} mr-1"></i>${item.name}</span>
+                                <i class="fa-solid fa-chevron-down transition-transform duration-200"></i>
+                            </button>
+                            <div id="${uid}" class="hidden border-l ml-2 transition-all" style="padding-left:${(level + 1) * 16}px; border-color:var(--border)">
+                                ${renderMobileMenu(item.children, level + 1)}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html += `<a href="${item.url}" class="block py-2 rounded-lg transition-all" style="padding-left:${level * 16}px"><i class="fa-solid ${item.icon} mr-1"></i>${item.name}</a>`;
+                }
+            })
+            return html;
+        }
+
+        // ========== 渲染入口 ==========
+        function renderMenu() {
+            document.getElementById('desktopMenu').innerHTML = renderDesktopMenu(menuList);
+            document.getElementById('mobileMenu').innerHTML = renderMobileMenu(menuList);
+
+            // PC一级菜单点击切换下拉
+            const toggles = document.querySelectorAll('.pc-menu-toggle');
+            toggles.forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const dropId = btn.dataset.drop;
+                    const dropDom = document.getElementById(dropId);
+                    const icon = btn.querySelector('.fa-chevron-down');
+
+                    // 关闭其他所有下拉
+                    document.querySelectorAll('.dropdown-level1').forEach(d => {
+                        if(d.id !== dropId) d.classList.remove('open');
+                    });
+                    document.querySelectorAll('.pc-menu-toggle .fa-chevron-down').forEach(i=>{
+                        if(i !== icon) i.classList.remove('rotate-180');
+                    })
+
+                    dropDom.classList.toggle('open');
+                    icon.classList.toggle('rotate-180');
+                }
+            })
+
+            // 点击页面空白关闭所有下拉
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.dropdown-level1').forEach(d=>d.classList.remove('open'));
+                document.querySelectorAll('.pc-menu-toggle .fa-chevron-down').forEach(i=>i.classList.remove('rotate-180'));
+            })
+
+            // 移动端子菜单点击事件
+            document.querySelectorAll('#mobileMenu button[data-target]').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const target = document.getElementById(btn.dataset.target);
+                    const icon = btn.querySelector('.fa-chevron-down');
+                    target.classList.toggle('hidden');
+                    icon.classList.toggle('rotate-180');
+                }
+            })
+        }
+
+        // ========== 渲染工具列表 ==========
+        function renderTools(list) {
+            const container = document.getElementById('toolContainer');
+            let html = '';
+            list.forEach(group => {
+                html += `
+                    <div class="tool-group" data-group="${group.groupName}">
+                        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <i class="fa-solid ${group.groupIcon} ${group.groupColor}"></i>${group.groupName}
+                        </h2>
+                        <div class="grid gap-4">
+                `;
+                group.tools.forEach(tool => {
+                    html += `
+                        <a href="${tool.url}" class="tool-item block tool-card p-5 rounded-xl card-hover" data-name="${tool.name}">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg ${group.bgColor} flex items-center justify-center ${group.groupColor}">
+                                    <i class="fa-solid ${tool.icon}"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium">${tool.name}</h3>
+                                    <p class="text-sm text-sub-color">${tool.desc}</p>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                })
+                html += `</div></div>`;
+            })
+            container.innerHTML = html;
+        }
+
+        // ========== 搜索过滤 ==========
+        function bindSearch() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', function () {
+                const kw = this.value.trim().toLowerCase();
+                const allGroups = document.querySelectorAll('.tool-group');
+                allGroups.forEach(group => {
+                    let hasShow = false;
+                    const items = group.querySelectorAll('.tool-item');
+                    items.forEach(item => {
+                        const name = item.dataset.name.toLowerCase();
+                        if (name.includes(kw)) {
+                            item.classList.remove('hidden');
+                            hasShow = true;
+                        } else {
+                            item.classList.add('hidden');
+                        }
+                    })
+                    group.classList.toggle('hidden', !hasShow);
+                })
+            })
+        }
+
+        // ========== 移动端总菜单开关 ==========
+        function bindMobileMenu() {
+            const btn = document.getElementById('menuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                mobileMenu.classList.toggle('hidden');
+                const icon = btn.querySelector('i');
+                icon.className = mobileMenu.classList.contains('hidden') ? 'fa-solid fa-bars' : 'fa-solid fa-xmark';
+            })
+        }
+
+        // 初始化
+        initTheme();
+        bindThemeToggle();
+        renderMenu();
+        renderTools(toolList);
+        bindSearch();
+        bindMobileMenu();
+    </script>
+</body>
+</html>

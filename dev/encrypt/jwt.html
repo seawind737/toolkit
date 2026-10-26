@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT 解析/生成工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 替换成 crypto-js 用于HS256签名 -->
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .card-hover {
+                @apply transition-all duration-300 hover:shadow-xl;
+            }
+            .text-gradient {
+                @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400;
+            }
+            .btn {
+                @apply px-4 py-2 rounded-lg transition-all duration-200;
+            }
+            .btn-primary {
+                @apply bg-primary text-white hover:bg-primary/80;
+            }
+            .btn-outline {
+                @apply border border-[var(--border)] hover:bg-[var(--card-sub)];
+            }
+        }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --card-sub: #334155;
+            --border: #475569;
+            --text-main: #e2e8f0;
+            --text-sub: #94a3b8;
+            --card-glow: rgba(59,130,246,0.08);
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --card-sub: #e2e8f0;
+            --border: #cbd5e1;
+            --text-main: #111827;
+            --text-sub: #64748b;
+            --card-glow: rgba(59,130,246,0.06);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease;
+            min-height: 100vh;
+        }
+        body::before{
+            content:"";
+            position:fixed;
+            inset:0;
+            z-index:-1;
+            opacity:0.45;
+            pointer-events:none;
+            transition:background-image 0.35s ease;
+        }
+        html[data-theme="dark"] body::before{
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+
+        .nav-bar-bg {
+            background-color: var(--card);
+            border-color: var(--border);
+            transition: background-color 0.35s ease, border-color 0.35s ease;
+        }
+        .panel-bg {
+            background-color: var(--card);
+            border-color: var(--border);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 0 0 1px var(--border);
+            transition: background-color 0.35s ease, border-color 0.35s ease;
+        }
+        .tool-card{
+            background-color: var(--card);
+            border:1px solid var(--border);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+        .tool-card:hover{
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 0 14px var(--card-glow);
+        }
+        .sub-panel-bg {
+            background-color: var(--card-sub);
+        }
+        .text-sub-color {
+            color: var(--text-sub);
+        }
+        textarea,input,select{
+            background-color: var(--card);
+            border:1px solid var(--border);
+            color:var(--text-main);
+        }
+        textarea:focus,input:focus,select:focus{
+            outline:none;
+            border-color:#3b82f6;
+        }
+    </style>
+</head>
+<body class="flex flex-col">
+    <!-- 顶部栏：返回首页 + 标题 + 主题切换 -->
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="./index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient">JWT 解析 / 生成工具</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-4xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <!-- 模式下拉选择器 -->
+            <div class="mb-6">
+                <label class="block mb-2 text-sub-color font-medium">操作模式</label>
+                <select id="modeSelect" class="w-full rounded-lg p-3">
+                    <option value="parse">🔍 Token 解析</option>
+                    <option value="generate">✨ Token 生成（HS256）</option>
+                </select>
+            </div>
+
+            <!-- 解析区域 -->
+            <div id="parsePanel">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block mb-1 text-sub-color">粘贴 JWT Token</label>
+                        <textarea id="jwtToken" rows="6" class="w-full rounded-lg p-3" placeholder="粘贴JWT字符串进行解析"></textarea>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="btnParse" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass mr-1"></i>开始解析</button>
+                        <button id="btnClearParse" class="btn btn-outline"><i class="fa-solid fa-eraser mr-1"></i>清空</button>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sub-color">Header</span>
+                                <button data-copy="header" class="btn btn-outline text-sm py-1 px-2 copyBtn"><i class="fa-solid fa-copy"></i>复制</button>
+                            </div>
+                            <textarea id="outHeader" readonly rows="7" class="w-full rounded-lg p-3 bg-[var(--card-sub)]"></textarea>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sub-color">Payload</span>
+                                <button data-copy="payload" class="btn btn-outline text-sm py-1 px-2 copyBtn"><i class="fa-solid fa-copy"></i>复制</button>
+                            </div>
+                            <textarea id="outPayload" readonly rows="7" class="w-full rounded-lg p-3 bg-[var(--card-sub)]"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 生成区域 -->
+            <div id="generatePanel" class="hidden">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block mb-1 text-sub-color">签名密钥 Secret</label>
+                        <input id="jwtSecret" type="text" class="w-full rounded-lg p-3" placeholder="HS256 签名密钥">
+                    </div>
+                    <div>
+                        <label class="block mb-1 text-sub-color">Payload JSON</label>
+                        <textarea id="jwtPayload" rows="7" class="w-full rounded-lg p-3" placeholder='{"sub":"10001","name":"admin","exp":1752211200}'></textarea>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="btnGenerate" class="btn btn-primary"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>生成Token</button>
+                        <button id="btnClearGen" class="btn btn-outline"><i class="fa-solid fa-eraser mr-1"></i>清空</button>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-sub-color">生成结果 Token</span>
+                            <button data-copy="token" class="btn btn-outline text-sm py-1 px-2 copyBtn"><i class="fa-solid fa-copy"></i>复制</button>
+                        </div>
+                        <textarea id="outToken" readonly rows="6" class="w-full rounded-lg p-3 bg-[var(--card-sub)]"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 消息提示 -->
+            <div class="mt-4">
+                <label class="block mb-1 text-sub-color">提示信息</label>
+                <div id="msgBox" class="p-3 rounded-lg bg-[var(--card-sub)] min-h-[50px] text-sub-color"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 静态本地网页，不上传用户数据</p>
+        </div>
+    </footer>
+
+    <script>
+        // ========== 工具函数 base64url ==========
+        function base64UrlEncode(str) {
+            return btoa(unescape(encodeURIComponent(str)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+        function base64UrlDecode(str) {
+            str = str.replace(/-/g, '+').replace(/_/g, '/');
+            while (str.length % 4) str += '=';
+            return decodeURIComponent(escape(atob(str)));
+        }
+
+        // ========== JWT HS256 生成 ==========
+        function signHS256(payloadObj, secret) {
+            const header = { alg: "HS256", typ: "JWT" };
+            const headerB64 = base64UrlEncode(JSON.stringify(header));
+            const payloadB64 = base64UrlEncode(JSON.stringify(payloadObj));
+            const data = headerB64 + "." + payloadB64;
+            const hash = CryptoJS.HmacSHA256(data, secret);
+            const signature = base64UrlEncode(hash.toString(CryptoJS.enc.Base64));
+            return `${headerB64}.${payloadB64}.${signature}`;
+        }
+
+        // 主题逻辑，和首页互通localStorage
+        function initTheme() {
+            const saveTheme = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", saveTheme);
+            updateThemeIcon(saveTheme);
+        }
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById("themeIcon");
+            icon.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        }
+        function bindThemeToggle() {
+            const btn = document.getElementById("themeToggle");
+            btn.addEventListener("click", ()=>{
+                const current = document.documentElement.getAttribute("data-theme");
+                const next = current === "dark" ? "light" : "dark";
+                document.documentElement.setAttribute("data-theme", next);
+                localStorage.setItem("toolTheme", next);
+                updateThemeIcon(next);
+            })
+        }
+
+        function setMsg(text, isError=false){
+            const box = document.getElementById('msgBox');
+            box.innerText = text;
+            if(isError){
+                box.style.color='#f87171';
+            }else{
+                box.style.color='var(--text-sub)';
+            }
+        }
+
+        // 切换面板
+        function bindModeSwitch(){
+            const sel = document.getElementById('modeSelect');
+            const parsePanel = document.getElementById('parsePanel');
+            const generatePanel = document.getElementById('generatePanel');
+            sel.onchange = ()=>{
+                if(sel.value === 'parse'){
+                    parsePanel.classList.remove('hidden');
+                    generatePanel.classList.add('hidden');
+                    setMsg('');
+                }else{
+                    parsePanel.classList.add('hidden');
+                    generatePanel.classList.remove('hidden');
+                    setMsg('');
+                }
+            }
+        }
+
+        // JWT解析
+        function parseJwt(){
+            const token = document.getElementById('jwtToken').value.trim();
+            if(!token){
+                setMsg('请粘贴JWT Token字符串', true);
+                return;
+            }
+            try {
+                const parts = token.split('.');
+                if(parts.length!==3) throw new Error('不是合法JWT格式');
+                const headerJson = JSON.parse(base64UrlDecode(parts[0]));
+                const payloadJson = JSON.parse(base64UrlDecode(parts[1]));
+                document.getElementById('outHeader').value = JSON.stringify(headerJson,null,2);
+                document.getElementById('outPayload').value = JSON.stringify(payloadJson,null,2);
+                setMsg("解析成功！仅解析展示，不校验签名有效性");
+            }catch(e){
+                setMsg("解析失败："+e.message,true);
+            }
+        }
+
+        // JWT生成 HS256
+        function generateJwt(){
+            const secret = document.getElementById('jwtSecret').value.trim();
+            const payloadStr = document.getElementById('jwtPayload').value.trim();
+            if(!secret){
+                setMsg('请输入签名Secret密钥',true);
+                return;
+            }
+            let payload;
+            try{
+                payload = JSON.parse(payloadStr);
+            }catch(e){
+                setMsg('Payload JSON格式错误：'+e.message,true);
+                return;
+            }
+            try{
+                const token = signHS256(payload, secret);
+                document.getElementById('outToken').value = token;
+                setMsg("JWT生成成功");
+            }catch(err){
+                setMsg("生成失败："+err.message,true);
+            }
+        }
+
+        function clearParse(){
+            document.getElementById('jwtToken').value='';
+            document.getElementById('outHeader').value='';
+            document.getElementById('outPayload').value='';
+            setMsg('');
+        }
+        function clearGen(){
+            document.getElementById('jwtSecret').value='';
+            document.getElementById('jwtPayload').value='';
+            document.getElementById('outToken').value='';
+            setMsg('');
+        }
+
+        //复制
+        function bindCopy(){
+            document.querySelectorAll('.copyBtn').forEach(btn=>{
+                btn.onclick=async ()=>{
+                    const targetId = btn.dataset.copy;
+                    const val = document.getElementById('out'+targetId.charAt(0).toUpperCase()+targetId.slice(1)).value;
+                    try{
+                        await navigator.clipboard.writeText(val);
+                        const old = btn.innerHTML;
+                        btn.innerHTML='<i class="fa-solid fa-check"></i>已复制';
+                        setTimeout(()=>btn.innerHTML=old,1200);
+                    }catch(e){
+                        setMsg("复制失败，请手动复制",true);
+                    }
+                }
+            })
+        }
+
+        function bindEvents(){
+            document.getElementById('btnParse').onclick = parseJwt;
+            document.getElementById('btnGenerate').onclick = generateJwt;
+            document.getElementById('btnClearParse').onclick = clearParse;
+            document.getElementById('btnClearGen').onclick = clearGen;
+            bindCopy();
+        }
+
+        initTheme();
+        bindThemeToggle();
+        bindModeSwitch();
+        bindEvents();
+    </script>
+</body>
+</html>

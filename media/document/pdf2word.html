@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF转Word / HTML</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 依赖CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.2.4/build/docx.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+        // pdfjs worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-danger { @apply bg-red-500 text-white hover:bg-red-500/80; }
+            .btn-success { @apply bg-emerald-500 text-white hover:bg-emerald-500/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+            .drop-area { @apply border-2 border-dashed border-[var(--border)] rounded-lg p-8 text-center transition-colors; }
+            .drop-area.active { @apply border-primary bg-primary/5; }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
+            --text-main: #e2e8f0;--text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --text-main: #111827;--text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+        }
+        body::before{
+            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .sub-panel-bg { background-color: var(--card-sub); }
+        .text-sub-color { color: var(--text-sub); }
+        textarea,input,select {
+            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
+            font-family: Consolas,Menlo,monospace;
+        }
+        textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-file-pdf mr-2"></i>PDF转Word / HTML</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <div class="drop-area mb-6" id="dropArea">
+                <i class="fa-solid fa-cloud-upload text-4xl text-sub-color"></i>
+                <p class="mt-3 text-sub-color">拖拽PDF到此处，或者点击选择文件</p>
+                <input type="file" id="fileInput" accept=".pdf" class="hidden">
+                <button class="btn btn-primary mt-3" onclick="document.getElementById('fileInput').click()">选择PDF</button>
+            </div>
+
+            <div class="flex flex-wrap gap-3 mb-5">
+                <button class="btn btn-success" id="btnToDocx" disabled><i class="fa-solid fa-file-word"></i> 导出 DOCX(Word)</button>
+                <button class="btn btn-outline" id="btnToHtml" disabled><i class="fa-solid fa-file-code"></i> 导出 HTML</button>
+                <button class="btn btn-danger" id="btnClear" disabled><i class="fa-solid fa-trash"></i> 清空</button>
+            </div>
+
+            <div class="mb-3 text-sub-color text-sm">
+                <span>文件：<span id="fileName">-</span></span>
+                <span class="ml-4">总页数：<span id="pageCount">-</span></span>
+                <span class="ml-4">状态：<span id="status">等待上传PDF</span></span>
+            </div>
+
+            <div class="mb-2 font-medium">预览提取文本：</div>
+            <textarea id="resultText" class="w-full h-72 p-3 rounded-lg resize-y" readonly placeholder="提取的PDF文本会展示在这里"></textarea>
+
+            <div class="mt-4 text-sub-color text-sm">
+                ⚠️ 提示：仅提取PDF内置文本，<b>扫描版图片PDF无法识别</b>；复杂表格、图文混排排版会丢失，适合纯文字文档。
+            </div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | PDF转换</p>
+        </div>
+    </footer>
+
+    <script>
+        // 主题
+        function initTheme(){
+            const t=localStorage.getItem("toolTheme")||"dark";
+            document.documentElement.setAttribute("data-theme",t);
+            updateThemeIcon(t);
+        }
+        function updateThemeIcon(t){
+            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick=()=>{
+            const c=document.documentElement.getAttribute("data-theme");
+            const n=c==="dark"?"light":"dark";
+            document.documentElement.setAttribute("data-theme",n);
+            localStorage.setItem("toolTheme",n);
+            updateThemeIcon(n);
+        }
+        initTheme();
+
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const btnToDocx = document.getElementById('btnToDocx');
+        const btnToHtml = document.getElementById('btnToHtml');
+        const btnClear = document.getElementById('btnClear');
+        const resultText = document.getElementById('resultText');
+        const fileNameEl = document.getElementById('fileName');
+        const pageCountEl = document.getElementById('pageCount');
+        const statusEl = document.getElementById('status');
+
+        let pdfFile = null;
+        let fullText = '';
+        let pageTotal = 0;
+
+        // 拖拽
+        dropArea.ondragover = (e)=>{e.preventDefault(); dropArea.classList.add('active');}
+        dropArea.ondragleave = ()=>dropArea.classList.remove('active');
+        dropArea.ondrop = async (e)=>{
+            e.preventDefault(); dropArea.classList.remove('active');
+            const f = e.dataTransfer.files[0];
+            if(f && f.name.endsWith('.pdf')) await loadPdf(f);
+        }
+        fileInput.onchange = async ()=>{
+            const f = fileInput.files[0];
+            if(f) await loadPdf(f);
+        }
+
+        async function loadPdf(file){
+            pdfFile = file;
+            fileNameEl.innerText = file.name;
+            statusEl.innerText = "正在解析PDF...";
+            fullText = '';
+            resultText.value = '';
+            try{
+                const arrayBuf = await file.arrayBuffer();
+                const pdfDoc = await pdfjsLib.getDocument(arrayBuf).promise;
+                pageTotal = pdfDoc.numPages;
+                pageCountEl.innerText = pageTotal;
+
+                for(let i=1;i<=pageTotal;i++){
+                    statusEl.innerText = `正在读取第 ${i}/${pageTotal} 页`;
+                    const page = await pdfDoc.getPage(i);
+                    const content = await page.getTextContent();
+                    const pageTxt = content.items.map(it=>it.str).join(' ');
+                    fullText += `\n\n===== 第${i}页 =====\n${pageTxt}`;
+                }
+                resultText.value = fullText.trim();
+                statusEl.innerText = "✅ 解析完成";
+                btnToDocx.disabled = false;
+                btnToHtml.disabled = false;
+                btnClear.disabled = false;
+            }catch(err){
+                console.error(err);
+                statusEl.innerText = "❌ PDF解析失败";
+            }
+        }
+
+        // 导出docx
+        btnToDocx.onclick = async ()=>{
+            if(!fullText) return;
+            statusEl.innerText = "正在生成Word文档...";
+            try{
+                const { Document, Packer, Paragraph, TextRun } = docx;
+                const paras = fullText.split('\n').map(line=>{
+                    return new Paragraph({ children: [new TextRun(line)] });
+                })
+                const doc = new Document({ sections: [{ properties: {}, children: paras }] });
+                const blob = await Packer.toBlob(doc);
+                saveAs(blob, pdfFile.name.replace('.pdf','.docx'));
+                statusEl.innerText = "✅ DOCX已下载";
+            }catch(e){
+                statusEl.innerText = "❌ 生成docx失败";
+                console.error(e);
+            }
+        }
+
+        // 导出html
+        btnToHtml.onclick = ()=>{
+            if(!fullText) return;
+            statusEl.innerText = "生成HTML文件";
+            const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>${pdfFile.name.replace('.pdf','')}</title>
+<style>body{max-width:900px;margin:2rem auto;padding:0 1rem;font-size:16px;line-height:1.7;}</style>
+</head>
+<body>
+<pre>${fullText}</pre>
+</body>
+</html>`;
+            const blob = new Blob([html], {type:"text/html;charset=utf-8"});
+            saveAs(blob, pdfFile.name.replace('.pdf','.html'));
+            statusEl.innerText = "✅ HTML已下载";
+        }
+
+        btnClear.onclick = ()=>{
+            pdfFile = null; fullText = ''; pageTotal=0;
+            fileInput.value = '';
+            fileNameEl.innerText = '-';
+            pageCountEl.innerText = '-';
+            resultText.value = '';
+            statusEl.innerText = "等待上传PDF";
+            btnToDocx.disabled = true;
+            btnToHtml.disabled = true;
+            btnClear.disabled = true;
+        }
+    </script>
+</body>
+</html>

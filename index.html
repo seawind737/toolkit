@@ -51,7 +51,6 @@
                 to { opacity: 1; transform: translateX(0); }
             }
         }
-
         /* 主题CSS变量 */
         html[data-theme="dark"] {
             --bg: #0f172a;
@@ -71,7 +70,6 @@
             --text-sub: #64748b;
             --card-glow: rgba(59,130,246,0.06);
         }
-
         body {
             background-color: var(--bg);
             color: var(--text-main);
@@ -97,7 +95,6 @@
             linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
             background-size:28px 28px;
         }
-
         .nav-bar-bg {
             background-color: var(--card);
             border-color: var(--border);
@@ -124,7 +121,6 @@
         .text-sub-color {
             color: var(--text-sub);
         }
-
         .dropdown-level1 {
             position: absolute;
             left: 0;
@@ -173,7 +169,6 @@
         <div id="mobileMenu" class="md:hidden hidden px-4 pb-3 border-t nav-bar-bg">
         </div>
     </nav>
-
     <main class="container mx-auto px-4 py-10 max-w-6xl flex-grow">
         <!-- 头部标题+搜索 -->
         <header class="text-center mb-12">
@@ -189,12 +184,10 @@
                 </div>
             </div>
         </header>
-
         <!-- 工具容器（JS渲染） -->
         <div id="toolContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         </div>
     </main>
-
     <!-- 底部版权归属 -->
     <footer class="nav-bar-bg border-t py-6 mt-10">
         <div class="container mx-auto px-4 text-center text-sub-color text-sm">
@@ -202,40 +195,57 @@
             <p class="mt-1">© 2026 工具集 | 静态本地网页，不上传用户数据</p>
         </div>
     </footer>
-
     <script>
-        // ===================== 菜单配置【支持三级 children 嵌套】 =====================
-        const menuList = [
+        // ===================== 【合并后统一应用配置】homeRecommend:true 首页卡片显示 =====================
+        const appList = [
             { name: '首页', url: './index.html', icon: 'fa-house' },
             {
                 name: '开发工具',
                 icon: 'fa-code',
+                groupName:"开发工具",
+                groupIcon:"fa-code",
+                groupColor:"text-primary",
+                bgColor:"bg-primary/15",
                 children: [
-                    { name: 'JSON工具', url: './dev/json.html', icon: 'fa-brackets-curly' },
+                    { name: 'JSON工具', url: './json/json.html', icon: 'fa-file-code', desc:"JSON压缩、美化、校验", homeRecommend:true },
                     {
-                        name: '编码转换',
+                        name: '编码解码',
                         icon: 'fa-lock',
                         children: [
-                            { name: 'Base64', url: './dev/base64.html', icon: 'fa-lock' },
-                            { name: 'MD5', url: './dev/md5.html', icon: 'fa-fingerprint' },
-                            { name: 'SHA', url: './dev/sha.html', icon: 'fa-shield-halved' },
-							{ name: 'JWT', url: './dev/encrypt/jwt.html', icon: 'fa-shield-halved' },
+                            { name: 'Base64', url: './dev/code/base64.html', icon: 'fa-lock', desc:"文本Base64加密解密", homeRecommend:true },
+                            { name: 'MD5', url: './dev/code/md5.html', icon: 'fa-fingerprint', desc:"MD5哈希计算", homeRecommend:false },
+                            { name: 'SHA哈希', url: './dev/code/sha.html', icon: 'fa-shield-halved', desc:"SHA1/SHA256/SHA512哈希", homeRecommend:false },
+                            { name: 'JWT', url: './dev/code/jwt.html', icon: 'fa-key', desc:"JWT解析生成", homeRecommend:false },
+                            { name: 'URL编解码', url:'./dev/code/url.html', icon:'fa-link', desc:"URL编码解码", homeRecommend:false }
                         ]
                     },
-                    { name: '时间工具', url: './dev/timestamp.html', icon: 'fa-clock' },
+                    { name: '时间工具', url: './time/timestamp.html', icon: 'fa-clock', desc:"时间戳与日期互转", homeRecommend:true },
+                    {
+                        name: '网络工具',
+                        icon:"fa-solid fa-globe",
+                        children: [
+                            { name: 'Websocket', url: './network/ws.html', icon: 'fa-comments', desc:"WebSocket调试", homeRecommend:false }
+                        ]
+                    }
                 ]
             },
             {
                 name: '文本工具',
                 icon: 'fa-file-lines',
+                groupName:"文本工具",
+                groupIcon:"fa-file-lines",
+                groupColor:"text-emerald-400",
+                bgColor:"bg-emerald-400/15",
                 children: [
-                    { name: '大小写转换', url: './text/case.html', icon: 'fa-font' },
+                    { name: '大小写转换', url: './text/case.html', icon: 'fa-font', desc:"大写、小写、首字母大写", homeRecommend:true },
+                    { name: '随机密码', url: './text/pwd.html', icon: 'fa-wand-magic-sparkles', desc:"高强度密码批量生成", homeRecommend:true },
+                    { name:"文本压缩", url:"./text/compress.html", icon:"fa-compress-arrows-alt", desc:"gzip/deflate文本压缩解压", homeRecommend:false },
                     {
                         name: '文本处理',
                         icon: 'fa-list',
                         children: [
-                            { name: '去重统计', url: './text/unique.html', icon: 'fa-list-check' },
-                            { name: '正则测试', url: './text/regex.html', icon: 'fa-asterisk' },
+                            { name: '去重统计', url: './text/unique.html', icon: 'fa-list-check', desc:"行去重、计数、排序", homeRecommend:true },
+                            { name: '正则测试', url: './text/regex.html', icon: 'fa-asterisk', desc:"正则匹配替换测试", homeRecommend:false },
                         ]
                     }
                 ]
@@ -243,58 +253,88 @@
             {
                 name: '图片媒体',
                 icon: 'fa-image',
+                groupName:"图片媒体",
+                groupIcon:"fa-image",
+                groupColor:"text-amber-400",
+                bgColor:"bg-amber-400/15",
                 children: [
-                    { name: '图片压缩', url: './image/compress.html', icon: 'fa-compress' },
-                    { name: '取色器', url: './image/color.html', icon: 'fa-droplet' },
-                ]
-            },
-            { name: '其他工具', url: './other.html', icon: 'fa-ellipsis' },
-        ];
-
-        // ===================== 首页工具配置 =====================
-        const toolList = [
-            {
-                groupName: "开发工具",
-                groupIcon: "fa-code",
-                groupColor: "text-primary",
-                bgColor: "bg-primary/15",
-                tools: [
-                    { name: "JSON格式化", desc: "JSON压缩、美化、校验", url: "./dev/json.html", icon: "fa-brackets-curly" },
-                    { name: "时间戳转换", desc: "时间戳与日期互转", url: "./dev/timestamp.html", icon: "fa-clock" },
-                    { name: "Base64编解码", desc: "文本Base64加密解密", url: "./dev/base64.html", icon: "fa-lock" },
+                    { name: '图片压缩', url: './media/image/compress.html', icon: 'fa-image', desc:"本地无损压缩图片", homeRecommend:true },
+                    { name: '取色器', url: './media/image/color.html', icon: 'fa-droplet', desc:"HEX/RGB颜色转换", homeRecommend:true },
                 ]
             },
             {
-                groupName: "文本工具",
-                groupIcon: "fa-file-lines",
-                groupColor: "text-emerald-400",
-                bgColor: "bg-emerald-400/15",
-                tools: [
-                    { name: "大小写转换", desc: "大写、小写、首字母大写", url: "./text/case.html", icon: "fa-font" },
-                    { name: "文本去重统计", desc: "行去重、计数、排序", url: "./text/unique.html", icon: "fa-list-check" },
+                name: '其他工具',
+                icon: 'fa-ellipsis',
+                groupName:"其他工具",
+                groupIcon:"fa-ellipsis",
+                groupColor:"text-rose-400",
+                bgColor:"bg-rose-400/15",
+                children: [
+                    { name: '二维码', url: './other/qrcode.html', icon: 'fa-qrcode', desc:"文本链接生成二维码", homeRecommend:true },
                 ]
             },
             {
-                groupName: "图片媒体",
-                groupIcon: "fa-image",
-                groupColor: "text-amber-400",
-                bgColor: "bg-amber-400/15",
-                tools: [
-                    { name: "图片压缩", desc: "本地无损压缩图片", url: "./image/compress.html", icon: "fa-compress" },
-                    { name: "颜色取色器", desc: "HEX/RGB颜色转换", url: "./image/color.html", icon: "fa-droplet" },
-                ]
-            },
-            {
-                groupName: "其他工具",
-                groupIcon: "fa-ellipsis",
-                groupColor: "text-rose-400",
-                bgColor: "bg-rose-400/15",
-                tools: [
-                    { name: "二维码生成", desc: "文本链接生成二维码", url: "./other/qrcode.html", icon: "fa-qrcode" },
-                    { name: "随机密码生成", desc: "高强度密码批量生成", url: "./other/pwd.html", icon: "fa-key" },
+                name: '小游戏',
+                icon: 'fa-gamepad',
+                groupName:"小游戏",
+                groupIcon:"fa-gamepad",
+                groupColor:"text-rose-400",
+                bgColor:"bg-rose-400/15",
+                children: [
+                    { name: '扫雷', url: './game/mine.html', icon: 'fa-bomb', desc:"扫雷小游戏", homeRecommend:true },
                 ]
             }
+
         ];
+
+        // ========= 从appList提取菜单树（用于顶部导航PC/移动端渲染）直接复制结构 =========
+        function buildMenuList(apps){
+            return JSON.parse(JSON.stringify(apps));
+        }
+
+        // ========= 提取首页卡片工具列表，按group分组（递归遍历，收集homeRecommend=true） =========
+        function buildToolList(apps){
+            const groupMap = {};
+            // 递归遍历
+            function walk(list,parentGroup){
+                for(const item of list){
+                    if(item.children && item.children.length>0){
+                        // 分组节点，保存分组信息
+                        const gInfo = {
+                            groupName:item.groupName,
+                            groupIcon:item.groupIcon,
+                            groupColor:item.groupColor,
+                            bgColor:item.bgColor
+                        };
+                        walk(item.children, gInfo);
+                    }else{
+                        if(item.homeRecommend === true && parentGroup?.groupName){
+                            if(!groupMap[parentGroup.groupName]){
+                                groupMap[parentGroup.groupName] = {
+                                    groupName:parentGroup.groupName,
+                                    groupIcon:parentGroup.groupIcon,
+                                    groupColor:parentGroup.groupColor,
+                                    bgColor:parentGroup.bgColor,
+                                    tools:[]
+                                }
+                            }
+                            groupMap[parentGroup.groupName].tools.push({
+                                name:item.name,
+                                desc:item.desc||"",
+                                url:item.url,
+                                icon:item.icon
+                            })
+                        }
+                    }
+                }
+            }
+            walk(apps,null);
+            return Object.values(groupMap);
+        }
+
+        // 生成实际渲染用的两份数据
+        const menuList = buildMenuList(appList);
+        const toolList = buildToolList(appList);
 
         // ========== 主题切换逻辑 localStorage持久 ==========
         function initTheme() {
@@ -316,7 +356,6 @@
                 updateThemeIcon(next);
             })
         }
-
         // ========== 递归渲染PC端一级菜单 ==========
         function renderDesktopMenu(items) {
             let html = '';
@@ -335,12 +374,11 @@
                         </div>
                     `;
                 } else {
-                    html += `<a href="${item.url}" class="nav-link"><i class="fa-solid ${item.icon} mr-1"></i>${item.name}</a>`;
+                    html += `<a href="${item.url}" class="nav-link" target="_blank"><i class="fa-solid ${item.icon} mr-1"></i>${item.name}</a>`;
                 }
             })
             return html;
         }
-
         // ========== 渲染二级菜单（二级条目hover才弹出三级） ==========
         function renderDesktopLevel2(items) {
             let html = '';
@@ -358,21 +396,19 @@
                         </div>
                     `;
                 } else {
-                    html += `<a href="${item.url}" class="submenu-item"><i class="fa-solid ${item.icon} mr-1"></i>${item.name}</a>`;
+                    html += `<a href="${item.url}" class="submenu-item" target="_blank"><i class="fa-solid ${item.icon} mr-1"></i>${item.name}</a>`;
                 }
             })
             return html;
         }
-
         // ========== 渲染三级菜单 ==========
         function renderDesktopLevel3(items) {
             let html = '';
             items.forEach(item => {
-                html += `<a href="${item.url}" class="submenu-item"><i class="fa-solid ${item.icon} mr-1"></i>${item.name}</a>`;
+                html += `<a href="${item.url}" target="_blank" class="submenu-item"><i class="fa-solid ${item.icon} mr-1"></i>${item.name}</a>`;
             })
             return html;
         }
-
         // ========== 递归渲染移动端菜单（点击展开） ==========
         function renderMobileMenu(items, level = 0) {
             let html = '';
@@ -396,12 +432,10 @@
             })
             return html;
         }
-
         // ========== 渲染入口 ==========
         function renderMenu() {
             document.getElementById('desktopMenu').innerHTML = renderDesktopMenu(menuList);
             document.getElementById('mobileMenu').innerHTML = renderMobileMenu(menuList);
-
             // PC一级菜单点击切换下拉
             const toggles = document.querySelectorAll('.pc-menu-toggle');
             toggles.forEach(btn => {
@@ -410,7 +444,6 @@
                     const dropId = btn.dataset.drop;
                     const dropDom = document.getElementById(dropId);
                     const icon = btn.querySelector('.fa-chevron-down');
-
                     // 关闭其他所有下拉
                     document.querySelectorAll('.dropdown-level1').forEach(d => {
                         if(d.id !== dropId) d.classList.remove('open');
@@ -418,18 +451,15 @@
                     document.querySelectorAll('.pc-menu-toggle .fa-chevron-down').forEach(i=>{
                         if(i !== icon) i.classList.remove('rotate-180');
                     })
-
                     dropDom.classList.toggle('open');
                     icon.classList.toggle('rotate-180');
                 }
             })
-
             // 点击页面空白关闭所有下拉
             document.addEventListener('click', () => {
                 document.querySelectorAll('.dropdown-level1').forEach(d=>d.classList.remove('open'));
                 document.querySelectorAll('.pc-menu-toggle .fa-chevron-down').forEach(i=>i.classList.remove('rotate-180'));
             })
-
             // 移动端子菜单点击事件
             document.querySelectorAll('#mobileMenu button[data-target]').forEach(btn => {
                 btn.onclick = (e) => {
@@ -441,7 +471,6 @@
                 }
             })
         }
-
         // ========== 渲染工具列表 ==========
         function renderTools(list) {
             const container = document.getElementById('toolContainer');
@@ -473,7 +502,6 @@
             })
             container.innerHTML = html;
         }
-
         // ========== 搜索过滤 ==========
         function bindSearch() {
             const searchInput = document.getElementById('searchInput');
@@ -496,7 +524,6 @@
                 })
             })
         }
-
         // ========== 移动端总菜单开关 ==========
         function bindMobileMenu() {
             const btn = document.getElementById('menuBtn');
@@ -508,7 +535,6 @@
                 icon.className = mobileMenu.classList.contains('hidden') ? 'fa-solid fa-bars' : 'fa-solid fa-xmark';
             })
         }
-
         // 初始化
         initTheme();
         bindThemeToggle();

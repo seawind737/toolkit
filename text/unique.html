@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本去重</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-danger { @apply bg-red-500 text-white hover:bg-red-500/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
+            --text-main: #e2e8f0;--text-sub: #94a3b8;--card-glow: rgba(59,130,246,0.08);
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --text-main: #111827;--text-sub: #64748b;--card-glow: rgba(59,130,246,0.06);
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+        }
+        body::before{
+            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .sub-panel-bg { background-color: var(--card-sub); }
+        .text-sub-color { color: var(--text-sub); }
+        textarea,input,select {
+            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
+            font-family: Consolas,Menlo,monospace;
+        }
+        textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
+        .copy-btn-inline { cursor:pointer; opacity:0.65; margin-left:8px; }
+        .copy-btn-inline:hover { opacity:1; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="./index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient">文本去重</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <div class="flex flex-wrap gap-2 mb-5">
+                <button class="btn btn-primary" id="btnUnique">去重</button>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="ignoreCase">忽略大小写
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="trimLine">去除每行前后空格
+                </label>
+                <button class="btn btn-danger" id="btnClear">清空</button>
+            </div>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="flex flex-col gap-3">
+                    <label class="text-sub-color">输入（一行一条）</label>
+                    <textarea id="srcText" rows="8" placeholder="a&#10;b&#10;a"></textarea>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <label class="text-sub-color">结果 <i class="fa-solid fa-copy copy-btn-inline" id="copyResult" title="复制"></i></label>
+                    <textarea id="outText" rows="8" readonly></textarea>
+                </div>
+            </div>
+            <div class="mt-4">
+                <label class="block mb-1 text-sub-color">状态信息</label>
+                <div id="msgBox" class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color"></div>
+            </div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 纯前端本地处理</p>
+        </div>
+    </footer>
+    <script>
+        function initTheme(){
+            const t=localStorage.getItem("toolTheme")||"dark";
+            document.documentElement.setAttribute("data-theme",t);
+            updateThemeIcon(t);
+        }
+        function updateThemeIcon(t){
+            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick=()=>{
+            const c=document.documentElement.getAttribute("data-theme");
+            const n=c==="dark"?"light":"dark";
+            document.documentElement.setAttribute("data-theme",n);
+            localStorage.setItem("toolTheme",n);
+            updateThemeIcon(n);
+        }
+        const src=document.getElementById("srcText");
+        const out=document.getElementById("outText");
+        const ignoreCase=document.getElementById("ignoreCase");
+        const trimLine=document.getElementById("trimLine");
+        const msgBox=document.getElementById("msgBox");
+        const copyBtn=document.getElementById("copyResult");
+        function setMsg(txt,err=false){
+            msgBox.innerText=txt;
+            msgBox.style.color=err?"#f87171":"var(--text-sub)";
+        }
+        document.getElementById("btnUnique").onclick=()=>{
+            const lines=src.value.split("\n");
+            const set=new Map();
+            for(let line of lines){
+                let raw=line;
+                if(trimLine.checked) raw=raw.trim();
+                let key=ignoreCase.checked?raw.toLowerCase():raw;
+                if(!set.has(key)) set.set(key,raw);
+            }
+            const res=[...set.values()].join("\n");
+            out.value=res;
+            setMsg(`✅ 去重完成，共 ${set.size} 条`);
+        }
+        document.getElementById("btnClear").onclick=()=>{src.value="";out.value="";setMsg("");}
+        copyBtn.onclick=async()=>{
+            if(!out.value){setMsg("暂无内容",true);return;}
+            try{await navigator.clipboard.writeText(out.value);setMsg("✅ 已复制");}
+            catch{e=>setMsg("❌ 复制失败",true)}
+        }
+        initTheme();
+    </script>
+</body>
+</html>

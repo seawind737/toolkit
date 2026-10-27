@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片压缩</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
+            .btn-sm { @apply px-2 py-1 text-sm rounded-lg transition-all duration-200; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-danger { @apply bg-red-500 text-white hover:bg-red-500/80; }
+            .btn-success { @apply bg-emerald-500 text-white hover:bg-emerald-500/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+            .drop-area { @apply border-2 border-dashed border-[var(--border)] rounded-lg p-8 text-center transition-colors; }
+            .drop-area.active { @apply border-primary bg-primary/5; }
+            .modal-mask { @apply fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4; }
+            /* 专门用于控制隐藏，只做 display:none */
+            .modal-hide { @apply hidden !important; }
+            /* 修改这里调弹窗大小 */
+            .modal-wrap { 
+                @apply tool-card w-full max-w-[90vw] max-h-[95vh] overflow-auto rounded-xl p-5; 
+            }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
+            --text-main: #e2e8f0;--text-sub: #94a3b8;--card-glow: rgba(59,130,246,0.08);
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --text-main: #111827;--text-sub: #64748b;--card-glow: rgba(59,130,246,0.06);
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+        }
+        body::before{
+            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .sub-panel-bg { background-color: var(--card-sub); }
+        .text-sub-color { color: var(--text-sub); }
+        textarea,input,select {
+            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
+            font-family: Consolas,Menlo,monospace;
+        }
+        textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
+        .copy-btn-inline { cursor:pointer; opacity:0.65; margin-left:8px; }
+        .copy-btn-inline:hover { opacity:1; }
+        table{width:100%;border-collapse:collapse;}
+        th,td{border:1px solid var(--border);padding:8px 10px;text-align:left;}
+        th{background-color:var(--card-sub);}
+        .img-preview-max { max-width:100%; max-height:60vh; object-fit:contain; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="./index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient">图片压缩</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <!-- 全部同一行布局 -->
+            <div class="flex flex-wrap gap-3 mb-5 items-end">
+                <div class="flex flex-col gap-2">
+                    <label class="text-sub-color">压缩质量 <span id="qualityVal">0.8</span></label>
+                    <input type="range" id="quality" min="0.1" max="1" step="0.05" value="0.8" class="w-36">
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="text-sub-color">输出格式</label>
+                    <select id="outType" class="w-28">
+                        <option value="image/jpeg">JPG</option>
+                        <option value="image/png">PNG</option>
+                        <option value="image/webp">WebP</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="text-sub-color">文件名后缀</label>
+                    <input id="fileNameSuffix" value="_compress" placeholder="空=使用原文件名" class="w-36">
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button class="btn btn-primary" id="btnCompressAll"><i class="fa-solid fa-compress"></i>全部压缩</button>
+                    <button class="btn btn-success" id="btnDownloadZip"><i class="fa-solid fa-file-zipper"></i>ZIP打包</button>
+                    <button class="btn btn-success" id="btnDownloadSingle"><i class="fa-solid fa-download"></i>逐个下载</button>
+                    <button class="btn btn-danger" id="btnClear"><i class="fa-solid fa-eraser"></i>清空列表</button>
+                </div>
+            </div>
+
+            <div id="dropArea" class="drop-area mb-5">
+                <i class="fa-solid fa-cloud-upload-alt text-4xl text-sub-color"></i>
+                <p class="mt-3 text-sub-color">拖拽多张图片到此处 / 点击上传 / Ctrl+V粘贴图片，支持多选</p>
+                <input type="file" id="fileInput" accept="image/*" multiple class="hidden">
+            </div>
+
+            <!-- 图片列表表格，第一列为选择框，表头全选 -->
+            <div class="mb-5 overflow-auto max-h-[420px]">
+                <table id="imageTable">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="checkAll"></th>
+                            <th>文件名</th>
+                            <th>原始大小</th>
+                            <th>压缩后大小</th>
+                            <th>压缩率</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="imageTbody">
+                        <tr><td colspan="7" class="text-sub-color text-center">暂无图片</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4">
+                <label class="block mb-1 text-sub-color">状态信息</label>
+                <div id="msgBox" class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 预览弹窗模态框 -->
+    <div id="previewModal" class="modal-mask modal-hide">
+        <div class="modal-wrap">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold">图片对比预览</h3>
+                <button id="modalClose" class="btn btn-outline"><i class="fa-solid fa-xmark"></i>关闭</button>
+            </div>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <h4 class="mb-2 text-sub-color">原图</h4>
+                    <img id="modalOrgImg" class="img-preview-max">
+                </div>
+                <div>
+                    <h4 class="mb-2 text-sub-color">压缩后</h4>
+                    <img id="modalCompImg" class="img-preview-max">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 纯前端本地处理，不上传图片</p>
+        </div>
+    </footer>
+
+    <script>
+        function initTheme(){
+            const t=localStorage.getItem("toolTheme")||"dark";
+            document.documentElement.setAttribute("data-theme",t);
+            updateThemeIcon(t);
+        }
+        function updateThemeIcon(t){
+            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick=()=>{
+            const c=document.documentElement.getAttribute("data-theme");
+            const n=c==="dark"?"light":"dark";
+            document.documentElement.setAttribute("data-theme",n);
+            localStorage.setItem("toolTheme",n);
+            updateThemeIcon(n);
+        }
+
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const qualityEl = document.getElementById('quality');
+        const qualityVal = document.getElementById('qualityVal');
+        const outType = document.getElementById('outType');
+        const fileNameSuffixEl = document.getElementById('fileNameSuffix');
+        const msgBox = document.getElementById('msgBox');
+        const imageTbody = document.getElementById('imageTbody');
+        const checkAllEl = document.getElementById('checkAll');
+
+        //弹窗dom
+        const previewModal = document.getElementById('previewModal');
+        const modalCloseBtn = document.getElementById('modalClose');
+        const modalOrgImg = document.getElementById('modalOrgImg');
+        const modalCompImg = document.getElementById('modalCompImg');
+
+        // [{file, name, sizeOrg, blobCompressed, sizeCompressed, rate, status, selected}]
+        let imageList = [];
+
+        function setMsg(txt,err=false){
+            msgBox.innerText=txt;
+            msgBox.style.color=err?"#f87171":"var(--text-sub)";
+        }
+        function formatSize(b){
+            if(!b) return "-";
+            if(b<1024) return b + ' B';
+            if(b<1024*1024) return (b/1024).toFixed(2)+' KB';
+            return (b/(1024*1024)).toFixed(2)+' MB';
+        }
+
+        qualityEl.oninput = ()=>{
+            qualityVal.textContent = qualityEl.value;
+        }
+        dropArea.onclick = ()=> fileInput.click();
+        dropArea.ondragover = (e)=>{ e.preventDefault(); dropArea.classList.add('active'); }
+        dropArea.ondragleave = ()=> dropArea.classList.remove('active');
+        dropArea.ondrop = (e)=>{
+            e.preventDefault(); dropArea.classList.remove('active');
+            handleFiles(e.dataTransfer.files);
+        }
+        document.addEventListener('paste', async (e)=>{
+            const items = e.clipboardData.items;
+            const arr = [];
+            for(let it of items){
+                if(it.type.startsWith('image/')){
+                    arr.push(it.getAsFile());
+                }
+            }
+            if(arr.length>0) handleFiles(arr);
+        })
+        fileInput.onchange = ()=>{
+            handleFiles(fileInput.files);
+        }
+
+        function handleFiles(fileList){
+            const arr = Array.from(fileList).filter(f=>f.type.startsWith("image/"));
+            if(arr.length===0){
+                setMsg("未识别到图片文件",true);
+                return;
+            }
+            for(const f of arr){
+                const exist = imageList.find(x=>x.file===f);
+                if(exist) continue;
+                imageList.push({
+                    file:f,
+                    name:f.name,
+                    sizeOrg:f.size,
+                    blobCompressed:null,
+                    sizeCompressed:null,
+                    rate:null,
+                    status:"待压缩",
+                    selected:false
+                })
+            }
+            renderTable();
+            setMsg(`✅ 已添加 ${arr.length} 张图片`);
+        }
+
+        function renderTable(){
+            if(imageList.length===0){
+                imageTbody.innerHTML = `<tr><td colspan="7" class="text-sub-color text-center">暂无图片</td></tr>`;
+                checkAllEl.checked = false;
+                return;
+            }
+            let html = "";
+            for(let idx=0;idx<imageList.length;idx++){
+                const item = imageList[idx];
+                const disBtn = item.status==='已压缩' ? "" : "disabled";
+                html += `<tr>
+                    <td><input type="checkbox" class="row-check" data-idx="${idx}" ${item.selected?"checked":""}></td>
+                    <td>${escapeHtml(item.name)}</td>
+                    <td>${formatSize(item.sizeOrg)}</td>
+                    <td>${formatSize(item.sizeCompressed)}</td>
+                    <td>${item.rate!==null ? item.rate.toFixed(1)+"%" : "-"}</td>
+                    <td class="text-sub-color">${item.status}</td>
+                    <td>
+                        <button class="btn btn-outline btn-sm preview-btn" data-idx="${idx}" ${disBtn}>
+                            <i class="fa-solid fa-eye"></i>预览
+                        </button>
+                    </td>
+                </tr>`;
+            }
+            imageTbody.innerHTML = html;
+
+            //行复选框事件
+            document.querySelectorAll(".row-check").forEach(cb=>{
+                cb.onchange = function(){
+                    const i = Number(this.dataset.idx);
+                    imageList[i].selected = this.checked;
+                }
+            })
+            //预览按钮
+            document.querySelectorAll(".preview-btn").forEach(btn=>{
+                btn.onclick=()=>{
+                    const i = Number(btn.dataset.idx);
+                    openPreviewModal(i);
+                }
+            })
+        }
+        function escapeHtml(s){
+            return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+        }
+
+        //全选/取消全选
+        checkAllEl.onchange = function(){
+            const isChecked = this.checked;
+            imageList.forEach(item=>{
+                item.selected = isChecked;
+            })
+            renderTable();
+        }
+
+        function openPreviewModal(index){
+            const item = imageList[index];
+            if(!item.blobCompressed){
+                setMsg("需要先完成压缩才能预览",true);
+                return;
+            }
+            // 修复预览失效：不在此处 revokeObjectURL
+            modalOrgImg.src = URL.createObjectURL(item.file);
+            modalCompImg.src = URL.createObjectURL(item.blobCompressed);
+            previewModal.classList.remove("modal-hide");
+        }
+        function closePreviewModal(){
+            previewModal.classList.add("modal-hide");
+            modalOrgImg.src = "";
+            modalCompImg.src = "";
+        }
+        modalCloseBtn.onclick = closePreviewModal;
+        previewModal.onclick = (e)=>{
+            if(e.target === previewModal) closePreviewModal();
+        }
+
+        //单张压缩，修复：不在内部 revokeObjectURL，防止预览图片失效
+        async function compressOneFile(file, quality, mime){
+            return new Promise((resolve,reject)=>{
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = async ()=>{
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img,0,0);
+                    canvas.toBlob((blob)=>{
+                        if(!blob) return reject(new Error("生成blob失败"));
+                        resolve(blob);
+                    }, mime, quality);
+                };
+                img.onerror = ()=>{ reject(new Error("图片加载失败")); };
+                img.src = url;
+            })
+        }
+
+        //全部压缩
+        document.getElementById("btnCompressAll").onclick = async ()=>{
+            if(imageList.length===0){
+                setMsg("请先添加图片",true);
+                return;
+            }
+            const quality = Number(qualityEl.value);
+            const mime = outType.value;
+            let okCount = 0;
+            for(let item of imageList){
+                if(item.status === "已压缩") continue;
+                item.status = "压缩中...";
+                renderTable();
+                try{
+                    const blob = await compressOneFile(item.file, quality, mime);
+                    item.blobCompressed = blob;
+                    item.sizeCompressed = blob.size;
+                    item.rate = (1 - blob.size / item.sizeOrg)*100;
+                    item.status = "已压缩";
+                    okCount++;
+                }catch(err){
+                    item.status = "失败:"+err.message;
+                }
+                renderTable();
+            }
+            setMsg(`✅ 压缩完成：成功${okCount}/${imageList.length}`);
+        }
+
+        //生成输出文件名
+        function getOutputFileName(originalName, suffix, ext){
+            const dotIdx = originalName.lastIndexOf('.');
+            let base = originalName;
+            if(dotIdx>0) base = originalName.substring(0, dotIdx);
+            return base + suffix + "." + ext;
+        }
+
+        //ZIP打包下载选中
+        document.getElementById("btnDownloadZip").onclick = async ()=>{
+            const suffix = fileNameSuffixEl.value;
+            const mime = outType.value;
+            let ext = "jpg";
+            if(mime==="image/png") ext="png";
+            if(mime==="image/webp") ext="webp";
+
+            const readyList = imageList.filter(x=>x.selected && x.blobCompressed!==null);
+            if(readyList.length===0){
+                setMsg("请勾选已压缩的图片",true);
+                return;
+            }
+            setMsg("⏳正在生成ZIP压缩包，请稍候...");
+            const zip = new JSZip();
+            for(const item of readyList){
+                const outName = getOutputFileName(item.name, suffix, ext);
+                zip.file(outName, item.blobCompressed);
+            }
+            const zipBlob = await zip.generateAsync({type:"blob"});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(zipBlob);
+            a.download = "compressed_images.zip";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+            setMsg(`✅ ZIP包已下载，共${readyList.length}张图片`);
+        }
+
+        //逐个下载选中
+        document.getElementById("btnDownloadSingle").onclick = async ()=>{
+            const suffix = fileNameSuffixEl.value;
+            const mime = outType.value;
+            let ext = "jpg";
+            if(mime==="image/png") ext="png";
+            if(mime==="image/webp") ext="webp";
+
+            const readyList = imageList.filter(x=>x.selected && x.blobCompressed!==null);
+            if(readyList.length===0){
+                setMsg("请勾选已压缩的图片",true);
+                return;
+            }
+            for(const item of readyList){
+                const outName = getOutputFileName(item.name, suffix, ext);
+                const url = URL.createObjectURL(item.blobCompressed);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = outName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                await sleep(220);
+            }
+            setMsg(`✅ 开始逐个下载 ${readyList.length} 张图片`);
+        }
+        function sleep(ms){
+            return new Promise(res=>setTimeout(res,ms));
+        }
+
+        document.getElementById("btnClear").onclick = ()=>{
+            imageList = [];
+            fileInput.value = "";
+            renderTable();
+            closePreviewModal();
+            setMsg("");
+        }
+
+        initTheme();
+    </script>
+</body>
+</html>

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON格式化工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .card-hover {
+                @apply transition-all duration-300 hover:shadow-xl;
+            }
+            .text-gradient {
+                @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400;
+            }
+            .btn {
+                @apply px-4 py-2 rounded-lg transition-all duration-200;
+            }
+            .btn-primary {
+                @apply bg-primary text-white hover:bg-primary/80;
+            }
+            .btn-danger {
+                @apply bg-red-500 text-white hover:bg-red-500/80;
+            }
+            .btn-success {
+                @apply bg-emerald-500 text-white hover:bg-emerald-500/80;
+            }
+            .btn-purple {
+                @apply bg-purple-500 text-white hover:bg-purple-500/80;
+            }
+            .btn-gray {
+                @apply bg-gray-600 text-white hover:bg-gray-600/80;
+            }
+            .btn-outline {
+                @apply border border-[var(--border)] hover:bg-[var(--card-sub)];
+            }
+        }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --card-sub: #334155;
+            --border: #475569;
+            --text-main: #e2e8f0;
+            --text-sub: #94a3b8;
+            --card-glow: rgba(59,130,246,0.08);
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --card-sub: #e2e8f0;
+            --border: #cbd5e1;
+            --text-main: #111827;
+            --text-sub: #64748b;
+            --card-glow: rgba(59,130,246,0.06);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease;
+            min-height: 100vh;
+        }
+        body::before{
+            content:"";
+            position:fixed;
+            inset:0;
+            z-index:-1;
+            opacity:0.45;
+            pointer-events:none;
+            transition:background-image 0.35s ease;
+        }
+        html[data-theme="dark"] body::before{
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+
+        .nav-bar-bg {
+            background-color: var(--card);
+            border-color: var(--border);
+            transition: background-color 0.35s ease, border-color 0.35s ease;
+        }
+        .tool-card{
+            background-color: var(--card);
+            border:1px solid var(--border);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+        .tool-card:hover{
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 0 14px var(--card-glow);
+        }
+        .sub-panel-bg {
+            background-color: var(--card-sub);
+        }
+        .text-sub-color {
+            color: var(--text-sub);
+        }
+        textarea,input,select{
+            background-color: var(--card);
+            border:1px solid var(--border);
+            color:var(--text-main);
+            font-family: Consolas,Menlo,monospace;
+        }
+        textarea:focus,input:focus,select:focus{
+            outline:none;
+            border-color:#3b82f6;
+        }
+
+        /* json树形样式 */
+        .json-tree{
+            font-family:Consolas,Menlo,monospace;
+            font-size:14px;
+            line-height:1.6;
+        }
+        .json-tree-item{
+            padding-left:22px;
+            position:relative;
+        }
+        .json-tree-toggle{
+            cursor:pointer;
+            user-select:none;
+            display:inline-block;
+            width:18px;
+        }
+        .json-key{
+            color:#9cdcfe;
+        }
+        .json-string{
+            color:#ce9178;
+        }
+        .json-number{
+            color:#b5cea8;
+        }
+        .json-bool{
+            color:#569cd6;
+        }
+        .json-null{
+            color:#808080;
+        }
+        .json-copy-node{
+            cursor:pointer;
+            margin-left:8px;
+            opacity:0.6;
+        }
+        .json-copy-node:hover{
+            opacity:1;
+        }
+    </style>
+</head>
+<body class="flex flex-col">
+    <!-- 顶部栏：返回首页 + 标题 + 主题切换 -->
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="./index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient">JSON格式化工具</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-7xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <!-- 操作按钮区 -->
+            <div class="flex flex-wrap gap-2 mb-4">
+                <button class="btn btn-purple" id="btnFormat"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>格式化</button>
+                <button class="btn btn-primary" id="btnCompress"><i class="fa-solid fa-compress mr-1"></i>压缩</button>
+                <button class="btn btn-success" id="btnCopy"><i class="fa-solid fa-copy mr-1"></i>复制结果</button>
+                <button class="btn btn-gray" id="btnSample"><i class="fa-solid fa-file-code mr-1"></i>示例JSON</button>
+                <button class="btn btn-danger" id="btnClear"><i class="fa-solid fa-eraser mr-1"></i>清空</button>
+                <div class="h-6 w-px bg-[var(--border)] mx-1 hidden sm:block"></div>
+                <button class="btn btn-outline" id="btnTreeView"><i class="fa-solid fa-sitemap mr-1"></i>树形视图</button>
+                <button class="btn btn-outline hidden" id="btnExpandAll"><i class="fa-solid fa-plus mr-1"></i>全部展开</button>
+                <button class="btn btn-outline hidden" id="btnCollapseAll"><i class="fa-solid fa-minus mr-1"></i>全部折叠</button>
+            </div>
+
+            <!-- JSONPath路径输入区域 -->
+            <div class="flex flex-wrap items-center gap-2 mb-5">
+                <label class="text-sub-color shrink-0">JSONPath：</label>
+                <input id="jsonPathInput" class="flex-1 min-w-[320px]" placeholder="例如：$.data.info.list[0]" value="$">
+                <button class="btn btn-primary" id="btnQueryPath"><i class="fa-solid fa-search mr-1"></i>提取节点</button>
+                <button class="btn btn-outline" id="btnResetPath"><i class="fa-solid fa-rotate-left mr-1"></i>重置</button>
+            </div>
+
+            <!-- 文本模式 -->
+            <div id="textMode">
+                <div class="grid md:grid-cols-2 gap-5">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sub-color">📥 输入JSON</label>
+                        <textarea id="jsonInput" rows="20" placeholder='粘贴JSON文本到此处'></textarea>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sub-color">📤 输出结果</label>
+                        <textarea id="jsonOutput" readonly rows="20" class="bg-[var(--card-sub)]"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 树形视图模式 -->
+            <div id="treeMode" class="hidden">
+                <label class="text-sub-color block mb-2">🌳 JSON树形（点击复制图标复制该层级JSON；点击节点更新JSONPath路径）</label>
+                <div id="treeContainer" class="sub-panel-bg p-4 rounded-xl max-h-[650px] overflow-auto json-tree"></div>
+            </div>
+
+            <!-- 提示信息 -->
+            <div class="mt-4">
+                <label class="block mb-1 text-sub-color">状态信息</label>
+                <div id="msgBox" class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 静态本地网页，不上传用户数据</p>
+        </div>
+    </footer>
+
+    <script>
+        // ========== 主题逻辑，和首页互通localStorage ==========
+        function initTheme() {
+            const saveTheme = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", saveTheme);
+            updateThemeIcon(saveTheme);
+        }
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById("themeIcon");
+            icon.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        }
+        function bindThemeToggle() {
+            const btn = document.getElementById("themeToggle");
+            btn.addEventListener("click", ()=>{
+                const current = document.documentElement.getAttribute("data-theme");
+                const next = current === "dark" ? "light" : "dark";
+                document.documentElement.setAttribute("data-theme", next);
+                localStorage.setItem("toolTheme", next);
+                updateThemeIcon(next);
+            })
+        }
+
+        const inputDom = document.getElementById('jsonInput');
+        const outputDom = document.getElementById('jsonOutput');
+        const msgBox = document.getElementById('msgBox');
+        const textModeEl = document.getElementById('textMode');
+        const treeModeEl = document.getElementById('treeMode');
+        const treeContainer = document.getElementById('treeContainer');
+        const btnTreeView = document.getElementById('btnTreeView');
+        const btnExpandAll = document.getElementById('btnExpandAll');
+        const btnCollapseAll = document.getElementById('btnCollapseAll');
+        const jsonPathInput = document.getElementById('jsonPathInput');
+        const btnQueryPath = document.getElementById('btnQueryPath');
+        const btnResetPath = document.getElementById('btnResetPath');
+
+        let currentJsonData = null;
+        let isTreeMode = false;
+
+        function setMsg(text, isError = false) {
+            msgBox.innerText = text;
+            msgBox.style.color = isError ? '#f87171' : 'var(--text-sub)';
+        }
+
+        // 格式化
+        function formatJson() {
+            const raw = inputDom.value.trim();
+            if (!raw) {
+                setMsg("请输入JSON内容", true);
+                return;
+            }
+            try {
+                const obj = JSON.parse(raw);
+                currentJsonData = obj;
+                const result = JSON.stringify(obj, null, 2);
+                outputDom.value = result;
+                jsonPathInput.value = "$";
+                setMsg("✅ JSON格式化成功");
+                if(isTreeMode) renderTree(obj);
+            } catch (e) {
+                currentJsonData = null;
+                outputDom.value = "";
+                setMsg(`❌ JSON解析失败：${e.message}`, true);
+                treeContainer.innerHTML = "";
+            }
+        }
+
+        // 压缩
+        function compressJson() {
+            const raw = inputDom.value.trim();
+            if (!raw) {
+                setMsg("请输入JSON内容", true);
+                return;
+            }
+            try {
+                const obj = JSON.parse(raw);
+                currentJsonData = obj;
+                const result = JSON.stringify(obj);
+                outputDom.value = result;
+                jsonPathInput.value = "$";
+                setMsg("✅ JSON压缩成功");
+                if(isTreeMode) renderTree(obj);
+            } catch (e) {
+                currentJsonData = null;
+                outputDom.value = "";
+                setMsg(`❌ JSON解析失败：${e.message}`, true);
+                treeContainer.innerHTML = "";
+            }
+        }
+
+        // 复制输出框
+        async function copyResult() {
+            const val = outputDom.value;
+            if (!val) {
+                setMsg("输出框为空，无法复制", true);
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(val);
+                setMsg("✅ 已复制到剪贴板");
+            } catch (err) {
+                setMsg("❌ 复制失败，请手动复制", true);
+            }
+        }
+
+        // 填充示例
+        function fillSample() {
+            const sample = `{
+    "code": 200,
+    "msg": "success",
+    "data": {
+        "id": 1001,
+        "name": "demo",
+        "info": {
+            "address":"beijing",
+            "tags":["a","b","c"]
+        },
+        "list": [11,22,33],
+        "enable": true
+    }
+}`;
+            inputDom.value = sample;
+            outputDom.value = "";
+            treeContainer.innerHTML = "";
+            currentJsonData = null;
+            jsonPathInput.value = "$";
+            setMsg("已加载示例JSON");
+        }
+
+        function clearAll() {
+            inputDom.value = "";
+            outputDom.value = "";
+            treeContainer.innerHTML = "";
+            currentJsonData = null;
+            jsonPathInput.value = "$";
+            setMsg("");
+        }
+
+        // ==========简易JSONPath解析，支持 $.prop  $.arr[0] ==========
+        function queryJsonPath(root, pathStr) {
+            if(!currentJsonData) throw new Error("请先解析JSON");
+            let p = pathStr.trim();
+            if(!p.startsWith('$')) throw new Error("路径必须以 $ 开头");
+            p = p.substring(1);
+            let cur = root;
+            const re = /\.([a-zA-Z0-9_]+)|\[(\d+)\]/g;
+            let m;
+            while((m = re.exec(p))!==null){
+                if(m[1]){
+                    const key = m[1];
+                    if(cur === null || typeof cur !== 'object') throw new Error("路径不存在");
+                    if(!Object.prototype.hasOwnProperty.call(cur,key)) throw new Error(`属性 ${key} 不存在`);
+                    cur = cur[key];
+                }else if(m[2]){
+                    const idx = parseInt(m[2],10);
+                    if(!Array.isArray(cur)) throw new Error("不是数组");
+                    if(idx<0 || idx>=cur.length) throw new Error(`数组下标 ${idx} 越界`);
+                    cur = cur[idx];
+                }
+            }
+            return cur;
+        }
+
+        function doJsonPathQuery(){
+            if(!currentJsonData){
+                setMsg("请先格式化JSON",true);
+                return;
+            }
+            const path = jsonPathInput.value.trim();
+            try{
+                const res = queryJsonPath(currentJsonData, path);
+                const pretty = JSON.stringify(res,null,2);
+                outputDom.value = pretty;
+                setMsg(`✅ 路径提取成功：${path}`);
+            }catch(e){
+                outputDom.value = "";
+                setMsg(`❌ 路径提取失败：${e.message}`,true);
+            }
+        }
+
+        // ========== JSON树形渲染 展开收缩，支持复制节点层级，点击节点回写JSONPath ==========
+        function renderTree(data){
+            treeContainer.innerHTML = buildTreeHtml(data, "$");
+            bindTreeEvent();
+        }
+
+        function buildTreeHtml(obj, path){
+            let html = "";
+            const type = Array.isArray(obj) ? "array" : typeof obj;
+
+            if(type === "object" || type === "array"){
+                const isArr = type === "array";
+                const len = isArr ? obj.length : Object.keys(obj).length;
+                const openChar = isArr ? "[" : "{";
+                const closeChar = isArr ? "]" : "}";
+
+                html += `<div class="json-tree-item">`;
+                html += `<span class="json-tree-toggle" data-path="${path}"><i class="fa-solid fa-chevron-down"></i></span>`;
+                html += `<span data-click-path="${path}" class="cursor-pointer">${openChar}<span class="json-copy-node" data-node='${escapeHtml(JSON.stringify(obj))}' title="复制该层级JSON"><i class="fa-solid fa-copy"></i></span></span>`;
+                html += `<div class="json-tree-children mt-1" data-path="${path}">`;
+
+                if(isArr){
+                    for(let i=0;i<obj.length;i++){
+                        const childPath = path + `[${i}]`;
+                        html += `<div class="json-tree-item"><span class="json-key" data-click-path="${childPath}">${i}</span>: ${buildTreeHtml(obj[i], childPath)}</div>`;
+                    }
+                }else{
+                    for(let k in obj){
+                        const childPath = path + `.${k}`;
+                        html += `<div class="json-tree-item"><span class="json-key" data-click-path="${childPath}">"${escapeHtml(k)}"</span>: ${buildTreeHtml(obj[k], childPath)}</div>`;
+                    }
+                }
+                html += `</div>`;
+                html += `<span>${closeChar}</span>(${len}项)</div>`;
+            }else{
+                if(type === "string"){
+                    html += `<span class="json-string" data-click-path="${path}">\"${escapeHtml(obj)}\"</span>`;
+                }else if(type === "number"){
+                    html += `<span class="json-number" data-click-path="${path}">${obj}</span>`;
+                }else if(type === "boolean"){
+                    html += `<span class="json-bool" data-click-path="${path}">${obj}</span>`;
+                }else if(obj === null){
+                    html += `<span class="json-null" data-click-path="${path}">null</span>`;
+                }else{
+                    html += `<span data-click-path="${path}">${escapeHtml(String(obj))}</span>`;
+                }
+            }
+            return html;
+        }
+
+        function escapeHtml(str){
+            if(!str) return "";
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function bindTreeEvent(){
+            // 折叠展开
+            document.querySelectorAll(".json-tree-toggle").forEach(tog=>{
+                tog.onclick = function(e){
+                    e.stopPropagation();
+                    const p = this.dataset.path;
+                    const childDom = document.querySelector(`.json-tree-children[data-path="${p}"]`);
+                    const icon = this.querySelector("i");
+                    if(childDom.classList.contains("hidden")){
+                        childDom.classList.remove("hidden");
+                        icon.className = "fa-solid fa-chevron-down";
+                    }else{
+                        childDom.classList.add("hidden");
+                        icon.className = "fa-solid fa-chevron-right";
+                    }
+                }
+            });
+            // 点击节点回写JSONPath
+            document.querySelectorAll("[data-click-path]").forEach(el=>{
+                el.style.cursor="pointer";
+                el.onclick = function(e){
+                    e.stopPropagation();
+                    const p = this.dataset.clickPath;
+                    jsonPathInput.value = p;
+                    setMsg(`已选中路径：${p}`);
+                }
+            });
+            // 复制当前节点完整json
+            document.querySelectorAll(".json-copy-node").forEach(copyBtn=>{
+                copyBtn.onclick = async (e)=>{
+                    e.stopPropagation();
+                    const raw = copyBtn.dataset.node;
+                    try{
+                        const realObj = JSON.parse(raw);
+                        const pretty = JSON.stringify(realObj,null,2);
+                        await navigator.clipboard.writeText(pretty);
+                        setMsg("✅ 当前层级JSON已复制");
+                    }catch(err){
+                        setMsg("❌ 复制失败",true);
+                    }
+                }
+            })
+        }
+
+        // 全部展开
+        function expandAllTree(){
+            document.querySelectorAll(".json-tree-children").forEach(el=>el.classList.remove("hidden"));
+            document.querySelectorAll(".json-tree-toggle i").forEach(i=>i.className="fa-solid fa-chevron-down");
+        }
+        // 全部折叠
+        function collapseAllTree(){
+            document.querySelectorAll(".json-tree-children").forEach(el=>el.classList.add("hidden"));
+            document.querySelectorAll(".json-tree-toggle i").forEach(i=>i.className="fa-solid fa-chevron-right");
+        }
+
+        // 切换树形/文本模式
+        function toggleTreeView(){
+            isTreeMode = !isTreeMode;
+            if(isTreeMode){
+                textModeEl.classList.add("hidden");
+                treeModeEl.classList.remove("hidden");
+                btnExpandAll.classList.remove("hidden");
+                btnCollapseAll.classList.remove("hidden");
+                btnTreeView.innerHTML = `<i class="fa-solid fa-file-code mr-1"></i>文本视图`;
+                if(currentJsonData){
+                    renderTree(currentJsonData);
+                }else{
+                    formatJson();
+                }
+            }else{
+                textModeEl.classList.remove("hidden");
+                treeModeEl.classList.add("hidden");
+                btnExpandAll.classList.add("hidden");
+                btnCollapseAll.classList.add("hidden");
+                btnTreeView.innerHTML = `<i class="fa-solid fa-sitemap mr-1"></i>树形视图`;
+            }
+        }
+
+        function bindEvents() {
+            document.getElementById('btnFormat').onclick = formatJson;
+            document.getElementById('btnCompress').onclick = compressJson;
+            document.getElementById('btnCopy').onclick = copyResult;
+            document.getElementById('btnSample').onclick = fillSample;
+            document.getElementById('btnClear').onclick = clearAll;
+            btnTreeView.onclick = toggleTreeView;
+            btnExpandAll.onclick = expandAllTree;
+            btnCollapseAll.onclick = collapseAllTree;
+            btnQueryPath.onclick = doJsonPathQuery;
+            btnResetPath.onclick = ()=>{
+                jsonPathInput.value="$";
+                setMsg("已重置路径");
+            };
+            jsonPathInput.addEventListener("keydown",e=>{
+                if(e.key==="Enter") doJsonPathQuery();
+            })
+        }
+
+        initTheme();
+        bindThemeToggle();
+        bindEvents();
+    </script>
+</body>
+</html>

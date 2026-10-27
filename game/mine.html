@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫雷小游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-danger { @apply bg-red-500 text-white hover:bg-red-500/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+            .cell { @apply w-7 h-7 border flex items-center justify-center select-none cursor-pointer font-bold text-sm; }
+            .cell-closed { @apply bg-slate-300 dark:bg-slate-600 border-slate-400 dark:border-slate-500; }
+            .cell-opened { @apply bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 cursor-default; }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
+            --text-main: #e2e8f0;--text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --text-main: #111827;--text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+        }
+        body::before{
+            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .sub-panel-bg { background-color: var(--card-sub); }
+        .text-sub-color { color: var(--text-sub); }
+        textarea,input,select {
+            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
+            font-family: Consolas,Menlo,monospace;
+        }
+        textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
+
+        /*扫雷数字颜色*/
+        .n1{color:#2563eb;}
+        .n2{color:#16a34a;}
+        .n3{color:#dc2626;}
+        .n4{color:#7c3aed;}
+        .n5{color:#b45309;}
+        .n6{color:#0891b2;}
+        .n7{color:#1f2937;}
+        .n8{color:#6b7280;}
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="./index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient">💣 扫雷小游戏</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <!--难度设置区域 -->
+            <div class="flex flex-wrap gap-3 mb-5 items-end">
+                <div class="flex flex-col gap-2">
+                    <label class="text-sub-color">预设难度</label>
+                    <select id="levelSelect" class="w-32">
+                        <option value="easy">初级(9×9,10雷)</option>
+                        <option value="mid">中级(16×16,40雷)</option>
+                        <option value="hard">高级(16×30,99雷)</option>
+                        <option value="custom">自定义</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="text-sub-color">行数</label>
+                    <input id="rows" type="number" min="5" max="50" value="9" class="w-20">
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="text-sub-color">列数</label>
+                    <input id="cols" type="number" min="5" max="50" value="9" class="w-20">
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="text-sub-color">地雷数量</label>
+                    <input id="mineCount" type="number" min="1" value="10" class="w-20">
+                </div>
+                <div class="flex gap-2">
+                    <button class="btn btn-primary" id="btnStart"><i class="fa-solid fa-play"></i>开始游戏</button>
+                    <button class="btn btn-danger" id="btnReset"><i class="fa-solid fa-refresh"></i>重置</button>
+                </div>
+            </div>
+            <!--状态栏：剩余雷数，计时器 -->
+            <div class="flex gap-6 mb-4 text-lg">
+                <div>剩余地雷：<span id="mineLeft" class="font-bold text-red-400">10</span></div>
+                <div>用时：<span id="timer" class="font-bold">0</span> s</div>
+                <div>状态：<span id="gameStatus" class="font-bold">等待开始</span></div>
+            </div>
+            <!--游戏棋盘容器 -->
+            <div id="boardWrap" class="overflow-auto max-w-full"></div>
+            <div class="mt-4 text-sub-color text-sm">提示：<b>左键翻开格子｜右键标记地雷旗帜</b></div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 小游戏</p>
+        </div>
+    </footer>
+
+    <script>
+        function initTheme(){
+            const t=localStorage.getItem("toolTheme")||"dark";
+            document.documentElement.setAttribute("data-theme",t);
+            updateThemeIcon(t);
+        }
+        function updateThemeIcon(t){
+            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick=()=>{
+            const c=document.documentElement.getAttribute("data-theme");
+            const n=c==="dark"?"light":"dark";
+            document.documentElement.setAttribute("data-theme",n);
+            localStorage.setItem("toolTheme",n);
+            updateThemeIcon(n);
+        }
+
+        const levelSelect = document.getElementById('levelSelect');
+        const rowsEl = document.getElementById('rows');
+        const colsEl = document.getElementById('cols');
+        const mineCountEl = document.getElementById('mineCount');
+        const btnStart = document.getElementById('btnStart');
+        const btnReset = document.getElementById('btnReset');
+        const mineLeftEl = document.getElementById('mineLeft');
+        const timerEl = document.getElementById('timer');
+        const gameStatusEl = document.getElementById('gameStatus');
+        const boardWrap = document.getElementById('boardWrap');
+
+        let ROWS = 9;
+        let COLS =9;
+        let MINE_NUM =10;
+
+        let board = []; //每个格子 {isMine,count,opened,flag}
+        let gameOver = false;
+        let gameWin = false;
+        let timerId = null;
+        let timeSecond =0;
+        let flagCount =0;
+
+        //预设难度
+        levelSelect.onchange = ()=>{
+            const v = levelSelect.value;
+            switch(v){
+                case "easy":
+                    rowsEl.value=9; colsEl.value=9; mineCountEl.value=10; break;
+                case "mid":
+                    rowsEl.value=16; colsEl.value=16; mineCountEl.value=40; break;
+                case "hard":
+                    rowsEl.value=16; colsEl.value=30; mineCountEl.value=99; break;
+            }
+        }
+
+        //初始化棋盘数据
+        function initBoard(){
+            ROWS = Number(rowsEl.value);
+            COLS = Number(colsEl.value);
+            MINE_NUM = Number(mineCountEl.value);
+            //边界校验
+            if(MINE_NUM >= ROWS*COLS) MINE_NUM = ROWS*COLS -1;
+            mineCountEl.value = MINE_NUM;
+
+            gameOver = false;
+            gameWin = false;
+            flagCount =0;
+            timeSecond=0;
+            if(timerId) clearInterval(timerId);
+            timerEl.innerText = "0";
+            mineLeftEl.innerText = MINE_NUM - flagCount;
+            gameStatusEl.innerText = "游戏进行中";
+
+            //初始化格子
+            board = [];
+            for(let r=0;r<ROWS;r++){
+                board[r]=[];
+                for(let c=0;c<COLS;c++){
+                    board[r][c] = {isMine:false,count:0,opened:false,flag:false};
+                }
+            }
+            //随机放地雷
+            let placed =0;
+            while(placed < MINE_NUM){
+                const r = Math.floor(Math.random()*ROWS);
+                const c = Math.floor(Math.random()*COLS);
+                if(!board[r][c].isMine){
+                    board[r][c].isMine = true;
+                    placed++;
+                }
+            }
+            //计算周围地雷数
+            for(let r=0;r<ROWS;r++){
+                for(let c=0;c<COLS;c++){
+                    if(board[r][c].isMine) continue;
+                    board[r][c].count = getAroundMine(r,c);
+                }
+            }
+            renderBoard();
+            startTimer();
+        }
+
+        //获取8邻域地雷数量
+        function getAroundMine(r,c){
+            let cnt=0;
+            for(let dr=-1;dr<=1;dr++){
+                for(let dc=-1;dc<=1;dc++){
+                    if(dr===0 && dc===0) continue;
+                    const nr = r+dr; const nc = c+dc;
+                    if(nr>=0 && nr<ROWS && nc>=0 && nc<COLS){
+                        if(board[nr][nc].isMine) cnt++;
+                    }
+                }
+            }
+            return cnt;
+        }
+
+        //渲染棋盘
+        function renderBoard(){
+            let html = `<div class="inline-grid" style="grid-template-columns:repeat(${COLS},1.75rem);">`;
+            for(let r=0;r<ROWS;r++){
+                for(let c=0;c<COLS;c++){
+                    const cell = board[r][c];
+                    let cls = "cell cell-closed";
+                    let content = "";
+                    if(cell.opened){
+                        cls = "cell cell-opened";
+                        if(cell.isMine){
+                            content = '<i class="fa-solid fa-bomb text-red-500"></i>';
+                        }else if(cell.count>0){
+                            content = `<span class="n${cell.count}">${cell.count}</span>`;
+                        }
+                    }else if(cell.flag){
+                        content = '<i class="fa-solid fa-flag text-orange-500"></i>';
+                    }
+                    html += `<div class="${cls}" data-r="${r}" data-c="${c}">${content}</div>`;
+                }
+            }
+            html += "</div>";
+            boardWrap.innerHTML = html;
+
+            //绑定鼠标事件
+            document.querySelectorAll(".cell").forEach(el=>{
+                el.addEventListener("click",(e)=>{
+                    const r = Number(el.dataset.r);
+                    const c = Number(el.dataset.c);
+                    handleLeftClick(r,c);
+                })
+                el.addEventListener("contextmenu",(e)=>{
+                    e.preventDefault();
+                    const r = Number(el.dataset.r);
+                    const c = Number(el.dataset.c);
+                    handleRightClick(r,c);
+                })
+            })
+        }
+
+        //左键点开
+        function handleLeftClick(r,c){
+            if(gameOver || gameWin) return;
+            const cell = board[r][c];
+            if(cell.opened || cell.flag) return;
+            if(cell.isMine){
+                //踩雷游戏结束
+                gameOver = true;
+                clearInterval(timerId);
+                gameStatusEl.innerText = "💥游戏失败！踩到地雷";
+                //翻开全部地雷
+                for(let i=0;i<ROWS;i++){
+                    for(let j=0;j<COLS;j++){
+                        if(board[i][j].isMine) board[i][j].opened = true;
+                    }
+                }
+                renderBoard();
+                return;
+            }
+            openCell(r,c);
+            checkWin();
+            renderBoard();
+        }
+
+        //递归翻开空白格子
+        function openCell(r,c){
+            if(r<0||r>=ROWS||c<0||c>=COLS) return;
+            const cell = board[r][c];
+            if(cell.opened || cell.flag) return;
+            cell.opened = true;
+            if(cell.count ===0){
+                for(let dr=-1;dr<=1;dr++){
+                    for(let dc=-1;dc<=1;dc++){
+                        if(dr===0&&dc===0) continue;
+                        openCell(r+dr,c+dc);
+                    }
+                }
+            }
+        }
+
+        //右键插旗
+        function handleRightClick(r,c){
+            if(gameOver || gameWin) return;
+            const cell = board[r][c];
+            if(cell.opened) return;
+            cell.flag = !cell.flag;
+            if(cell.flag){
+                flagCount++;
+            }else{
+                flagCount--;
+            }
+            mineLeftEl.innerText = MINE_NUM - flagCount;
+            checkWin();
+            renderBoard();
+        }
+
+        //检查胜利：所有非雷格子全部翻开
+        function checkWin(){
+            let noMineOpened =0;
+            let totalNoMine = ROWS*COLS - MINE_NUM;
+            for(let r=0;r<ROWS;r++){
+                for(let c=0;c<COLS;c++){
+                    const cell = board[r][c];
+                    if(!cell.isMine && cell.opened) noMineOpened++;
+                }
+            }
+            if(noMineOpened >= totalNoMine){
+                gameWin = true;
+                clearInterval(timerId);
+                gameStatusEl.innerText = "🎉恭喜，游戏胜利！";
+            }
+        }
+
+        function startTimer(){
+            if(timerId) clearInterval(timerId);
+            timerId = setInterval(()=>{
+                timeSecond++;
+                timerEl.innerText = String(timeSecond);
+            },1000)
+        }
+
+        btnStart.onclick = initBoard;
+        btnReset.onclick = ()=>{
+            if(timerId) clearInterval(timerId);
+            boardWrap.innerHTML = "";
+            timerEl.innerText="0";
+            mineLeftEl.innerText="0";
+            gameStatusEl.innerText="等待开始";
+            gameOver=false;gameWin=false;
+        }
+
+        initTheme();
+    </script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient {
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+                background-image: linear-gradient(90deg, #60a5fa, #22d3ee);
+            }
+            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--sub-bg)]; }
+            .btn-success { @apply bg-emerald-500 text-white hover:bg-emerald-500/80; }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --sub-bg: #334155;
+            --border: #475569;
+            --text-main: #e2e8f0;
+            --text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --sub-bg: #e2e8f0;
+            --border: #cbd5e1;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 8px 24px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+        input,textarea,select {
+            background-color: var(--card);
+            border:1px solid var(--border);
+            color: var(--text-main);
+        }
+        input:focus,textarea:focus,select:focus { outline:none; border-color:#3b82f6; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-hashtag mr-2"></i>ID生成器</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换主题">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 max-w-4xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <div class="font-medium mb-3">UUID v4</div>
+                    <div class="flex gap-2 mb-3">
+                        <input id="uuidVal" readonly class="flex-1 p-3 rounded-lg">
+                        <button id="genUuid" class="btn btn-primary"><i class="fa-solid fa-refresh"></i>生成</button>
+                    </div>
+                    <button id="copyUuid" class="btn btn-outline w-full"><i class="fa-solid fa-copy mr-1"></i>复制UUID</button>
+                </div>
+                <div>
+                    <div class="font-medium mb-3">雪花ID Snowflake</div>
+                    <div class="flex gap-2 mb-3">
+                        <input id="snowVal" readonly class="flex-1 p-3 rounded-lg">
+                        <button id="genSnow" class="btn btn-primary"><i class="fa-solid fa-refresh"></i>生成</button>
+                    </div>
+                    <button id="copySnow" class="btn btn-outline w-full"><i class="fa-solid fa-copy mr-1"></i>复制雪花ID</button>
+                </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-[var(--border)]">
+                <div class="font-medium mb-3">批量生成（数量）</div>
+                <div class="flex gap-2 mb-3">
+                    <input id="batchCount" type="number" min="1" max="100" value="10" class="w-24 p-3 rounded-lg">
+                    <select id="batchType" class="p-3 rounded-lg">
+                        <option value="uuid">UUID</option>
+                        <option value="snow">雪花ID</option>
+                    </select>
+                    <button id="genBatch" class="btn btn-success"><i class="fa-solid fa-list-ol mr-1"></i>批量生成</button>
+                </div>
+                <textarea id="batchResult" class="w-full h-52 p-3 rounded-lg resize-y" readonly placeholder="批量结果..."></textarea>
+                <button id="copyBatch" class="btn btn-outline w-full mt-3"><i class="fa-solid fa-copy mr-1"></i>复制全部</button>
+            </div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-5 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>© 2026 Toolkit | ID生成器</p>
+        </div>
+    </footer>
+    <script>
+        // 主题
+        function initTheme(){
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            updateThemeIcon(t);
+        }
+        function updateThemeIcon(theme){
+            const i = document.querySelector("#themeToggle i");
+            i.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick = ()=>{
+            const curr = document.documentElement.getAttribute("data-theme");
+            const next = curr === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+            localStorage.setItem("toolTheme", next);
+            updateThemeIcon(next);
+        }
+        initTheme();
+
+        // UUID
+        function uuidv4(){
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+                const r = Math.random()*16|0;
+                const v = c==='x' ? r : (r&0x3|0x8);
+                return v.toString(16);
+            })
+        }
+        // 雪花ID简单JS实现（前端模拟，机器ID随机）
+        class Snowflake{
+            constructor(){
+                this.epoch = 1609459200000;
+                this.machineId = Math.floor(Math.random() * 32);
+                this.sequence = 0;
+                this.lastTs = 0;
+            }
+            nextId(){
+                let ts = Date.now();
+                if(ts === this.lastTs){
+                    this.sequence = (this.sequence +1) & 4095;
+                    if(this.sequence === 0) ts = this.waitNextMs(this.lastTs);
+                }else{
+                    this.sequence = 0;
+                }
+                this.lastTs = ts;
+                const id = (BigInt(ts - this.epoch) << 22n) | (BigInt(this.machineId) << 12n) | BigInt(this.sequence);
+                return id.toString();
+            }
+            waitNextMs(last){
+                let t = Date.now();
+                while(t <= last) t = Date.now();
+                return t;
+            }
+        }
+        const sf = new Snowflake();
+
+        const uuidVal = document.getElementById("uuidVal");
+        const snowVal = document.getElementById("snowVal");
+        const batchResult = document.getElementById("batchResult");
+
+        document.getElementById("genUuid").onclick = ()=> uuidVal.value = uuidv4();
+        document.getElementById("genSnow").onclick = ()=> snowVal.value = sf.nextId();
+
+        document.getElementById("copyUuid").onclick = async ()=>{
+            await navigator.clipboard.writeText(uuidVal.value); alert("已复制");
+        }
+        document.getElementById("copySnow").onclick = async ()=>{
+            await navigator.clipboard.writeText(snowVal.value); alert("已复制");
+        }
+        document.getElementById("genBatch").onclick = ()=>{
+            const cnt = parseInt(document.getElementById("batchCount").value);
+            const type = document.getElementById("batchType").value;
+            const arr = [];
+            for(let i=0;i<cnt;i++){
+                arr.push(type==='uuid' ? uuidv4() : sf.nextId());
+            }
+            batchResult.value = arr.join("\n");
+        }
+        document.getElementById("copyBatch").onclick = async ()=>{
+            await navigator.clipboard.writeText(batchResult.value); alert("已复制");
+        }
+    </script>
+</body>
+</html>

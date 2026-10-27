@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片格式转换 | JPG PNG WebP互转</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#10b981' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient {
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+                background-image: linear-gradient(90deg, #34d399, #06b6d4);
+            }
+            .btn { @apply px-3 py-2 rounded-lg transition-all duration-200 text-sm; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--sub-bg)]; }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --sub-bg: #334155;
+            --border: #475569;
+            --text-main: #e2e8f0;
+            --text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --sub-bg: #e2e8f0;
+            --border: #cbd5e1;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+        .card { background-color: var(--card); border:1px solid var(--border); }
+        .text-sub { color: var(--text-sub); }
+        input,select {
+            background-color: var(--card);
+            border:1px solid var(--border);
+            color: var(--text-main);
+        }
+        input:focus,select:focus { outline:none; border-color:#10b981; }
+        .drop-area {
+            border:2px dashed var(--border);
+        }
+        .drop-area.active {
+            border-color:#10b981;
+            background-color: rgba(16,185,129,0.08);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+    <div class="max-w-3xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i> 返回
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-exchange-alt mr-2"></i>图片格式转换</h1>
+            <button id="themeToggle" class="btn btn-outline"><i class="fa-solid fa-moon"></i></button>
+        </div>
+
+        <div class="card p-5 rounded-xl mb-4">
+            <div id="dropArea" class="drop-area rounded-xl p-10 text-center cursor-pointer mb-4">
+                <i class="fa-solid fa-cloud-upload text-4xl text-sub mb-3"></i>
+                <p class="text-sub">拖拽图片到此处 或 点击选择图片</p>
+                <p class="text-xs text-sub mt-1">支持 JPG / PNG / WebP</p>
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block mb-2 text-sm">输出格式</label>
+                    <select id="outType" class="w-full p-2 rounded">
+                        <option value="image/jpeg">JPG</option>
+                        <option value="image/png">PNG</option>
+                        <option value="image/webp">WebP</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm">图片质量 (0.1 ~ 1.0)</label>
+                    <input type="number" id="quality" value="0.8" min="0.1" max="1" step="0.05" class="w-full p-2 rounded">
+                </div>
+            </div>
+
+            <button id="convertBtn" class="btn btn-primary w-full disabled:opacity-40" disabled>
+                <i class="fa-solid fa-magic mr-1"></i> 开始转换并下载
+            </button>
+        </div>
+
+        <div id="previewBox" class="card p-4 rounded-xl hidden">
+            <h3 class="font-medium mb-2">预览</h3>
+            <img id="previewImg" class="max-w-full max-h-72 rounded">
+        </div>
+    </div>
+
+    <script>
+        // 主题
+        function initTheme(){
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            updateIcon(t);
+        }
+        function updateIcon(theme){
+            const i = document.querySelector("#themeToggle i");
+            i.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick = ()=>{
+            const curr = document.documentElement.getAttribute("data-theme");
+            const next = curr === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+            localStorage.setItem("toolTheme", next);
+            updateIcon(next);
+        }
+        initTheme();
+
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const convertBtn = document.getElementById('convertBtn');
+        const outType = document.getElementById('outType');
+        const quality = document.getElementById('quality');
+        const previewBox = document.getElementById('previewBox');
+        const previewImg = document.getElementById('previewImg');
+
+        let originFile = null;
+
+        dropArea.onclick = ()=> fileInput.click();
+        dropArea.ondragover = (e)=>{ e.preventDefault(); dropArea.classList.add('active'); }
+        dropArea.ondragleave = ()=> dropArea.classList.remove('active');
+        dropArea.ondrop = (e)=>{
+            e.preventDefault();
+            dropArea.classList.remove('active');
+            if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+        }
+        fileInput.onchange = ()=>{
+            if(fileInput.files[0]) handleFile(fileInput.files[0]);
+        }
+
+        function handleFile(file){
+            originFile = file;
+            convertBtn.disabled = false;
+            const reader = new FileReader();
+            reader.onload = (ev)=>{
+                previewImg.src = ev.target.result;
+                previewBox.classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+
+        convertBtn.onclick = async ()=>{
+            if(!originFile) return;
+            const q = parseFloat(quality.value);
+            const type = outType.value;
+            const extMap = {
+                'image/jpeg':'jpg',
+                'image/png':'png',
+                'image/webp':'webp'
+            };
+            const canvas = document.createElement('canvas');
+            const img = new Image();
+            img.src = URL.createObjectURL(originFile);
+            await new Promise(resolve=>img.onload=resolve);
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img,0,0);
+
+            canvas.toBlob(blob=>{
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                const name = originFile.name.replace(/\.\w+$/, `.${extMap[type]}`);
+                a.download = name;
+                a.click();
+                URL.revokeObjectURL(a.href);
+            }, type, q);
+        }
+    </script>
+</body>
+</html>

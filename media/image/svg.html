@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG编辑器 | 预览与简单编辑</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#8b5cf6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient {
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+                background-image: linear-gradient(90deg, #a78bfa, #22d3ee);
+            }
+            .btn { @apply px-3 py-2 rounded-lg transition-all duration-200 text-sm; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--sub-bg)]; }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --sub-bg: #334155;
+            --border: #475569;
+            --text-main: #e2e8f0;
+            --text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --sub-bg: #e2e8f0;
+            --border: #cbd5e1;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+        .card { background-color: var(--card); border:1px solid var(--border); }
+        .text-sub { color: var(--text-sub); }
+        textarea {
+            background-color: #020617;
+            color:#e5e7eb;
+            border:1px solid var(--border);
+            font-family:Consolas,Monaco,monospace;
+        }
+        textarea:focus { outline:none; border-color:#8b5cf6; }
+        iframe {
+            background:#fff;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+    <div class="max-w-5xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i> 返回
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-bezier-curve mr-2"></i>SVG编辑器</h1>
+            <button id="themeToggle" class="btn btn-outline"><i class="fa-solid fa-moon"></i></button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="card p-4 rounded-xl">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-medium">SVG代码</span>
+                    <div class="flex gap-2">
+                        <button id="clearBtn" class="btn btn-outline">清空</button>
+                        <button id="sampleBtn" class="btn btn-outline">示例</button>
+                    </div>
+                </div>
+                <textarea id="svgCode" class="w-full h-96 p-3 rounded resize-none" placeholder="粘贴SVG代码在这里..."></textarea>
+            </div>
+            <div class="card p-4 rounded-xl flex flex-col">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-medium">实时预览</span>
+                    <button id="downloadBtn" class="btn btn-primary"><i class="fa-solid fa-download mr-1"></i>导出SVG</button>
+                </div>
+                <iframe id="previewFrame" class="flex-1 w-full rounded"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 主题
+        function initTheme(){
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            updateIcon(t);
+        }
+        function updateIcon(theme){
+            const i = document.querySelector("#themeToggle i");
+            i.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick = ()=>{
+            const curr = document.documentElement.getAttribute("data-theme");
+            const next = curr === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+            localStorage.setItem("toolTheme", next);
+            updateIcon(next);
+        }
+        initTheme();
+
+        const svgCode = document.getElementById('svgCode');
+        const previewFrame = document.getElementById('previewFrame');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const sampleBtn = document.getElementById('sampleBtn');
+
+        const sampleSvg = `<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="80" fill="#6366f1"/>
+  <path d="M70,90 L95,115 L130,75" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+        function render(){
+            const code = svgCode.value.trim();
+            previewFrame.srcdoc = code;
+        }
+        svgCode.oninput = render;
+
+        sampleBtn.onclick = ()=>{
+            svgCode.value = sampleSvg;
+            render();
+        }
+        clearBtn.onclick = ()=>{
+            svgCode.value = "";
+            render();
+        }
+        downloadBtn.onclick = ()=>{
+            const code = svgCode.value.trim();
+            if(!code) return alert("请输入SVG代码");
+            const blob = new Blob([code], {type:'image/svg+xml'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = "edit.svg";
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+        render();
+    </script>
+</body>
+</html>

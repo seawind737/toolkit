@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本对比 Diff | 差异比对</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#f97316' },
+                    fontFamily: { mono: ['Consolas','Monaco','Menlo','monospace'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient {
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+                background-image: linear-gradient(90deg, #fb923c, #f43f5e);
+            }
+            .btn { @apply px-3 py-2 rounded-lg transition-all duration-200 text-sm; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--sub-bg)]; }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --sub-bg: #334155;
+            --border: #475569;
+            --text-main: #e2e8f0;
+            --text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --sub-bg: #e2e8f0;
+            --border: #cbd5e1;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+        .card { background-color: var(--card); border:1px solid var(--border); }
+        .text-sub { color: var(--text-sub); }
+        textarea {
+            background-color: #020617;
+            color:#e5e7eb;
+            border:1px solid var(--border);
+            font-family:Consolas,Monaco,monospace;
+        }
+        textarea:focus { outline:none; border-color:#f97316; }
+        .diff-wrap{ font-family:Consolas,Monaco,monospace; white-space:pre-wrap; word-break:break-all; }
+        .diff-del{ background:#7f1d1d; color:#fecdd3; }
+        .diff-add{ background:#14532d; color:#bbf7d0; }
+        .diff-line{ display:block; }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i> 返回
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-code-compare mr-2"></i>文本Diff对比</h1>
+            <button id="themeToggle" class="btn btn-outline"><i class="fa-solid fa-moon"></i></button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <div class="card p-4 rounded-xl">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-medium"><i class="fa-solid fa-minus mr-1 text-red-400"></i>旧文本</span>
+                    <button id="clearOld" class="btn btn-outline">清空</button>
+                </div>
+                <textarea id="oldText" class="w-full h-64 p-3 rounded resize-none" placeholder="粘贴原始文本..."></textarea>
+            </div>
+            <div class="card p-4 rounded-xl">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-medium"><i class="fa-solid fa-plus mr-1 text-green-400"></i>新文本</span>
+                    <button id="clearNew" class="btn btn-outline">清空</button>
+                </div>
+                <textarea id="newText" class="w-full h-64 p-3 rounded resize-none" placeholder="粘贴修改后的文本..."></textarea>
+            </div>
+        </div>
+
+        <div class="flex gap-3 mb-4 flex-wrap">
+            <button id="runDiff" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass-chart mr-1"></i>比对差异</button>
+            <button id="swapBtn" class="btn btn-outline"><i class="fa-solid fa-arrows-up-down mr-1"></i>交换左右</button>
+            <button id="sampleBtn" class="btn btn-outline"><i class="fa-solid fa-file-lines mr-1"></i>加载示例</button>
+        </div>
+
+        <div class="card p-4 rounded-xl">
+            <div class="font-medium mb-2">比对结果（删除红 / 新增绿）</div>
+            <div id="diffResult" class="diff-wrap p-3 rounded min-h-48 bg-[#020617] text-sub"></div>
+        </div>
+    </div>
+
+    <script>
+        function initTheme(){
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            updateIcon(t);
+        }
+        function updateIcon(theme){
+            const i = document.querySelector("#themeToggle i");
+            i.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick = ()=>{
+            const curr = document.documentElement.getAttribute("data-theme");
+            const next = curr === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+            localStorage.setItem("toolTheme", next);
+            updateIcon(next);
+        }
+        initTheme();
+
+        const oldText = document.getElementById('oldText');
+        const newText = document.getElementById('newText');
+        const diffResult = document.getElementById('diffResult');
+        const runDiff = document.getElementById('runDiff');
+        const swapBtn = document.getElementById('swapBtn');
+        const sampleBtn = document.getElementById('sampleBtn');
+        const clearOld = document.getElementById('clearOld');
+        const clearNew = document.getElementById('clearNew');
+
+        const oldSample = `function hello(){
+  console.log("hello world");
+  let a = 1;
+}`;
+        const newSample = `function hello(){
+  console.log("hello diff");
+  let a = 100;
+  return a;
+}`;
+
+        function doDiff(){
+            const o = oldText.value;
+            const n = newText.value;
+            const diffs = Diff.diffLines(o, n);
+            let html = '';
+            for(const part of diffs){
+                const cls = part.removed ? 'diff-del' : part.added ? 'diff-add' : '';
+                const text = part.value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                html += `<span class="diff-line ${cls}">${text}</span>`;
+            }
+            diffResult.innerHTML = html;
+        }
+
+        runDiff.onclick = doDiff;
+        swapBtn.onclick = ()=>{
+            const tmp = oldText.value;
+            oldText.value = newText.value;
+            newText.value = tmp;
+            doDiff();
+        }
+        sampleBtn.onclick = ()=>{
+            oldText.value = oldSample;
+            newText.value = newSample;
+            doDiff();
+        }
+        clearOld.onclick = ()=> oldText.value='';
+        clearNew.onclick = ()=> newText.value='';
+    </script>
+</body>
+</html>

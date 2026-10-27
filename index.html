@@ -149,7 +149,7 @@
     <!-- 顶部导航栏 -->
     <nav class="nav-bar-bg sticky top-0 z-10 border-b">
         <div class="container mx-auto px-4 py-3 flex items-center relative">
-            <a href="/index.html" class="text-xl font-bold text-gradient">
+            <a href="/toolkit/index.html" class="text-xl font-bold text-gradient">
                 <i class="fa-solid fa-wrench mr-2"></i>二蛋工具集
             </a>
             <!-- 桌面菜单【居中】 -->
@@ -212,7 +212,7 @@
                         name: '编码解码',
                         icon: 'fa-lock',
                         children: [
-                            { name: 'Base64', url: './dev/code/base64.html', icon: 'fa-lock', desc:"文本Base64加密解密", homeRecommend:true },
+                            { name: 'Base64', url: './dev/code/base64.html', icon: 'fa-lock', desc:"文本Base64加密解密", homeRecommend:false },
                             { name: 'MD5', url: './dev/code/md5.html', icon: 'fa-fingerprint', desc:"MD5哈希计算", homeRecommend:false },
                             { name: 'SHA哈希', url: './dev/code/sha.html', icon: 'fa-shield-halved', desc:"SHA1/SHA256/SHA512哈希", homeRecommend:false },
                             { name: 'JWT', url: './dev/code/jwt.html', icon: 'fa-key', desc:"JWT解析生成", homeRecommend:false },
@@ -225,6 +225,14 @@
                         icon:"fa-solid fa-globe",
                         children: [
                             { name: 'Websocket', url: './network/ws.html', icon: 'fa-comments', desc:"WebSocket调试", homeRecommend:false }
+                        ]
+                    },
+                    {
+                        name: '开发辅助',
+                        icon:"fa-wrench",
+                        children: [
+                            { name: 'Cron表达式', url: './dev/helper/cron.html', icon: 'fa-clock', desc:"Cron解析、生成、预览", homeRecommend:true },
+                            { name: 'ID生成器', url: './dev/helper/idgen.html', icon: 'fa-hashtag', desc:"UUID、雪花ID、随机ID", homeRecommend:true }
                         ]
                     }
                 ]
@@ -246,6 +254,7 @@
                         children: [
                             { name: '去重统计', url: './text/unique.html', icon: 'fa-list-check', desc:"行去重、计数、排序", homeRecommend:true },
                             { name: '正则测试', url: './text/regex.html', icon: 'fa-asterisk', desc:"正则匹配替换测试", homeRecommend:false },
+                            { name: '文本Diff对比', url: './text/diff.html', icon: 'fa-code-compare', desc:"两段文本差异对比", homeRecommend:true }
                         ]
                     }
                 ]
@@ -260,6 +269,8 @@
                 children: [
                     { name: '图片压缩', url: './media/image/compress.html', icon: 'fa-image', desc:"本地无损压缩图片", homeRecommend:true },
                     { name: '取色器', url: './media/image/color.html', icon: 'fa-droplet', desc:"HEX/RGB颜色转换", homeRecommend:true },
+                    { name: '图片格式转换', url: './media/image/imgconvert.html', icon: 'fa-exchange-alt', desc:"JPG/PNG/WebP互转", homeRecommend:true },
+                    { name: 'SVG编辑器', url: './media/image/svg.html', icon: 'fa-bezier-curve', desc:"SVG简单编辑预览", homeRecommend:true }
                 ]
             },
             {
@@ -293,44 +304,56 @@
         }
 
         // ========= 提取首页卡片工具列表，按group分组（递归遍历，收集homeRecommend=true） =========
-        function buildToolList(apps){
+        function buildToolList(apps) {
             const groupMap = {};
-            // 递归遍历
-            function walk(list,parentGroup){
-                for(const item of list){
-                    if(item.children && item.children.length>0){
-                        // 分组节点，保存分组信息
-                        const gInfo = {
-                            groupName:item.groupName,
-                            groupIcon:item.groupIcon,
-                            groupColor:item.groupColor,
-                            bgColor:item.bgColor
-                        };
-                        walk(item.children, gInfo);
-                    }else{
-                        if(item.homeRecommend === true && parentGroup?.groupName){
-                            if(!groupMap[parentGroup.groupName]){
-                                groupMap[parentGroup.groupName] = {
-                                    groupName:parentGroup.groupName,
-                                    groupIcon:parentGroup.groupIcon,
-                                    groupColor:parentGroup.groupColor,
-                                    bgColor:parentGroup.bgColor,
-                                    tools:[]
-                                }
+
+            /**
+             * @param {Array} list 当前遍历列表
+             * @param {Object|null} ancestorGroup 向上追溯到的最近有效分组信息
+             */
+            function walk(list, ancestorGroup) {
+                for (const item of list) {
+                    if (item.children && item.children.length > 0) {
+                        let nextAncestor = ancestorGroup;
+                        // 当前节点本身是分组节点：更新祖先分组为本节点信息
+                        if (item.groupName) {
+                            nextAncestor = {
+                                groupName: item.groupName,
+                                groupIcon: item.groupIcon,
+                                groupColor: item.groupColor,
+                                bgColor: item.bgColor
+                            };
+                        }
+                        // 二级节点没有groupName，nextAncestor保持上层一级菜单的分组，传给三级
+                        walk(item.children, nextAncestor);
+                    } else {
+                        // 叶子工具：必须有推荐标记 + 存在追溯到的祖先分组
+                        if (item.homeRecommend === true && ancestorGroup?.groupName) {
+                            const key = ancestorGroup.groupName;
+                            if (!groupMap[key]) {
+                                groupMap[key] = {
+                                    groupName: ancestorGroup.groupName,
+                                    groupIcon: ancestorGroup.groupIcon,
+                                    groupColor: ancestorGroup.groupColor,
+                                    bgColor: ancestorGroup.bgColor,
+                                    tools: []
+                                };
                             }
-                            groupMap[parentGroup.groupName].tools.push({
-                                name:item.name,
-                                desc:item.desc||"",
-                                url:item.url,
-                                icon:item.icon
-                            })
+                            groupMap[key].tools.push({
+                                name: item.name,
+                                desc: item.desc || "",
+                                url: item.url,
+                                icon: item.icon
+                            });
                         }
                     }
                 }
             }
-            walk(apps,null);
+
+            walk(apps, null);
             return Object.values(groupMap);
         }
+
 
         // 生成实际渲染用的两份数据
         const menuList = buildMenuList(appList);

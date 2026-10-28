@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文本对比 Diff | 差异比对</title>
+    <title>文本 & 代码 Diff 进阶比对工具</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js"></script>
@@ -26,9 +26,10 @@
                 color: transparent;
                 background-image: linear-gradient(90deg, #fb923c, #f43f5e);
             }
-            .btn { @apply px-3 py-2 rounded-lg transition-all duration-200 text-sm; }
-            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn { @apply px-3 py-1.5 rounded-lg transition-all duration-200 text-xs flex items-center justify-center gap-1.5 cursor-pointer select-none; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80 font-bold; }
             .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--sub-bg)]; }
+            .btn-tab.active { @apply bg-primary text-white border-primary; }
         }
         html[data-theme="dark"] {
             --bg: #0f172a;
@@ -37,6 +38,7 @@
             --border: #475569;
             --text-main: #e2e8f0;
             --text-sub: #94a3b8;
+            --code-bg: #020617;
         }
         html[data-theme="light"] {
             --bg: #f8fafc;
@@ -45,64 +47,111 @@
             --border: #cbd5e1;
             --text-main: #1e293b;
             --text-sub: #64748b;
+            --code-bg: #f1f5f9;
         }
         body {
             background-color: var(--bg);
             color: var(--text-main);
             min-height: 100vh;
         }
-        .card { background-color: var(--card); border:1px solid var(--border); }
+        .card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
         .text-sub { color: var(--text-sub); }
+        
         textarea {
-            background-color: #020617;
-            color:#e5e7eb;
-            border:1px solid var(--border);
-            font-family:Consolas,Monaco,monospace;
+            background-color: var(--code-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            font-family: Consolas, Monaco, monospace;
         }
-        textarea:focus { outline:none; border-color:#f97316; }
-        .diff-wrap{ font-family:Consolas,Monaco,monospace; white-space:pre-wrap; word-break:break-all; }
-        .diff-del{ background:#7f1d1d; color:#fecdd3; }
-        .diff-add{ background:#14532d; color:#bbf7d0; }
-        .diff-line{ display:block; }
+        textarea:focus { outline: none; border-color: #f97316; }
+
+        /* Diff 结果排版 */
+        .diff-code-wrap {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .diff-del-row { background-color: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        .diff-add-row { background-color: rgba(34, 197, 94, 0.2); color: #86efac; }
+        .diff-del-inline { background-color: rgba(239, 68, 68, 0.45); color: #ffffff; border-radius: 2px; }
+        .diff-add-inline { background-color: rgba(34, 197, 94, 0.45); color: #ffffff; border-radius: 2px; }
     </style>
 </head>
-<body class="p-4 md:p-6">
-    <div class="max-w-6xl mx-auto">
-        <div class="flex items-center justify-between mb-6">
-            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
-                <i class="fa-solid fa-arrow-left"></i> 返回
+<body class="p-4 md:p-6 flex flex-col">
+    <div class="max-w-7xl mx-auto w-full flex-grow flex flex-col space-y-4">
+        
+        <!-- 顶部导航栏 -->
+        <div class="flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline">
+                <i class="fa-solid fa-arrow-left"></i> 返回首页
             </a>
-            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-code-compare mr-2"></i>文本Diff对比</h1>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-columns mr-2"></i>文本 & 代码 Diff 对比工具</h1>
             <button id="themeToggle" class="btn btn-outline"><i class="fa-solid fa-moon"></i></button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <div class="card p-4 rounded-xl">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="font-medium"><i class="fa-solid fa-minus mr-1 text-red-400"></i>旧文本</span>
-                    <button id="clearOld" class="btn btn-outline">清空</button>
-                </div>
-                <textarea id="oldText" class="w-full h-64 p-3 rounded resize-none" placeholder="粘贴原始文本..."></textarea>
+        <!-- 全局工具控制条 -->
+        <div class="card p-3 rounded-xl flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs text-sub font-bold mr-1">比对模式:</span>
+                <button id="modeLines" class="btn btn-outline btn-tab active">按行 (Lines)</button>
+                <button id="modeWords" class="btn btn-outline btn-tab">按词 (Words)</button>
+                <button id="modeChars" class="btn btn-outline btn-tab">按字符 (Chars)</button>
             </div>
-            <div class="card p-4 rounded-xl">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="font-medium"><i class="fa-solid fa-plus mr-1 text-green-400"></i>新文本</span>
-                    <button id="clearNew" class="btn btn-outline">清空</button>
-                </div>
-                <textarea id="newText" class="w-full h-64 p-3 rounded resize-none" placeholder="粘贴修改后的文本..."></textarea>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="swapBtn" class="btn btn-outline"><i class="fa-solid fa-arrows-rotate text-amber-400"></i>交换左右</button>
+                <button id="sampleBtn" class="btn btn-outline"><i class="fa-solid fa-wand-magic-sparkles text-sky-400"></i>示例数据</button>
+                <button id="clearAllBtn" class="btn btn-outline"><i class="fa-solid fa-eraser text-red-400"></i>一键清空</button>
             </div>
         </div>
 
-        <div class="flex gap-3 mb-4 flex-wrap">
-            <button id="runDiff" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass-chart mr-1"></i>比对差异</button>
-            <button id="swapBtn" class="btn btn-outline"><i class="fa-solid fa-arrows-up-down mr-1"></i>交换左右</button>
-            <button id="sampleBtn" class="btn btn-outline"><i class="fa-solid fa-file-lines mr-1"></i>加载示例</button>
+        <!-- 左右输入栏（支持拖拽文件与选择文件上传） -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- 旧文本 -->
+            <div class="card p-3.5 rounded-xl flex flex-col space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="font-bold flex items-center gap-1"><i class="fa-solid fa-minus text-red-400"></i>原始文本 (Old / Original)</span>
+                    <label class="btn btn-outline text-[11px] py-1 cursor-pointer">
+                        <i class="fa-solid fa-file-arrow-up text-blue-400"></i>导入文件
+                        <input type="file" id="oldFile" class="hidden">
+                    </label>
+                </div>
+                <textarea id="oldText" rows="8" class="w-full p-2.5 rounded-lg text-xs resize-none" placeholder="将旧文档粘贴至此，或将文件拖入..."></textarea>
+            </div>
+
+            <!-- 新文本 -->
+            <div class="card p-3.5 rounded-xl flex flex-col space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="font-bold flex items-center gap-1"><i class="fa-solid fa-plus text-green-400"></i>新文本 (New / Modified)</span>
+                    <label class="btn btn-outline text-[11px] py-1 cursor-pointer">
+                        <i class="fa-solid fa-file-arrow-up text-emerald-400"></i>导入文件
+                        <input type="file" id="newFile" class="hidden">
+                    </label>
+                </div>
+                <textarea id="newText" rows="8" class="w-full p-2.5 rounded-lg text-xs resize-none" placeholder="将新文档粘贴至此，或将文件拖入..."></textarea>
+            </div>
+
         </div>
 
-        <div class="card p-4 rounded-xl">
-            <div class="font-medium mb-2">比对结果（删除红 / 新增绿）</div>
-            <div id="diffResult" class="diff-wrap p-3 rounded min-h-48 bg-[#020617] text-sub"></div>
+        <!-- 差异对比结果区 -->
+        <div class="card p-4 rounded-xl flex flex-col space-y-3 flex-grow">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-2">
+                <div class="flex items-center gap-3 text-xs">
+                    <span class="font-bold text-sm"><i class="fa-solid fa-list-check mr-1 text-primary"></i>差异比对结果</span>
+                    <span class="bg-red-500/15 text-red-400 px-2 py-0.5 rounded-full font-mono text-[11px]" id="statDel">删除: 0</span>
+                    <span class="bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full font-mono text-[11px]" id="statAdd">新增: 0</span>
+                </div>
+                <button id="copyDiffBtn" class="btn btn-outline text-xs"><i class="fa-solid fa-copy mr-1"></i>复制结果</button>
+            </div>
+
+            <div id="diffResult" class="diff-code-wrap p-3 rounded-lg min-h-[160px] bg-[var(--code-bg)] overflow-auto flex-grow">
+                <div class="text-sub text-center py-8">点击上方控制面板按钮或输入内容即可即时比对</div>
+            </div>
         </div>
+
     </div>
 
     <script>
@@ -124,52 +173,135 @@
         }
         initTheme();
 
+        let currentGranularity = 'lines'; // 'lines' | 'words' | 'chars'
+
         const oldText = document.getElementById('oldText');
         const newText = document.getElementById('newText');
+        const oldFile = document.getElementById('oldFile');
+        const newFile = document.getElementById('newFile');
         const diffResult = document.getElementById('diffResult');
-        const runDiff = document.getElementById('runDiff');
-        const swapBtn = document.getElementById('swapBtn');
-        const sampleBtn = document.getElementById('sampleBtn');
-        const clearOld = document.getElementById('clearOld');
-        const clearNew = document.getElementById('clearNew');
 
-        const oldSample = `function hello(){
-  console.log("hello world");
-  let a = 1;
+        const modeLines = document.getElementById('modeLines');
+        const modeWords = document.getElementById('modeWords');
+        const modeChars = document.getElementById('modeChars');
+
+        const statAdd = document.getElementById('statAdd');
+        const statDel = document.getElementById('statDel');
+
+        const sampleOld = `function calculateTotal(price, tax) {
+    let sum = price + tax;
+    console.log("Total is: " + sum);
+    return sum;
 }`;
-        const newSample = `function hello(){
-  console.log("hello diff");
-  let a = 100;
-  return a;
+        const sampleNew = `function calculateTotal(price, tax, discount = 0) {
+    let sum = (price + tax) - discount;
+    console.log("Final Total: " + sum);
+    return Math.max(0, sum);
 }`;
+
+        // 切换比对模式选项
+        [modeLines, modeWords, modeChars].forEach(btn => {
+            btn.onclick = () => {
+                [modeLines, modeWords, modeChars].forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                if(btn === modeLines) currentGranularity = 'lines';
+                else if(btn === modeWords) currentGranularity = 'words';
+                else currentGranularity = 'chars';
+                doDiff();
+            }
+        });
 
         function doDiff(){
             const o = oldText.value;
             const n = newText.value;
-            const diffs = Diff.diffLines(o, n);
-            let html = '';
-            for(const part of diffs){
-                const cls = part.removed ? 'diff-del' : part.added ? 'diff-add' : '';
-                const text = part.value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-                html += `<span class="diff-line ${cls}">${text}</span>`;
+
+            if(!o && !n){
+                diffResult.innerHTML = `<div class="text-sub text-center py-8">请输入或上传文本进行差异比对</div>`;
+                statAdd.innerText = '新增: 0';
+                statDel.innerText = '删除: 0';
+                return;
             }
+
+            let diffs = [];
+            if(currentGranularity === 'lines') diffs = Diff.diffLines(o, n);
+            else if(currentGranularity === 'words') diffs = Diff.diffWords(o, n);
+            else diffs = Diff.diffChars(o, n);
+
+            let html = '';
+            let addCount = 0;
+            let delCount = 0;
+
+            diffs.forEach(part => {
+                const escaped = escapeHtml(part.value);
+                if(part.added){
+                    addCount++;
+                    const cls = currentGranularity === 'lines' ? 'diff-add-row block px-1' : 'diff-add-inline px-0.5 mx-0.5';
+                    html += `<span class="${cls}">${escaped}</span>`;
+                } else if(part.removed){
+                    delCount++;
+                    const cls = currentGranularity === 'lines' ? 'diff-del-row block px-1' : 'diff-del-inline px-0.5 mx-0.5';
+                    html += `<span class="${cls}">${escaped}</span>`;
+                } else {
+                    html += `<span>${escaped}</span>`;
+                }
+            });
+
             diffResult.innerHTML = html;
+            statAdd.innerText = `新增: ${addCount}`;
+            statDel.innerText = `删除: ${delCount}`;
         }
 
-        runDiff.onclick = doDiff;
-        swapBtn.onclick = ()=>{
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // 读文件事件
+        function handleFileUpload(fileInputEl, targetTextarea){
+            fileInputEl.onchange = (e) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    targetTextarea.value = evt.target.result;
+                    doDiff();
+                };
+                reader.readAsText(file);
+            };
+        }
+        handleFileUpload(oldFile, oldText);
+        handleFileUpload(newFile, newText);
+
+        // 交换与清空
+        document.getElementById('swapBtn').onclick = () => {
             const tmp = oldText.value;
             oldText.value = newText.value;
             newText.value = tmp;
             doDiff();
-        }
-        sampleBtn.onclick = ()=>{
-            oldText.value = oldSample;
-            newText.value = newSample;
+        };
+
+        document.getElementById('sampleBtn').onclick = () => {
+            oldText.value = sampleOld;
+            newText.value = sampleNew;
             doDiff();
-        }
-        clearOld.onclick = ()=> oldText.value='';
-        clearNew.onclick = ()=> newText.value='';
+        };
+
+        document.getElementById('clearAllBtn').onclick = () => {
+            oldText.value = '';
+            newText.value = '';
+            doDiff();
+        };
+
+        document.getElementById('copyDiffBtn').onclick = () => {
+            navigator.clipboard.writeText(diffResult.innerText);
+            alert('已成功复制差异对比纯文本！');
+        };
+
+        [oldText, newText].forEach(el => el.oninput = doDiff);
+
+        // 首次初始化
+        oldText.value = sampleOld;
+        newText.value = sampleNew;
+        doDiff();
     </script>
 </body>
 </html>

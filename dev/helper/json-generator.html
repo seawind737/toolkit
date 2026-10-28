@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON 转多语言数据结构生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], mono: ['Consolas', 'Monaco', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
+        }
+        .btn {
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.85); }
+        .btn-outline { border: 1px solid var(--border); background-color: var(--card); color: var(--text-main); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8; --input-bg: #020617;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b; --input-bg: #f1f5f9;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+
+        textarea, select {
+            background-color: var(--input-bg); border: 1px solid var(--border); color: var(--text-main);
+            padding: 0.5rem; border-radius: 0.375rem; font-size: 0.8rem;
+        }
+        textarea:focus, select:focus { outline: none; border-color: #3b82f6; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-file-code mr-2"></i>JSON 转多语言数据结构</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-6xl flex-grow space-y-4">
+        
+        <!-- 顶部操作栏 -->
+        <div class="tool-card p-3 rounded-xl flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+                <span class="text-xs font-bold text-sub-color">目标语言:</span>
+                <select id="langSelect" class="text-xs font-bold py-1.5 px-3">
+                    <option value="ts">TypeScript (Interface)</option>
+                    <option value="go">Go (Struct)</option>
+                    <option value="java">Java (POJO / Lombok)</option>
+                    <option value="python">Python (TypedDict / Class)</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="btnSample" class="btn btn-outline text-xs"><i class="fa-solid fa-wand-magic-sparkles text-amber-400 mr-1.5"></i>加载示例 JSON</button>
+                <button id="btnClear" class="btn btn-outline text-xs text-red-400"><i class="fa-solid fa-eraser mr-1.5"></i>清空</button>
+            </div>
+        </div>
+
+        <!-- 左右分栏输入与输出 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <!-- 左侧 JSON 输入 -->
+            <div class="tool-card p-4 rounded-xl flex flex-col space-y-2">
+                <div class="flex justify-between items-center text-xs font-semibold">
+                    <span class="text-sub-color"><i class="fa-solid fa-brackets-curly mr-1 text-primary"></i>输入 JSON 源码</span>
+                    <span id="jsonStatus" class="text-[11px] text-emerald-400">JSON 格式有效</span>
+                </div>
+                <textarea id="jsonInput" rows="18" class="w-full font-mono resize-none leading-relaxed" placeholder="在此粘贴您的 JSON 对象或数组..."></textarea>
+            </div>
+
+            <!-- 右侧生成结果 -->
+            <div class="tool-card p-4 rounded-xl flex flex-col space-y-2">
+                <div class="flex justify-between items-center text-xs font-semibold">
+                    <span class="text-sub-color"><i class="fa-solid fa-code mr-1 text-cyan-400"></i>生成的目标语言类型定义</span>
+                    <div class="flex gap-2">
+                        <button id="btnCopy" class="btn btn-outline text-[11px] py-1 px-2.5"><i class="fa-solid fa-copy text-emerald-400 mr-1"></i>复制结果</button>
+                        <button id="btnDownload" class="btn btn-outline text-[11px] py-1 px-2.5"><i class="fa-solid fa-download text-blue-400 mr-1"></i>下载文件</button>
+                    </div>
+                </div>
+                <textarea id="codeOutput" rows="18" readonly class="w-full font-mono resize-none leading-relaxed text-cyan-300 bg-slate-950/80" placeholder="等待输入合法的 JSON..."></textarea>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 开发者工具箱 | JSON 结构转换中心</p>
+        </div>
+    </footer>
+
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
+
+const langSelect = document.getElementById('langSelect');
+langSelect.onchange = () => {
+    convertJson();
+};
+
+const sampleJson = {
+    "id": 10086,
+    "username": "developer_john",
+    "is_active": true,
+    "tags": ["admin", "backend", "lead"],
+    "profile": {
+        "email": "john@example.com",
+        "age": 28,
+        "location": "Hong Kong"
+    },
+    "projects": [
+        {
+            "project_id": "p-01",
+            "title": "Toolkit Suite",
+            "stars": 340
+        }
+    ]
+};
+
+const jsonInput = document.getElementById('jsonInput');
+const codeOutput = document.getElementById('codeOutput');
+const jsonStatus = document.getElementById('jsonStatus');
+
+function capitalize(str) {
+    if(!str) return 'Root';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function toPascalCase(str) {
+    return str.replace(/([-_][a-z])/g, group => group.toUpperCase().replace('_','').replace('-',''))
+              .replace(/^[a-z]/, char => char.toUpperCase());
+}
+
+function convertJson() {
+    const text = jsonInput.value.trim();
+    const currentLang = langSelect.value;
+
+    if(!text) {
+        codeOutput.value = '';
+        jsonStatus.innerText = '请输入 JSON';
+        jsonStatus.className = 'text-[11px] text-sub-color';
+        return;
+    }
+
+    try {
+        const parsed = JSON.parse(text);
+        jsonStatus.innerText = 'JSON 格式有效';
+        jsonStatus.className = 'text-[11px] text-emerald-400';
+
+        if(currentLang === 'ts') {
+            codeOutput.value = generateTypeScript(parsed, 'RootObject');
+        } else if(currentLang === 'go') {
+            codeOutput.value = generateGo(parsed, 'RootObject');
+        } else if(currentLang === 'java') {
+            codeOutput.value = generateJava(parsed, 'RootObject');
+        } else if(currentLang === 'python') {
+            codeOutput.value = generatePython(parsed, 'RootObject');
+        }
+    } catch(err) {
+        jsonStatus.innerText = 'JSON 语法错误: ' + err.message;
+        jsonStatus.className = 'text-[11px] text-red-400';
+        codeOutput.value = '// 请修正左侧的 JSON 语法错误后再进行转换';
+    }
+}
+
+// 1. TypeScript
+function generateTypeScript(obj, rootName = 'Root') {
+    const structs = new Map();
+    function parse(val, name) {
+        if(val === null || val === undefined) return 'any';
+        if(Array.isArray(val)) {
+            if(val.length === 0) return 'any[]';
+            const first = val[0];
+            if(typeof first === 'object' && first !== null) {
+                const subName = capitalize(name) + 'Item';
+                parse(first, subName);
+                return `${subName}[]`;
+            } else {
+                return `${typeof first}[]`;
+            }
+        }
+        if(typeof val === 'object') {
+            const className = capitalize(name);
+            let fieldsStr = '';
+            for(const [k, v] of Object.entries(val)) {
+                const subType = parse(v, k);
+                fieldsStr += `  ${k}: ${subType};\n`;
+            }
+            structs.set(className, `interface ${className} {\n${fieldsStr}}`);
+            return className;
+        }
+        return typeof val;
+    }
+    parse(obj, rootName);
+    return [...structs.values()].join('\n\n');
+}
+
+// 2. Go Struct
+function generateGo(obj, rootName = 'RootObject') {
+    let structs = [];
+    function parse(val, name) {
+        if(val === null || val === undefined) return 'interface{}';
+        if(Array.isArray(val)) {
+            if(val.length === 0) return '[]interface{}';
+            const first = val[0];
+            if(typeof first === 'object' && first !== null) {
+                const subName = capitalize(name) + 'Item';
+                parse(first, subName);
+                return `[]${subName}`;
+            } else {
+                return `[]${typeof first === 'number' ? (Number.isInteger(first)?'int':'float64') : typeof first}`;
+            }
+        }
+        if(typeof val === 'object') {
+            const structName = capitalize(name);
+            let fields = '';
+            for(const [k, v] of Object.entries(val)) {
+                const fieldName = toPascalCase(k);
+                const fieldType = parse(v, k);
+                fields += `\t${fieldName} ${fieldType} \`json:"${k}"\`\n`;
+            }
+            structs.push(`type ${structName} struct {\n${fields}}`);
+            return structName;
+        }
+        if(typeof val === 'number') return Number.isInteger(val) ? 'int' : 'float64';
+        if(typeof val === 'boolean') return 'bool';
+        return 'string';
+    }
+    parse(obj, rootName);
+    return structs.reverse().join('\n\n');
+}
+
+// 3. Java POJO (Lombok 风格)
+function generateJava(obj, rootName = 'RootObject') {
+    let classes = [];
+    function parse(val, name) {
+        if(val === null || val === undefined) return 'Object';
+        if(Array.isArray(val)) {
+            if(val.length === 0) return 'List<Object>';
+            const first = val[0];
+            if(typeof first === 'object' && first !== null) {
+                const subName = capitalize(name) + 'Item';
+                parse(first, subName);
+                return `List<${subName}>`;
+            } else {
+                const t = typeof first;
+                const javaT = t === 'number' ? (Number.isInteger(first)?'Integer':'Double') : t === 'boolean' ? 'Boolean' : 'String';
+                return `List<${javaT}>`;
+            }
+        }
+        if(typeof val === 'object') {
+            const className = capitalize(name);
+            let fields = '';
+            for(const [k, v] of Object.entries(val)) {
+                const fieldType = parse(v, k);
+                fields += `    private ${fieldType} ${k};\n`;
+            }
+            const classCode = `import lombok.Data;\nimport java.util.List;\n\n@Data\npublic class ${className} {\n${fields}}`;
+            classes.push(classCode);
+            return className;
+        }
+        const t = typeof val;
+        if(t === 'number') return Number.isInteger(val) ? 'Integer' : 'Double';
+        if(t === 'boolean') return 'Boolean';
+        return 'String';
+    }
+    parse(obj, rootName);
+    return classes.reverse().join('\n\n');
+}
+
+// 4. Python Class
+function generatePython(obj, rootName = 'RootObject') {
+    let classes = [];
+    function parse(val, name) {
+        if(val === null || val === undefined) return 'Any';
+        if(Array.isArray(val)) {
+            if(val.length === 0) return 'List[Any]';
+            const first = val[0];
+            if(typeof first === 'object' && first !== null) {
+                const subName = capitalize(name) + 'Item';
+                parse(first, subName);
+                return `List[${subName}]`;
+            } else {
+                const t = typeof first;
+                const pyT = t === 'number' ? (Number.isInteger(first)?'int':'float') : t === 'boolean' ? 'bool' : 'str';
+                return `List[${pyT}]`;
+            }
+        }
+        if(typeof val === 'object') {
+            const className = capitalize(name);
+            let fields = '';
+            for(const [k, v] of Object.entries(val)) {
+                const fieldType = parse(v, k);
+                fields += `    ${k}: ${fieldType}\n`;
+            }
+            classes.push(`class ${className}(TypedDict):\n${fields || '    pass'}`);
+            return className;
+        }
+        const t = typeof val;
+        if(t === 'number') return Number.isInteger(val) ? 'int' : 'float';
+        if(t === 'boolean') return 'bool';
+        return 'str';
+    }
+    parse(obj, rootName);
+    return `from typing import TypedDict, List, Optional, Any\n\n` + classes.reverse().join('\n\n');
+}
+
+jsonInput.oninput = convertJson;
+
+document.getElementById('btnSample').onclick = () => {
+    jsonInput.value = JSON.stringify(sampleJson, null, 2);
+    convertJson();
+};
+
+document.getElementById('btnClear').onclick = () => {
+    jsonInput.value = '';
+    codeOutput.value = '';
+    jsonStatus.innerText = '等待输入';
+    jsonStatus.className = 'text-[11px] text-sub-color';
+};
+
+document.getElementById('btnCopy').onclick = async () => {
+    if(!codeOutput.value) return;
+    try {
+        await navigator.clipboard.writeText(codeOutput.value);
+        alert('✅ 转换结果已成功复制到剪贴板！');
+    } catch(e) {
+        alert('❌ 复制失败，请手动选择复制');
+    }
+};
+
+document.getElementById('btnDownload').onclick = () => {
+    if(!codeOutput.value) return;
+    const currentLang = langSelect.value;
+    const extMap = { ts: 'ts', go: 'go', java: 'java', python: 'py' };
+    const blob = new Blob([codeOutput.value], {type: 'text/plain;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Model.${extMap[currentLang]}`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+};
+
+// 初始化默认加载示例
+jsonInput.value = JSON.stringify(sampleJson, null, 2);
+convertJson();
+</script>
+</body>
+</html>

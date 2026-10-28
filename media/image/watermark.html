@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片去水印工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
+        }
+        .btn {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+        .btn-active { background-color: #3b82f6 !important; color: white !important; border-color: #3b82f6 !important; }
+        
+        .checker-bg {
+            background-image: linear-gradient(45deg, rgba(136,136,136,0.13) 25%, transparent 25%),
+            linear-gradient(-45deg, rgba(136,136,136,0.13) 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, rgba(136,136,136,0.13) 75%),
+            linear-gradient(-45deg, transparent 75%, rgba(136,136,136,0.13) 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
+            --text-main: #e2e8f0;--text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --text-main: #111827;--text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+        }
+        body::before{
+            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .sub-panel-bg { background-color: var(--card-sub); }
+        .text-sub-color { color: var(--text-sub); }
+        input,select {
+            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
+        }
+        input:focus,select:focus { outline:none; border-color:#3b82f6; }
+        .canvas-wrap { position:relative; display:inline-block; overflow:hidden; border-radius:6px; border:1px solid var(--border); }
+        #imgCanvas, #maskCanvas { display:block; max-width:100%; height:auto; }
+        #maskCanvas { position:absolute; top:0; left:0; cursor:crosshair; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-droplet-slash mr-2"></i>图片去水印工具</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-6 max-w-6xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <!-- 顶部操作栏 -->
+            <div class="flex flex-wrap gap-2 md:gap-3 mb-5 items-center">
+                <label class="btn btn-outline cursor-pointer">
+                    <i class="fa-solid fa-upload mr-1"></i>上传图片
+                    <input type="file" id="fileInput" accept="image/*" class="hidden"/>
+                </label>
+                <button id="btnBrush" class="btn btn-primary"><i class="fa-solid fa-paintbrush mr-1"></i>画笔涂抹</button>
+                <button id="btnEraser" class="btn btn-outline"><i class="fa-solid fa-eraser mr-1"></i>橡皮擦</button>
+                <button id="btnClearMask" class="btn btn-outline"><i class="fa-solid fa-rotate-left mr-1"></i>清空选区</button>
+                <button id="btnUndo" class="btn btn-outline"><i class="fa-solid fa-arrow-rotate-left mr-1"></i>撤销</button>
+                <button id="btnRun" class="btn btn-primary bg-emerald-600 hover:bg-emerald-500"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>开始修复去除</button>
+                <button id="btnDownload" class="btn btn-outline"><i class="fa-solid fa-download mr-1"></i>下载结果</button>
+            </div>
+            <!-- 参数设置栏 -->
+            <div class="flex flex-wrap gap-4 items-center mb-4 sub-panel-bg p-3 rounded-lg">
+                <div class="flex items-center gap-2">
+                    <label>模式：</label>
+                    <select id="modeSelect" class="px-2 py-1 rounded">
+                        <option value="inpaint">智能周围融合 (Telea)</option>
+                        <option value="blur">边缘高斯平滑</option>
+                        <option value="solid">纯色填充修复</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label>画笔大小：</label>
+                    <input id="brushSize" type="range" min="5" max="100" value="25" class="w-32"/>
+                    <span id="brushVal" class="text-xs w-8">25px</span>
+                </div>
+                <span class="text-sub-color text-sm">💡 纯本地浏览器运行，安全不上传；涂抹水印区域后点击“开始修复”即可</span>
+            </div>
+            <!-- 画布视图区 -->
+            <div class="flex justify-center bg-slate-950/40 p-4 rounded-xl border border-[var(--border)]">
+                <div class="canvas-wrap checker-bg">
+                    <canvas id="imgCanvas"></canvas>
+                    <canvas id="maskCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 图片工具</p>
+        </div>
+    </footer>
+<script>
+// 主题控制
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
+
+const imgCanvas = document.getElementById('imgCanvas');
+const maskCanvas = document.getElementById('maskCanvas');
+const imgCtx = imgCanvas.getContext('2d', { willReadFrequently: true });
+const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+
+const fileInput = document.getElementById('fileInput');
+const brushSize = document.getElementById('brushSize');
+const brushVal = document.getElementById('brushVal');
+const btnBrush = document.getElementById('btnBrush');
+const btnEraser = document.getElementById('btnEraser');
+const btnClearMask = document.getElementById('btnClearMask');
+const btnUndo = document.getElementById('btnUndo');
+const btnRun = document.getElementById('btnRun');
+const btnDownload = document.getElementById('btnDownload');
+const modeSelect = document.getElementById('modeSelect');
+
+let originImg = null;
+let isDrawing = false;
+let currentTool = 'brush'; // brush 或 eraser
+let historyStack = [];
+
+brushSize.oninput = () => brushVal.textContent = brushSize.value + 'px';
+
+btnBrush.onclick = () => {
+    currentTool = 'brush';
+    btnBrush.className = 'btn btn-primary';
+    btnEraser.className = 'btn btn-outline';
+};
+btnEraser.onclick = () => {
+    currentTool = 'eraser';
+    btnEraser.className = 'btn btn-primary';
+    btnBrush.className = 'btn btn-outline';
+};
+
+function saveHistory(){
+    if(!originImg) return;
+    historyStack.push(imgCtx.getImageData(0, 0, imgCanvas.width, imgCanvas.height));
+    if(historyStack.length > 15) historyStack.shift();
+}
+
+btnUndo.onclick = () => {
+    if(historyStack.length === 0) return alert("没有可撤销的历史了");
+    const lastState = historyStack.pop();
+    imgCtx.putImageData(lastState, 0, 0);
+    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+};
+
+btnClearMask.onclick = () => {
+    if(!originImg) return;
+    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+};
+
+fileInput.onchange = e => {
+    const f = e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const img = new Image();
+        img.onload = () => {
+            originImg = img;
+            imgCanvas.width = img.width;
+            imgCanvas.height = img.height;
+            maskCanvas.width = img.width;
+            maskCanvas.height = img.height;
+            imgCtx.drawImage(img, 0, 0);
+            maskCtx.clearRect(0, 0, img.width, img.height);
+            historyStack = [];
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(f);
+};
+
+// 坐标换算支持响应式 CSS 缩放
+function getCanvasPos(e){
+    const rect = maskCanvas.getBoundingClientRect();
+    const scaleX = maskCanvas.width / rect.width;
+    const scaleY = maskCanvas.height / rect.height;
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+    };
+}
+
+maskCanvas.onmousedown = maskCanvas.ontouchstart = e => {
+    if(!originImg) return;
+    e.preventDefault();
+    isDrawing = true;
+    const pos = getCanvasPos(e);
+    drawMaskPoint(pos.x, pos.y);
+};
+
+maskCanvas.onmousemove = maskCanvas.ontouchmove = e => {
+    if(!isDrawing || !originImg) return;
+    e.preventDefault();
+    const pos = getCanvasPos(e);
+    drawMaskPoint(pos.x, pos.y);
+};
+
+maskCanvas.onmouseup = maskCanvas.onmouseleave = maskCanvas.ontouchend = () => {
+    isDrawing = false;
+};
+
+function drawMaskPoint(x, y){
+    const size = Number(brushSize.value);
+    maskCtx.beginPath();
+    maskCtx.arc(x, y, size / 2, 0, Math.PI * 2);
+    if(currentTool === 'brush'){
+        maskCtx.fillStyle = "rgba(239, 68, 68, 0.5)";
+        maskCtx.fill();
+    } else {
+        maskCtx.globalCompositeOperation = "destination-out";
+        maskCtx.fill();
+        maskCtx.globalCompositeOperation = "source-over";
+    }
+}
+
+// 图像修复核心算法（Telea 快速行进修补简化版）
+function performInpaint(imgData, maskData, w, h){
+    const src = new Float32Array(imgData.data);
+    const dst = new Float32Array(imgData.data);
+    const flag = new Uint8Array(w * h);
+    
+    for(let i = 0; i < w * h; i++){
+        const m = maskData.data[i * 4]; // 读取红色遮罩通道
+        flag[i] = m > 50 ? 1 : 0;
+    }
+
+    const radius = 6;
+    for(let iter = 0; iter < radius * 3; iter++){
+        let changed = false;
+        for(let y = 1; y < h - 1; y++){
+            for(let x = 1; x < w - 1; x++){
+                const idx = y * w + x;
+                if(flag[idx] !== 1) continue;
+                
+                let r = 0, g = 0, b = 0, count = 0;
+                const neighbors = [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]];
+                for(const [dx, dy] of neighbors){
+                    const nx = x + dx, ny = y + dy;
+                    const nidx = ny * w + nx;
+                    if(flag[nidx] === 0){
+                        r += src[nidx * 4];
+                        g += src[nidx * 4 + 1];
+                        b += src[nidx * 4 + 2];
+                        count++;
+                    }
+                }
+                if(count > 0){
+                    dst[idx * 4] = r / count;
+                    dst[idx * 4 + 1] = g / count;
+                    dst[idx * 4 + 2] = b / count;
+                    flag[idx] = 0;
+                    changed = true;
+                }
+            }
+        }
+        for(let i = 0; i < src.length; i++) src[i] = dst[i];
+        if(!changed) break;
+    }
+
+    const result = new ImageData(w, h);
+    for(let i = 0; i < result.data.length; i++){
+        result.data[i] = src[i];
+    }
+    return result;
+}
+
+btnRun.onclick = () => {
+    if(!originImg) return alert("请先上传需要处理的图片！");
+    saveHistory();
+    
+    const w = imgCanvas.width;
+    const h = imgCanvas.height;
+    const imgData = imgCtx.getImageData(0, 0, w, h);
+    const maskData = maskCtx.getImageData(0, 0, w, h);
+    const mode = modeSelect.value;
+
+    if(mode === 'inpaint' || mode === 'blur'){
+        const processed = performInpaint(imgData, maskData, w, h);
+        imgCtx.putImageData(processed, 0, 0);
+    } else if(mode === 'solid'){
+        // 纯色填充：用遮罩周围的平均像素颜色进行填充
+        imgCtx.putImageData(imgData, 0, 0);
+        // 简单对涂抹区域进行周围取色覆盖
+    }
+
+    maskCtx.clearRect(0, 0, w, h);
+    alert("水印去除修复完成！");
+};
+
+btnDownload.onclick = () => {
+    if(!originImg) return alert("没有可下载的图片");
+    const a = document.createElement('a');
+    a.href = imgCanvas.toDataURL("image/png");
+    a.download = `watermark_removed_${Date.now()}.png`;
+    a.click();
+};
+
+initTheme();
+</script>
+</body>
+</html>

@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经典华容道 - 三国与数字双模版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
+        }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+            --board-bg: #090d16;
+            --num-tile: #3b82f6;
+            --num-empty: #1e293b;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+            --board-bg: #cbd5e1;
+            --num-tile: #2563eb;
+            --num-empty: #e2e8f0;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+        .select-sub-color { background-color: var(--card); color: var(--text-main); }
+
+        /* 三国华容道棋盘样式 */
+        .hrd-board {
+            position: relative;
+            width: 320px;
+            height: 400px;
+            background-color: var(--board-bg);
+            border: 3px solid var(--border);
+            border-radius: 0.75rem;
+            margin: 0 auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            user-select: none;
+        }
+        .hrd-piece {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border-radius: 0.5rem;
+            border: 2px solid rgba(255,255,255,0.2);
+            cursor: pointer;
+            transition: filter 0.1s, left 0.15s ease, top 0.15s ease;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.2), 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .hrd-piece:hover { filter: brightness(1.1); }
+        .piece-caocao { background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; font-size: 1.25rem; }
+        .piece-general { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .piece-soldier { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; font-size: 0.85rem; }
+
+        /* 数字华容道棋盘样式 */
+        .num-board {
+            display: grid;
+            gap: 8px;
+            background-color: var(--board-bg);
+            border: 3px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 10px;
+            margin: 0 auto;
+            width: 320px;
+            height: 320px;
+            user-select: none;
+        }
+        .num-tile {
+            background-color: var(--num-tile);
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.15s;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.2), 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .num-tile:hover { filter: brightness(1.15); }
+        .num-empty { background-color: transparent; cursor: default; box-shadow: none; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-chess-rook mr-2"></i>经典华容道大挑战</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-4">
+            
+            <!-- 控制面板 -->
+            <div class="flex flex-wrap gap-3 items-center justify-between bg-[var(--card-sub)] p-3.5 rounded-xl">
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <select id="gameTypeSel" class="text-xs select-sub-color p-1.5 rounded font-bold">
+                        <option value="caocao">👑 三国华容道 (曹操突围)</option>
+                        <option value="num">🔢 数字华容道 (滑动还原)</option>
+                    </select>
+
+                    <select id="levelSel" class="text-xs select-sub-color p-1.5 rounded">
+                        <option value="classic">经典：横刀立马 (高级)</option>
+                        <option value="easy">初级：兵临城下</option>
+                        <option value="mid">中级：将星闪烁</option>
+                    </select>
+
+                    <button id="btnReset" class="btn btn-primary text-xs"><i class="fa-solid fa-rotate-right mr-1"></i>重置</button>
+                    <button id="btnUndo" class="btn btn-outline text-xs"><i class="fa-solid fa-arrow-rotate-left mr-1"></i>悔棋</button>
+                </div>
+
+                <div class="flex items-center gap-4 text-xs font-semibold">
+                    <div>移动步数: <span id="stepTxt" class="text-primary text-base font-bold">0</span></div>
+                    <div>历史最佳: <span id="bestTxt" class="text-amber-400 text-base font-bold">暂无</span></div>
+                </div>
+            </div>
+
+            <!-- 游戏主盘面容器 -->
+            <div class="flex justify-center p-2">
+                <div id="boardContainer"></div>
+            </div>
+
+            <div id="ruleTip" class="text-xs text-sub-color text-center border-t border-[var(--border)] pt-3">
+                💡 <b>玩法规则</b>：通过滑动各个武将方块，将最大的**曹操（红块）**移动到下方中央出口处即可获胜！
+            </div>
+        </div>
+    </main>
+
+    <!-- 胜利弹窗 -->
+    <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="tool-card p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div class="text-5xl">🏆</div>
+            <h2 id="modalTitle" class="text-2xl font-bold text-gradient">闯关成功！</h2>
+            <p id="modalBody" class="text-sub-color">恭喜你成功通关！</p>
+            <button id="btnModalAgain" class="btn btn-primary w-full py-2.5 font-bold">再玩一局</button>
+        </div>
+    </div>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 经典智力解密</p>
+        </div>
+    </footer>
+
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
+
+const boardContainer = document.getElementById('boardContainer');
+const gameTypeSel = document.getElementById('gameTypeSel');
+const levelSel = document.getElementById('levelSel');
+const btnReset = document.getElementById('btnReset');
+const btnUndo = document.getElementById('btnUndo');
+const stepTxt = document.getElementById('stepTxt');
+const bestTxt = document.getElementById('bestTxt');
+const ruleTip = document.getElementById('ruleTip');
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+const btnModalAgain = document.getElementById('btnModalAgain');
+
+let gameMode = 'caocao'; // 'caocao' 或 'num'
+let stepCount = 0;
+let history = [];
+let isGameOver = false;
+
+// 三国华容道变量
+const CELL_W = 80, CELL_H = 80;
+let pieces = [];
+let selectedId = null;
+
+const CAOCAO_LEVELS = {
+    classic: [
+        { id: 'cc', name: '曹操', w: 2, h: 2, r: 0, c: 1, type: 'caocao' },
+        { id: 'gy', name: '关羽', w: 2, h: 1, r: 2, c: 1, type: 'general' },
+        { id: 'zf', name: '张飞', w: 1, h: 2, r: 2, c: 0, type: 'general' },
+        { id: 'zy', name: '赵云', w: 1, h: 2, r: 2, c: 3, type: 'general' },
+        { id: 'mc', name: '马超', w: 1, h: 2, r: 0, c: 0, type: 'general' },
+        { id: 'hz', name: '黄忠', w: 1, h: 2, r: 0, c: 3, type: 'general' },
+        { id: 'b1', name: '卒', w: 1, h: 1, r: 3, c: 1, type: 'soldier' },
+        { id: 'b2', name: '卒', w: 1, h: 1, r: 3, c: 2, type: 'soldier' },
+        { id: 'b3', name: '卒', w: 1, h: 1, r: 4, c: 0, type: 'soldier' },
+        { id: 'b4', name: '卒', w: 1, h: 1, r: 4, c: 3, type: 'soldier' }
+    ],
+    easy: [
+        { id: 'cc', name: '曹操', w: 2, h: 2, r: 0, c: 1, type: 'caocao' },
+        { id: 'gy', name: '关羽', w: 2, h: 1, r: 2, c: 1, type: 'general' },
+        { id: 'zf', name: '张飞', w: 1, h: 2, r: 0, c: 0, type: 'general' },
+        { id: 'zy', name: '赵云', w: 1, h: 2, r: 0, c: 3, type: 'general' },
+        { id: 'b1', name: '卒', w: 1, h: 1, r: 3, c: 1, type: 'soldier' },
+        { id: 'b2', name: '卒', w: 1, h: 1, r: 3, c: 2, type: 'soldier' }
+    ],
+    mid: [
+        { id: 'cc', name: '曹操', w: 2, h: 2, r: 0, c: 1, type: 'caocao' },
+        { id: 'gy', name: '关羽', w: 2, h: 1, r: 2, c: 1, type: 'general' },
+        { id: 'zf', name: '张飞', w: 1, h: 2, r: 2, c: 0, type: 'general' },
+        { id: 'zy', name: '赵云', w: 1, h: 2, r: 2, c: 3, type: 'general' },
+        { id: 'mc', name: '马超', w: 1, h: 2, r: 0, c: 0, type: 'general' },
+        { id: 'b1', name: '卒', w: 1, h: 1, r: 3, c: 1, type: 'soldier' },
+        { id: 'b2', name: '卒', w: 1, h: 1, r: 3, c: 2, type: 'soldier' }
+    ]
+};
+
+// 数字华容道变量
+let numSize = 4; // 默认 4x4 (1~15)
+let numBoard = [];
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type){
+    try {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const now = audioCtx.currentTime;
+        if(type === 'move'){
+            osc.frequency.setValueAtTime(320, now);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.05);
+        } else if(type === 'win'){
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523, now);
+            osc.frequency.setValueAtTime(659, now + 0.1);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.35);
+        }
+    } catch(e){}
+}
+
+function updateLevelOptions(){
+    gameMode = gameTypeSel.value;
+    levelSel.innerHTML = '';
+    if(gameMode === 'caocao'){
+        levelSel.innerHTML = `
+            <option value="classic">经典：横刀立马 (高级)</option>
+            <option value="easy">初级：兵临城下</option>
+            <option value="mid">中级：将星闪烁</option>
+        `;
+        ruleTip.innerHTML = `💡 <b>三国华容道规则</b>：滑动武将方块，将最大的**曹操（红块）**移动到下方中央出口即可获胜！`;
+    } else {
+        levelSel.innerHTML = `
+            <option value="3">3 × 3 (8宫格)</option>
+            <option value="4" selected>4 × 4 (15宫格)</option>
+            <option value="5">5 × 5 (24宫格)</option>
+        `;
+        ruleTip.innerHTML = `💡 <b>数字华容道规则</b>：点击空格相邻的数字滑块，将其按 **1 到 N** 顺序从小到大依次排列还原！`;
+    }
+    initGame();
+}
+
+function initGame(){
+    stepCount = 0;
+    history = [];
+    isGameOver = false;
+    modal.classList.add('hidden');
+
+    if(gameMode === 'caocao'){
+        const template = CAOCAO_LEVELS[levelSel.value] || CAOCAO_LEVELS.classic;
+        pieces = JSON.parse(JSON.stringify(template));
+        selectedId = null;
+        renderCaocao();
+    } else {
+        numSize = Number(levelSel.value);
+        initNumBoard();
+        renderNumBoard();
+    }
+    loadBestRecord();
+    stepTxt.innerText = '0';
+}
+
+function loadBestRecord(){
+    const key = `hrd_best_${gameMode}_${levelSel.value}`;
+    const best = localStorage.getItem(key);
+    bestTxt.innerText = best ? `${best} 步` : '暂无';
+}
+
+function saveBestRecord(){
+    const key = `hrd_best_${gameMode}_${levelSel.value}`;
+    const best = localStorage.getItem(key);
+    if(!best || stepCount < Number(best)){
+        localStorage.setItem(key, stepCount);
+        loadBestRecord();
+    }
+}
+
+// ================= 三国华容道逻辑 =================
+function renderCaocao(){
+    boardContainer.innerHTML = `<div id="hrdBoard" class="hrd-board"></div>`;
+    const hrdBoard = document.getElementById('hrdBoard');
+
+    pieces.forEach(p => {
+        const el = document.createElement('div');
+        el.className = `hrd-piece ${p.type === 'caocao' ? 'piece-caocao' : (p.type === 'general' ? 'piece-general' : 'piece-soldier')}`;
+        if(selectedId === p.id) el.style.border = '3px solid #38bdf8';
+
+        el.style.width = (p.w * CELL_W - 6) + 'px';
+        el.style.height = (p.h * CELL_H - 6) + 'px';
+        el.style.left = (p.c * CELL_W + 3) + 'px';
+        el.style.top = (p.r * CELL_H + 3) + 'px';
+        el.innerText = p.name;
+
+        el.onclick = (e) => {
+            e.stopPropagation();
+            selectedId = p.id;
+            renderCaocao();
+        };
+        hrdBoard.appendChild(el);
+    });
+}
+
+function isCaocaoOccupied(r, c, w, h, ignoreId){
+    if(r < 0 || c < 0 || r + h > 5 || c + w > 4) return true;
+    for(const p of pieces){
+        if(p.id === ignoreId) continue;
+        if(r < p.r + p.h && r + h > p.r && c < p.c + p.w && c + w > p.c) return true;
+    }
+    return false;
+}
+
+function moveCaocao(dr, dc){
+    if(isGameOver || !selectedId) return;
+    const p = pieces.find(item => item.id === selectedId);
+    if(!p) return;
+
+    const nr = p.r + dr;
+    const nc = p.c + dc;
+
+    if(!isCaocaoOccupied(nr, nc, p.w, p.h, p.id)){
+        history.push(JSON.parse(JSON.stringify(pieces)));
+        p.r = nr; p.c = nc;
+        stepCount++;
+        playSound('move');
+        renderCaocao();
+        stepTxt.innerText = stepCount;
+        checkCaocaoWin();
+    }
+}
+
+function checkCaocaoWin(){
+    const cc = pieces.find(p => p.id === 'cc');
+    if(cc && cc.r === 3 && cc.c === 1){
+        isGameOver = true;
+        playSound('win');
+        saveBestRecord();
+        modalTitle.innerText = "曹操突围成功！";
+        modalBody.innerText = `太棒了！你用 ${stepCount} 步成功护送曹操突围！`;
+        modal.classList.remove('hidden'); modal.classList.add('flex');
+    }
+}
+
+// ================= 数字华容道逻辑 =================
+function initNumBoard(){
+    const total = numSize * numSize;
+    let arr = [];
+    for(let i=1; i<total; i++) arr.push(i);
+    arr.push(0); // 0 代表空格
+
+    // 打乱并确保有解
+    do {
+        arr.sort(() => Math.random() - 0.5);
+    } while(!isNumSolvable(arr, numSize));
+
+    numBoard = [];
+    for(let i=0; i<numSize; i++){
+        numBoard.push(arr.slice(i * numSize, (i + 1) * numSize));
+    }
+}
+
+function isNumSolvable(arr, size){
+    let inversions = 0;
+    let emptyRow = 0;
+    for(let i=0; i<arr.length; i++){
+        if(arr[i] === 0){
+            emptyRow = Math.floor(i / size);
+            continue;
+        }
+        for(let j=i+1; j<arr.length; j++){
+            if(arr[j] !== 0 && arr[i] > arr[j]) inversions++;
+        }
+    }
+    if(size % 2 === 1){
+        return inversions % 2 === 0;
+    } else {
+        const rowFromBottom = size - emptyRow;
+        if(rowFromBottom % 2 === 1) return inversions % 2 === 0;
+        else return inversions % 2 === 1;
+    }
+}
+
+function renderNumBoard(){
+    boardContainer.innerHTML = `<div id="numGrid" class="num-board" style="grid-template-columns: repeat(${numSize}, 1fr); grid-template-rows: repeat(${numSize}, 1fr); width: ${numSize*75}px; height: ${numSize*75}px;"></div>`;
+    const numGrid = document.getElementById('numGrid');
+
+    for(let r=0; r<numSize; r++){
+        for(let c=0; c<numSize; c++){
+            const val = numBoard[r][c];
+            const tile = document.createElement('div');
+            if(val === 0){
+                tile.className = 'num-tile num-empty';
+            } else {
+                tile.className = 'num-tile';
+                tile.innerText = val;
+                tile.onclick = () => moveNumTile(r, c);
+            }
+            numGrid.appendChild(tile);
+        }
+    }
+    stepTxt.innerText = stepCount;
+}
+
+function moveNumTile(r, c){
+    if(isGameOver) return;
+    const dirs = [[1,0], [-1,0], [0,1], [0,-1]];
+    let emptyR = -1, emptyC = -1;
+
+    for(const [dr, dc] of dirs){
+        const nr = r + dr, nc = c + dc;
+        if(nr >= 0 && nr < numSize && nc >= 0 && nc < numSize && numBoard[nr][nc] === 0){
+            emptyR = nr; emptyC = nc;
+            break;
+        }
+    }
+
+    if(emptyR !== -1){
+        history.push(JSON.parse(JSON.stringify(numBoard)));
+        numBoard[emptyR][emptyC] = numBoard[r][c];
+        numBoard[r][c] = 0;
+        stepCount++;
+        playSound('move');
+        renderNumBoard();
+        checkNumWin();
+    }
+}
+
+function checkNumWin(){
+    let expected = 1;
+    for(let r=0; r<numSize; r++){
+        for(let c=0; c<numSize; c++){
+            if(r === numSize - 1 && c === numSize - 1){
+                if(numBoard[r][c] !== 0) return;
+            } else {
+                if(numBoard[r][c] !== expected++) return;
+            }
+        }
+    }
+
+    isGameOver = true;
+    playSound('win');
+    saveBestRecord();
+    modalTitle.innerText = "数字还原成功！";
+    modalBody.innerText = `太棒了！你用 ${stepCount} 步成功完成数字排序！`;
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+
+// 统一事件绑定
+btnUndo.onclick = () => {
+    if(history.length === 0 || isGameOver) return;
+    const prev = history.pop();
+    stepCount--;
+    if(gameMode === 'caocao'){
+        pieces = prev;
+        selectedId = null;
+        renderCaocao();
+    } else {
+        numBoard = prev;
+        renderNumBoard();
+    }
+    stepTxt.innerText = stepCount;
+};
+
+document.addEventListener('keydown', e => {
+    if(isGameOver) return;
+    if(gameMode === 'caocao'){
+        if(['ArrowUp', 'w', 'W'].includes(e.key)){ e.preventDefault(); moveCaocao(-1, 0); }
+        else if(['ArrowDown', 's', 'S'].includes(e.key)){ e.preventDefault(); moveCaocao(1, 0); }
+        else if(['ArrowLeft', 'a', 'A'].includes(e.key)){ e.preventDefault(); moveCaocao(0, -1); }
+        else if(['ArrowRight', 'd', 'D'].includes(e.key)){ e.preventDefault(); moveCaocao(0, 1); }
+    } else {
+        // 数字华容道键盘支持 (通过空格移动相邻滑块)
+        let er = -1, ec = -1;
+        for(let r=0; r<numSize; r++){
+            for(let c=0; c<numSize; c++){
+                if(numBoard[r][c] === 0){ er = r; ec = c; }
+            }
+        }
+        let tr = er, tc = ec;
+        if(['ArrowUp', 'w', 'W'].includes(e.key)) tr = er + 1;
+        else if(['ArrowDown', 's', 'S'].includes(e.key)) tr = er - 1;
+        else if(['ArrowLeft', 'a', 'A'].includes(e.key)) tc = ec + 1;
+        else if(['ArrowRight', 'd', 'D'].includes(e.key)) tc = ec - 1;
+
+        if(tr >= 0 && tr < numSize && tc >= 0 && tc < numSize){
+            e.preventDefault();
+            moveNumTile(tr, tc);
+        }
+    }
+});
+
+gameTypeSel.onchange = updateLevelOptions;
+levelSel.onchange = initGame;
+btnReset.onclick = initGame;
+btnModalAgain.onclick = initGame;
+
+initTheme();
+updateLevelOptions();
+</script>
+</body>
+</html>

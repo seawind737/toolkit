@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多功能棋类大对决 - 五子棋、井字棋、围棋</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
+        }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+            --board-bg: #d97706; --select-sub: #334155;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+            --board-bg: #f59e0b; --select-sub: #e2e8f0;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+        .select-sub-color { background-color: var(--card); color: var(--text-main); }
+
+        canvas {
+            background-color: var(--board-bg);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-chess-board mr-2"></i>棋类大对决</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-4">
+            
+            <div class="flex flex-wrap gap-3 items-center justify-between bg-[var(--card-sub)] p-3.5 rounded-xl">
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <select id="gameModeSel" class="text-xs select-sub-color p-1.5 rounded">
+                        <option value="gobang">⚫ 五子棋 (15×15)</option>
+                        <option value="go">⚪ 迷你围棋 (9×9)</option>
+                        <option value="tictactoe">❌ 井字棋 (3×3)</option>
+                    </select>
+
+                    <select id="opponentSel" class="text-xs select-sub-color p-1.5 rounded">
+                        <option value="ai">🤖 人机对战 (AI)</option>
+                        <option value="pvp">👥 双人同屏</option>
+                    </select>
+
+                    <select id="difficultySel" class="text-xs select-sub-color p-1.5 rounded">
+                        <option value="easy">🟢 初级难度</option>
+                        <option value="mid" selected>🟡 中级难度</option>
+                        <option value="hard">🔴 高级难度</option>
+                    </select>
+
+                    <button id="btnNew" class="btn btn-primary text-xs"><i class="fa-solid fa-rotate-right mr-1"></i>重开</button>
+                    <button id="btnUndo" class="btn btn-outline text-xs"><i class="fa-solid fa-arrow-rotate-left mr-1"></i>悔棋</button>
+                </div>
+
+                <div class="text-xs font-semibold">
+                    当前回合: <span id="turnTxt" class="text-primary font-bold">黑棋 (玩家)</span>
+                </div>
+            </div>
+
+            <div class="flex justify-center overflow-auto p-2">
+                <canvas id="canvas"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="tool-card p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div id="modalEmoji" class="text-5xl">🏆</div>
+            <h2 id="modalTitle" class="text-2xl font-bold text-gradient">黑棋获胜！</h2>
+            <button id="btnModalAgain" class="btn btn-primary w-full py-2.5 font-bold">再来一局</button>
+        </div>
+    </div>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 棋牌对弈</p>
+        </div>
+    </footer>
+
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+    drawBoard();
+};
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const gameModeSel = document.getElementById('gameModeSel');
+const opponentSel = document.getElementById('opponentSel');
+const difficultySel = document.getElementById('difficultySel');
+const btnNew = document.getElementById('btnNew');
+const btnUndo = document.getElementById('btnUndo');
+const turnTxt = document.getElementById('turnTxt');
+const modal = document.getElementById('modal');
+const modalEmoji = document.getElementById('modalEmoji');
+const modalTitle = document.getElementById('modalTitle');
+const btnModalAgain = document.getElementById('btnModalAgain');
+
+let BOARD_SIZE = 15;
+let PADDING = 20;
+let CELL_SIZE = 24;
+let board = [];
+let currentPlayer = 1; // 1: 黑, 2: 白
+let history = [];
+let gameOver = false;
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type){
+    try {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const now = audioCtx.currentTime;
+        if(type === 'place'){
+            osc.frequency.setValueAtTime(350, now);
+            gain.gain.setValueAtTime(0.06, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.05);
+        } else if(type === 'win'){
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523, now);
+            osc.frequency.setValueAtTime(659, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.3);
+        }
+    } catch(e){}
+}
+
+function initGame(){
+    const mode = gameModeSel.value;
+    if(mode === 'gobang'){
+        BOARD_SIZE = 15; CELL_SIZE = 24; PADDING = 20;
+    } else if(mode === 'go'){
+        BOARD_SIZE = 9; CELL_SIZE = 34; PADDING = 25;
+    } else {
+        BOARD_SIZE = 3; CELL_SIZE = 100; PADDING = 50;
+    }
+
+    canvas.width = PADDING * 2 + (BOARD_SIZE - 1) * CELL_SIZE;
+    canvas.height = canvas.width;
+
+    board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+    currentPlayer = 1;
+    history = [];
+    gameOver = false;
+    modal.classList.add('hidden');
+    updateTurnTxt();
+    drawBoard();
+}
+
+function updateTurnTxt(){
+    const mode = gameModeSel.value;
+    let name = '';
+    if(mode === 'tictactoe'){
+        name = currentPlayer === 1 ? '❌' : '⭕';
+    } else {
+        name = currentPlayer === 1 ? '黑棋' : '白棋';
+    }
+    turnTxt.innerText = name;
+}
+
+function drawBoard(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#78350f';
+    ctx.lineWidth = 1.5;
+
+    for(let i=0; i<BOARD_SIZE; i++){
+        ctx.beginPath();
+        ctx.moveTo(PADDING, PADDING + i * CELL_SIZE);
+        ctx.lineTo(PADDING + (BOARD_SIZE - 1) * CELL_SIZE, PADDING + i * CELL_SIZE);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(PADDING + i * CELL_SIZE, PADDING);
+        ctx.lineTo(PADDING + i * CELL_SIZE, PADDING + (BOARD_SIZE - 1) * CELL_SIZE);
+        ctx.stroke();
+    }
+
+    const mode = gameModeSel.value;
+    for(let r=0; r<BOARD_SIZE; r++){
+        for(let c=0; c<BOARD_SIZE; c++){
+            const val = board[r][c];
+            if(val > 0){
+                const x = PADDING + c * CELL_SIZE;
+                const y = PADDING + r * CELL_SIZE;
+
+                if(mode !== 'tictactoe'){
+                    ctx.beginPath();
+                    ctx.arc(x, y, CELL_SIZE * 0.42, 0, Math.PI * 2);
+                    ctx.fillStyle = val === 1 ? '#000000' : '#ffffff';
+                    ctx.fill();
+                    ctx.strokeStyle = '#000000';
+                    ctx.stroke();
+                } else {
+                    ctx.font = 'bold 48px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = val === 1 ? '#ef4444' : '#3b82f6';
+                    ctx.fillText(val === 1 ? '❌' : '⭕', x, y);
+                }
+            }
+        }
+    }
+}
+
+function placePiece(r, c){
+    if(board[r][c] !== 0 || gameOver) return;
+    const mode = gameModeSel.value;
+
+    board[r][c] = currentPlayer;
+    
+    // 围棋吃子简单判定
+    if(mode === 'go'){
+        capturePieces(currentPlayer === 1 ? 2 : 1);
+        if(hasNoLiberties(r, c, currentPlayer)){
+            board[r][c] = 0; // 自杀禁手
+            return;
+        }
+    }
+
+    history.push({r, c, p: currentPlayer, boardSnapshot: board.map(row => [...row])});
+    playSound('place');
+    drawBoard();
+
+    if(mode !== 'go' && checkWin(r, c, currentPlayer)){
+        endGame(currentPlayer);
+        return;
+    }
+
+    if(history.length === BOARD_SIZE * BOARD_SIZE && mode !== 'go'){
+        endGame(0); // 平局
+        return;
+    }
+
+    currentPlayer = currentPlayer === 1 ? 2 : 1;
+    updateTurnTxt();
+
+    if(opponentSel.value === 'ai' && currentPlayer === 2 && !gameOver){
+        setTimeout(aiMove, 250);
+    }
+}
+
+function getLiberties(r, c, p, visited = new Set()){
+    const key = `${r},${c}`;
+    if(visited.has(key)) return 0;
+    visited.add(key);
+
+    let liberties = 0;
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    for(const [dr, dc] of dirs){
+        const nr = r + dr, nc = c + dc;
+        if(nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE){
+            if(board[nr][nc] === 0) liberties++;
+            else if(board[nr][nc] === p){
+                liberties += getLiberties(nr, nc, p, visited);
+            }
+        }
+    }
+    return liberties;
+}
+
+function capturePieces(opponent){
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    for(let r=0; r<BOARD_SIZE; r++){
+        for(let c=0; c<BOARD_SIZE; c++){
+            if(board[r][c] === opponent){
+                if(getLiberties(r, c, opponent) === 0){
+                    removeGroup(r, c, opponent);
+                }
+            }
+        }
+    }
+}
+
+function removeGroup(r, c, p){
+    board[r][c] = 0;
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    for(const [dr, dc] of dirs){
+        const nr = r + dr, nc = c + dc;
+        if(nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === p){
+            removeGroup(nr, nc, p);
+        }
+    }
+}
+
+function hasNoLiberties(r, c, p){
+    return getLiberties(r, c, p) === 0;
+}
+
+function aiMove(){
+    const mode = gameModeSel.value;
+    const diff = difficultySel.value;
+    let bestPos = null;
+
+    if(mode === 'tictactoe' || diff === 'easy'){
+        const empty = [];
+        for(let r=0; r<BOARD_SIZE; r++){
+            for(let c=0; c<BOARD_SIZE; c++){
+                if(board[r][c] === 0) empty.push({r, c});
+            }
+        }
+        if(empty.length > 0) bestPos = empty[Math.floor(Math.random() * empty.length)];
+    } else {
+        // 中高级 AI 评估
+        let bestScore = -Infinity;
+        for(let r=0; r<BOARD_SIZE; r++){
+            for(let c=0; c<BOARD_SIZE; c++){
+                if(board[r][c] === 0){
+                    let score = evaluatePoint(r, c, diff);
+                    if(score > bestScore){
+                        bestScore = score;
+                        bestPos = {r, c};
+                    }
+                }
+            }
+        }
+    }
+
+    if(bestPos) placePiece(bestPos.r, bestPos.c);
+}
+
+function evaluatePoint(r, c, diff){
+    let score = 0;
+    const mode = gameModeSel.value;
+    const target = mode === 'gobang' ? 5 : 3;
+
+    board[r][c] = 2; if(checkWin(r, c, 2)) score += 100000; board[r][c] = 0;
+    board[r][c] = 1; if(checkWin(r, c, 1)) score += diff === 'hard' ? 80000 : 20000; board[r][c] = 0;
+    score += Math.random() * 20;
+    return score;
+}
+
+function checkWin(r, c, p){
+    const dirs = [[1,0], [0,1], [1,1], [1,-1]];
+    const mode = gameModeSel.value;
+    const target = mode === 'gobang' ? 5 : 3;
+
+    for(const [dr, dc] of dirs){
+        let count = 1;
+        for(let i=1; i<target; i++){
+            const nr = r + dr * i, nc = c + dc * i;
+            if(nr>=0 && nr<BOARD_SIZE && nc>=0 && nc<BOARD_SIZE && board[nr][nc] === p) count++;
+            else break;
+        }
+        for(let i=1; i<target; i++){
+            const nr = r - dr * i, nc = c - dc * i;
+            if(nr>=0 && nr<BOARD_SIZE && nc>=0 && nc<BOARD_SIZE && board[nr][nc] === p) count++;
+            else break;
+        }
+        if(count >= target) return true;
+    }
+    return false;
+}
+
+function endGame(winner){
+    gameOver = true;
+    playSound('win');
+    modalEmoji.innerText = winner === 0 ? '🤝' : '🏆';
+    modalTitle.innerText = winner === 0 ? '平局！' : `${winner === 1 ? '黑棋' : '白棋'} 获得胜利！`;
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+
+btnUndo.onclick = () => {
+    if(history.length === 0 || gameOver) return;
+    history.pop();
+    if(opponentSel.value === 'ai' && history.length > 0 && currentPlayer === 1){
+        history.pop();
+    }
+    if(history.length > 0){
+        board = history[history.length - 1].boardSnapshot.map(row => [...row]);
+        currentPlayer = history[history.length - 1].p === 1 ? 2 : 1; // 回退到上一步的轮次
+    } else {
+        board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+        currentPlayer = 1;
+    }
+    updateTurnTxt();
+    drawBoard();
+};
+
+canvas.onclick = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const c = Math.round((x - PADDING) / CELL_SIZE);
+    const r = Math.round((y - PADDING) / CELL_SIZE);
+
+    if(r>=0 && r<BOARD_SIZE && c>=0 && c<BOARD_SIZE){
+        placePiece(r, c);
+    }
+};
+
+gameModeSel.onchange = initGame;
+opponentSel.onchange = initGame;
+difficultySel.onchange = initGame;
+btnNew.onclick = initGame;
+btnModalAgain.onclick = initGame;
+
+initTheme();
+initGame();
+</script>
+</body>
+</html>

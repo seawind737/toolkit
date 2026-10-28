@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文本去重</title>
+    <title>文本去重 - 高级文本清洗与排版工具</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -20,138 +20,273 @@
     <style type="text/tailwindcss">
         @layer utilities {
             .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
-            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
-            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn { @apply px-3.5 py-2 rounded-lg transition-all duration-200 text-xs flex items-center gap-1.5 cursor-pointer; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80 font-bold; }
             .btn-danger { @apply bg-red-500 text-white hover:bg-red-500/80; }
             .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
         }
         html[data-theme="dark"] {
-            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
-            --text-main: #e2e8f0;--text-sub: #94a3b8;--card-glow: rgba(59,130,246,0.08);
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8; --code-bg: #020617;
         }
         html[data-theme="light"] {
-            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
-            --text-main: #111827;--text-sub: #64748b;--card-glow: rgba(59,130,246,0.06);
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b; --code-bg: #f1f5f9;
         }
         body {
             background-color: var(--bg); color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
         }
         body::before{
-            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            content:""; position:fixed; inset:0; z-index:-1; opacity:0.45; pointer-events:none;
             background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
-        }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
+            background-size: 24px 24px;
         }
         .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
-        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         .sub-panel-bg { background-color: var(--card-sub); }
         .text-sub-color { color: var(--text-sub); }
-        textarea,input,select {
-            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
-            font-family: Consolas,Menlo,monospace;
+        textarea, select {
+            background-color: var(--code-bg); border: 1px solid var(--border); color: var(--text-main);
+            font-family: Consolas, Menlo, monospace;
         }
-        textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
-        .copy-btn-inline { cursor:pointer; opacity:0.65; margin-left:8px; }
-        .copy-btn-inline:hover { opacity:1; }
+        textarea:focus, select:focus { outline: none; border-color: #3b82f6; }
     </style>
 </head>
 <body class="flex flex-col">
     <header class="nav-bar-bg sticky top-0 z-10 border-b">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+            <a href="/toolkit/index.html" class="btn btn-outline">
                 <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
             </a>
-            <h1 class="text-xl font-bold text-gradient">文本去重</h1>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-filter-circle-xmark mr-2"></i>高级文本去重工具</h1>
             <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
                 <i class="fa-solid fa-moon" id="themeIcon"></i>
             </button>
         </div>
     </header>
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <div class="flex flex-wrap gap-2 mb-5">
-                <button class="btn btn-primary" id="btnUnique">去重</button>
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="ignoreCase">忽略大小写
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="trimLine">去除每行前后空格
-                </label>
-                <button class="btn btn-danger" id="btnClear">清空</button>
-            </div>
-            <div class="grid md:grid-cols-2 gap-6">
-                <div class="flex flex-col gap-3">
-                    <label class="text-sub-color">输入（一行一条）</label>
-                    <textarea id="srcText" rows="8" placeholder="a&#10;b&#10;a"></textarea>
+
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow space-y-5">
+        <div class="tool-card p-6 rounded-2xl space-y-5">
+            
+            <!-- 控制面板与选项配置 -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-[var(--card-sub)] p-3.5 rounded-xl text-xs">
+                <div class="flex flex-wrap items-center gap-4">
+                    <label class="flex items-center gap-1.5 cursor-pointer font-medium">
+                        <input type="checkbox" id="ignoreCase" class="accent-blue-500 w-4 h-4">忽略大小写
+                    </label>
+                    <label class="flex items-center gap-1.5 cursor-pointer font-medium">
+                        <input type="checkbox" id="trimLine" checked class="accent-blue-500 w-4 h-4">去除每行首尾空格
+                    </label>
+                    <label class="flex items-center gap-1.5 cursor-pointer font-medium">
+                        <input type="checkbox" id="removeEmpty" checked class="accent-blue-500 w-4 h-4">自动移除空行
+                    </label>
                 </div>
-                <div class="flex flex-col gap-3">
-                    <label class="text-sub-color">结果 <i class="fa-solid fa-copy copy-btn-inline" id="copyResult" title="复制"></i></label>
-                    <textarea id="outText" rows="8" readonly></textarea>
+                <div class="flex items-center gap-2">
+                    <span class="text-sub-color">排序方式:</span>
+                    <select id="sortMode" class="text-xs p-1.5 rounded border border-[var(--border)]">
+                        <option value="none">保持原始顺序</option>
+                        <option value="asc">升序排列 (A-Z)</option>
+                        <option value="desc">降序排列 (Z-A)</option>
+                    </select>
                 </div>
             </div>
-            <div class="mt-4">
-                <label class="block mb-1 text-sub-color">状态信息</label>
-                <div id="msgBox" class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color"></div>
+
+            <!-- 操作按钮栏 -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="btnUnique" class="btn btn-primary"><i class="fa-solid fa-bolt"></i>立即去重</button>
+                    <label class="btn btn-outline cursor-pointer">
+                        <i class="fa-solid fa-file-arrow-up text-blue-400"></i>导入文件
+                        <input type="file" id="fileInput" class="hidden">
+                    </label>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="btnClear" class="btn btn-outline text-red-400"><i class="fa-solid fa-eraser"></i>清空全部</button>
+                </div>
             </div>
+
+            <!-- 左右双栏输入与输出 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="flex flex-col space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-sub-color"><i class="fa-solid fa-file-pen mr-1 text-primary"></i>原始文本输入（一行一条）</span>
+                        <span id="inputCount" class="text-[11px] text-sub-color">0 行</span>
+                    </div>
+                    <textarea id="srcText" rows="12" class="w-full p-3 rounded-xl text-xs resize-y" placeholder="apple&#10;banana&#10;apple&#10;orange"></textarea>
+                </div>
+
+                <div class="flex flex-col space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-sub-color"><i class="fa-solid fa-square-poll-horizontal mr-1 text-emerald-400"></i>去重结果输出</span>
+                        <div class="flex gap-2">
+                            <span id="outputCount" class="text-[11px] text-sub-color">0 行</span>
+                            <button id="btnCopy" class="btn btn-outline text-[11px] py-0.5 px-2"><i class="fa-solid fa-copy text-emerald-400"></i>复制</button>
+                            <button id="btnDownload" class="btn btn-outline text-[11px] py-0.5 px-2"><i class="fa-solid fa-download text-blue-400"></i>下载</button>
+                        </div>
+                    </div>
+                    <textarea id="outText" rows="12" readonly class="w-full p-3 rounded-xl text-xs resize-y" placeholder="去重后的文本将在此显示..."></textarea>
+                </div>
+            </div>
+
+            <!-- 数据清洗统计面板 -->
+            <div class="bg-[var(--card-sub)] p-4 rounded-xl border border-[var(--border)] flex flex-wrap items-center justify-between gap-4 text-xs">
+                <div class="flex items-center gap-2 font-bold">
+                    <i class="fa-solid fa-chart-line text-primary"></i><span>清洗效果统计：</span>
+                </div>
+                <div class="flex flex-wrap gap-6 text-sub-color" id="statBox">
+                    <span>原始总行数: <strong class="text-white font-mono" id="statOriginal">0</strong></span>
+                    <span>清洗后行数: <strong class="text-emerald-400 font-mono" id="statUnique">0</strong></span>
+                    <span>过滤重复行: <strong class="text-amber-400 font-mono" id="statRemoved">0</strong></span>
+                </div>
+            </div>
+
         </div>
     </main>
+
     <footer class="nav-bar-bg border-t py-6 mt-10">
         <div class="container mx-auto px-4 text-center text-sub-color text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 纯前端本地处理</p>
+            <p class="mt-1">© 2026 工具集 | 高级文本处理中心</p>
         </div>
     </footer>
+
     <script>
         function initTheme(){
-            const t=localStorage.getItem("toolTheme")||"dark";
-            document.documentElement.setAttribute("data-theme",t);
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
             updateThemeIcon(t);
         }
         function updateThemeIcon(t){
-            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+            document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        document.getElementById("themeToggle").onclick=()=>{
-            const c=document.documentElement.getAttribute("data-theme");
-            const n=c==="dark"?"light":"dark";
-            document.documentElement.setAttribute("data-theme",n);
-            localStorage.setItem("toolTheme",n);
+        document.getElementById("themeToggle").onclick = () => {
+            const c = document.documentElement.getAttribute("data-theme");
+            const n = c === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", n);
+            localStorage.setItem("toolTheme", n);
             updateThemeIcon(n);
         }
-        const src=document.getElementById("srcText");
-        const out=document.getElementById("outText");
-        const ignoreCase=document.getElementById("ignoreCase");
-        const trimLine=document.getElementById("trimLine");
-        const msgBox=document.getElementById("msgBox");
-        const copyBtn=document.getElementById("copyResult");
-        function setMsg(txt,err=false){
-            msgBox.innerText=txt;
-            msgBox.style.color=err?"#f87171":"var(--text-sub)";
-        }
-        document.getElementById("btnUnique").onclick=()=>{
-            const lines=src.value.split("\n");
-            const set=new Map();
-            for(let line of lines){
-                let raw=line;
-                if(trimLine.checked) raw=raw.trim();
-                let key=ignoreCase.checked?raw.toLowerCase():raw;
-                if(!set.has(key)) set.set(key,raw);
+
+        const srcText = document.getElementById("srcText");
+        const outText = document.getElementById("outText");
+        const ignoreCase = document.getElementById("ignoreCase");
+        const trimLine = document.getElementById("trimLine");
+        const removeEmpty = document.getElementById("removeEmpty");
+        const sortMode = document.getElementById("sortMode");
+        const fileInput = document.getElementById("fileInput");
+
+        const inputCount = document.getElementById("inputCount");
+        const outputCount = document.getElementById("outputCount");
+        const statOriginal = document.getElementById("statOriginal");
+        const statUnique = document.getElementById("statUnique");
+        const statRemoved = document.getElementById("statRemoved");
+
+        function processText(){
+            const rawValue = srcText.value;
+            const lines = rawValue.split(/\r?\n/);
+            inputCount.innerText = `${lines.length} 行`;
+
+            if(!rawValue.trim()){
+                outText.value = '';
+                outputCount.innerText = '0 行';
+                statOriginal.innerText = '0';
+                statUnique.innerText = '0';
+                statRemoved.innerText = '0';
+                return;
             }
-            const res=[...set.values()].join("\n");
-            out.value=res;
-            setMsg(`✅ 去重完成，共 ${set.size} 条`);
+
+            const seen = new Map();
+            let originalValidCount = 0;
+
+            for(let line of lines){
+                let current = line;
+                if(trimLine.checked) current = current.trim();
+                if(removeEmpty.checked && current === '') continue;
+                
+                originalValidCount++;
+                const key = ignoreCase.checked ? current.toLowerCase() : current;
+                
+                if(!seen.has(key)){
+                    seen.set(key, current);
+                }
+            }
+
+            let resultArr = [...seen.values()];
+
+            // 排序处理
+            if(sortMode.value === 'asc'){
+                resultArr.sort((a, b) => a.localeCompare(b, 'zh-CN'));
+            } else if(sortMode.value === 'desc'){
+                resultArr.sort((a, b) => b.localeCompare(a, 'zh-CN'));
+            }
+
+            outText.value = resultArr.join('\n');
+            outputCount.innerText = `${resultArr.length} 行`;
+
+            statOriginal.innerText = originalValidCount;
+            statUnique.innerText = resultArr.length;
+            statRemoved.innerText = Math.max(0, originalValidCount - resultArr.length);
         }
-        document.getElementById("btnClear").onclick=()=>{src.value="";out.value="";setMsg("");}
-        copyBtn.onclick=async()=>{
-            if(!out.value){setMsg("暂无内容",true);return;}
-            try{await navigator.clipboard.writeText(out.value);setMsg("✅ 已复制");}
-            catch{e=>setMsg("❌ 复制失败",true)}
-        }
+
+        srcText.addEventListener('input', processText);
+        ignoreCase.addEventListener('change', processText);
+        trimLine.addEventListener('change', processText);
+        removeEmpty.addEventListener('change', processText);
+        sortMode.addEventListener('change', processText);
+        document.getElementById("btnUnique").onclick = processText;
+
+        // 文件导入
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                srcText.value = evt.target.result;
+                processText();
+            };
+            reader.readAsText(file);
+        };
+
+        // 清空
+        document.getElementById("btnClear").onclick = () => {
+            srcText.value = '';
+            outText.value = '';
+            processText();
+        };
+
+        // 复制结果
+        document.getElementById("btnCopy").onclick = async () => {
+            if(!outText.value){
+                alert("当前没有可复制的结果内容！");
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(outText.value);
+                alert("✅ 去重结果已成功复制到剪贴板！");
+            } catch(e) {
+                alert("❌ 复制失败，请手动选择复制");
+            }
+        };
+
+        // 下载结果
+        document.getElementById("btnDownload").onclick = () => {
+            if(!outText.value){
+                alert("当前没有可下载的内容！");
+                return;
+            }
+            const blob = new Blob([outText.value], {type: 'text/plain;charset=utf-8'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `unique-result-${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        };
+
         initTheme();
+        // 默认预置一条示范数据
+        srcText.value = "apple\nbanana\nAPPLE\n  orange  \nbanana\n\napple";
+        processText();
     </script>
 </body>
 </html>

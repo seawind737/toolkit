@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汉诺塔逻辑益智</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
+        }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+            --tower-pillar: #475569;--select-sub: #010813;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+            --tower-pillar: #94a3b8;-select-sub: #94a3b8;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+        .select-sub-color {color: var(--select-sub);}
+
+        .tower-area {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 240px;
+            padding-bottom: 10px;
+            border-bottom: 4px solid var(--border);
+        }
+        .tower-col {
+            position: relative;
+            width: 30%;
+            height: 100%;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            cursor: pointer;
+        }
+        .tower-col::before {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            width: 8px;
+            height: 180px;
+            background-color: var(--tower-pillar);
+            border-radius: 4px 4px 0 0;
+            z-index: 1;
+        }
+        .disk {
+            height: 24px;
+            border-radius: 6px;
+            z-index: 2;
+            margin-bottom: 2px;
+            transition: transform 0.15s, bottom 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.75rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .selected-disk {
+            transform: translateY(-20px);
+            box-shadow: 0 0 12px #3b82f6;
+        }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-layer-group mr-2"></i>汉诺塔 (Tower of Hanoi)</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-4">
+            
+            <div class="flex flex-wrap gap-3 items-center justify-between bg-[var(--card-sub)] p-3.5 rounded-xl">
+                <div class="flex items-center gap-3">
+                    <label class="text-xs text-sub-color">圆盘数量:</label>
+                    <select id="diskCountSel" class="text-xs select-sub-color">
+                        <option value="3">3 层 (简单)</option>
+                        <option value="4" selected>4 层 (中等)</option>
+                        <option value="5">5 层 (困难)</option>
+                        <option value="6">6 层 (专家)</option>
+                    </select>
+
+                    <button id="btnNew" class="btn btn-primary text-xs"><i class="fa-solid fa-rotate-right mr-1"></i>重置</button>
+                    <button id="btnSolve" class="btn btn-outline text-cyan-400 border-cyan-500/40 text-xs"><i class="fa-solid fa-robot mr-1"></i>自动演示</button>
+                </div>
+
+                <div class="flex items-center gap-4 text-xs font-semibold">
+                    <div>当前步数: <span id="stepTxt" class="text-primary font-bold">0</span></div>
+                    <div>最少步数: <span id="minStepTxt" class="text-emerald-400 font-bold">15</span></div>
+                </div>
+            </div>
+
+            <!-- 3 根柱子主展示区 -->
+            <div class="tower-area pt-8">
+                <div class="tower-col" data-col="0"><div class="text-xs text-sub-color -mb-5 font-bold">柱 A</div></div>
+                <div class="tower-col" data-col="1"><div class="text-xs text-sub-color -mb-5 font-bold">柱 B</div></div>
+                <div class="tower-col" data-col="2"><div class="text-xs text-sub-color -mb-5 font-bold">柱 C</div></div>
+            </div>
+
+            <div class="text-xs text-sub-color text-center border-t border-[var(--border)] pt-3">
+                💡 <b>规则</b>：将柱 A 上的所有圆盘移动到柱 C。大盘不能压在小盘上方。点击柱子选中顶部圆盘，再次点击目标柱子移动。
+            </div>
+        </div>
+    </main>
+
+    <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="tool-card p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div class="text-5xl">🏆</div>
+            <h2 class="text-2xl font-bold text-gradient">完美解开汉诺塔！</h2>
+            <p id="modalBody" class="text-sub-color">你用了 15 步成功还原！</p>
+            <button id="btnModalAgain" class="btn btn-primary w-full py-2.5 font-bold">再玩一次</button>
+        </div>
+    </div>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 逻辑益智</p>
+        </div>
+    </footer>
+
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
+
+const diskColors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
+const diskCountSel = document.getElementById('diskCountSel');
+const btnNew = document.getElementById('btnNew');
+const btnSolve = document.getElementById('btnSolve');
+const stepTxt = document.getElementById('stepTxt');
+const minStepTxt = document.getElementById('minStepTxt');
+const cols = document.querySelectorAll('.tower-col');
+const modal = document.getElementById('modal');
+const modalBody = document.getElementById('modalBody');
+const btnModalAgain = document.getElementById('btnModalAgain');
+
+let towers = [[], [], []];
+let selectedCol = null;
+let stepCount = 0;
+let diskCount = 4;
+let isSolving = false;
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type){
+    try {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const now = audioCtx.currentTime;
+        if(type === 'move'){
+            osc.frequency.setValueAtTime(400, now);
+            gain.gain.setValueAtTime(0.06, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.05);
+        } else if(type === 'win'){
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523, now);
+            osc.frequency.setValueAtTime(659, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.3);
+        }
+    } catch(e){}
+}
+
+function initGame(){
+    diskCount = Number(diskCountSel.value);
+    towers = [[], [], []];
+    for(let i = diskCount; i >= 1; i--){
+        towers[0].push(i);
+    }
+    selectedCol = null;
+    stepCount = 0;
+    isSolving = false;
+    stepTxt.innerText = '0';
+    minStepTxt.innerText = Math.pow(2, diskCount) - 1;
+    modal.classList.add('hidden');
+    render();
+}
+
+function render(){
+    cols.forEach((colEl, colIndex) => {
+        // 保留柱子标记
+        const label = colEl.querySelector('div');
+        colEl.innerHTML = '';
+        colEl.appendChild(label);
+
+        towers[colIndex].forEach((diskSize, idx) => {
+            const disk = document.createElement('div');
+            disk.className = 'disk';
+            if(selectedCol === colIndex && idx === towers[colIndex].length - 1){
+                disk.classList.add('selected-disk');
+            }
+            const widthPct = 30 + (diskSize / diskCount) * 65;
+            disk.style.width = widthPct + '%';
+            disk.style.backgroundColor = diskColors[(diskSize - 1) % diskColors.length];
+            disk.innerText = diskSize;
+            colEl.appendChild(disk);
+        });
+    });
+}
+
+function handleColClick(colIndex){
+    if(isSolving) return;
+
+    if(selectedCol === null){
+        if(towers[colIndex].length > 0){
+            selectedCol = colIndex;
+            playSound('move');
+        }
+    } else if(selectedCol === colIndex){
+        selectedCol = null;
+    } else {
+        const fromTower = towers[selectedCol];
+        const toTower = towers[colIndex];
+        const diskToMove = fromTower[fromTower.length - 1];
+        const topTargetDisk = toTower[toTower.length - 1];
+
+        if(!topTargetDisk || diskToMove < topTargetDisk){
+            toTower.push(fromTower.pop());
+            stepCount++;
+            stepTxt.innerText = stepCount;
+            playSound('move');
+            checkWin();
+        }
+        selectedCol = null;
+    }
+    render();
+}
+
+function checkWin(){
+    if(towers[2].length === diskCount){
+        playSound('win');
+        modalBody.innerText = `使用了 ${stepCount} 步完成解题（最少所需 ${Math.pow(2, diskCount) - 1} 步）。`;
+        modal.classList.remove('hidden'); modal.classList.add('flex');
+    }
+}
+
+// 自动递归求解汉诺塔
+btnSolve.onclick = async () => {
+    if(isSolving) return;
+    initGame();
+    isSolving = true;
+
+    const moves = [];
+    function hanoi(n, from, to, aux){
+        if(n === 1){
+            moves.push({ from, to });
+            return;
+        }
+        hanoi(n - 1, from, aux, to);
+        moves.push({ from, to });
+        hanoi(n - 1, aux, to, from);
+    }
+    hanoi(diskCount, 0, 2, 1);
+
+    for(const m of moves){
+        if(!isSolving) break;
+        towers[m.to].push(towers[m.from].pop());
+        stepCount++;
+        stepTxt.innerText = stepCount;
+        playSound('move');
+        render();
+        await new Promise(r => setTimeout(r, 350));
+    }
+    isSolving = false;
+    checkWin();
+};
+
+cols.forEach((colEl, idx) => {
+    colEl.onclick = () => handleColClick(idx);
+});
+
+diskCountSel.onchange = initGame;
+btnNew.onclick = initGame;
+btnModalAgain.onclick = initGame;
+
+initTheme();
+initGame();
+</script>
+</body>
+</html>

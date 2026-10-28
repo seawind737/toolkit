@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数独</title>
+    <title>经典数独游戏</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -17,41 +17,113 @@
             }
         }
     </script>
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
-            .btn { @apply px-3 py-2 rounded-lg transition-all duration-200 text-sm; }
-            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
-            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
-            .cell{@apply w-10 h-10 border flex items-center justify-center text-lg select-none;}
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
         }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+        .btn-active { background-color: #3b82f6 !important; color: white !important; border-color: #3b82f6 !important; }
+
         html[data-theme="dark"] {
-            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
-            --text-main: #e2e8f0;--text-sub: #94a3b8;
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+            --highlight-bg: rgba(59, 130, 246, 0.15);
+            --same-num-bg: rgba(59, 130, 246, 0.3);
         }
         html[data-theme="light"] {
-            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
-            --text-main: #111827;--text-sub: #64748b;
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+            --highlight-bg: rgba(59, 130, 246, 0.1);
+            --same-num-bg: rgba(59, 130, 246, 0.25);
         }
         body {
             background-color: var(--bg); color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
         }
-        body::before{
-            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
             background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
+            background-size: 24px 24px;
         }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
-        }
-        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
-        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
         .text-sub-color { color: var(--text-sub); }
-        .cell-fixed{background-color:var(--card-sub);font-weight:bold;}
-        .cell-wrong{color:#ef4444;}
+        
+        input, select {
+            background-color: var(--card); border: 1px solid var(--border); color: var(--text-main);
+            padding: 0.35rem 0.5rem; border-radius: 0.375rem;
+        }
+        input:focus, select:focus { outline: none; border-color: #3b82f6; }
+
+        /* 9x9 数独棋盘样式 */
+        .sudoku-board {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            border: 3px solid var(--border);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            background-color: var(--border);
+            gap: 1px;
+        }
+        .sudoku-cell {
+            aspect-ratio: 1;
+            background-color: var(--card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            transition: background-color 0.15s;
+        }
+        /* 3x3 九宫格粗线分割 */
+        .sudoku-cell[data-c="2"], .sudoku-cell[data-c="5"] { border-right: 2px solid var(--border); }
+        .sudoku-cell[data-r="2"], .sudoku-cell[data-r="5"] { border-bottom: 2px solid var(--border); }
+        
+        /* 单元格高亮状态 */
+        .cell-fixed { background-color: var(--card-sub); font-weight: 700; color: var(--text-main); }
+        .cell-user { color: #3b82f6; }
+        .cell-wrong { color: #ef4444 !important; background-color: rgba(239, 68, 68, 0.15) !important; }
+        .cell-highlight { background-color: var(--highlight-bg); }
+        .cell-same-num { background-color: var(--same-num-bg); }
+        .cell-selected { outline: 2px solid #3b82f6; outline-offset: -2px; z-index: 5; }
+
+        /* 草稿小笔记 grid */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            width: 100%;
+            height: 100%;
+            padding: 2px;
+            font-size: 0.65rem;
+            line-height: 1;
+            color: var(--text-sub);
+            text-align: center;
+        }
+        .notes-grid div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body class="flex flex-col">
@@ -60,179 +132,440 @@
             <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
                 <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
             </a>
-            <h1 class="text-xl font-bold text-gradient">🧩 数独</h1>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-puzzle-piece mr-2"></i>经典数独</h1>
             <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
                 <i class="fa-solid fa-moon" id="themeIcon"></i>
             </button>
         </div>
     </header>
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <div class="flex flex-wrap gap-3 mb-5 items-center">
-                <select id="lvSel" class="w-28">
-                    <option value="easy">简单</option>
-                    <option value="mid">中等</option>
-                    <option value="hard">困难</option>
-                </select>
-                <button id="btnNew" class="btn btn-primary"><i class="fa-solid fa-refresh"></i>新游戏</button>
-                <button id="btnHint" class="btn btn-outline"><i class="fa-solid fa-lightbulb"></i>提示</button>
-                <button id="btnCheck" class="btn btn-outline"><i class="fa-solid fa-check"></i>校验</button>
+
+    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl">
+            <!-- 顶部控制条 -->
+            <div class="flex flex-wrap gap-3 mb-4 items-center justify-between bg-[var(--card-sub)] p-3 rounded-xl">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <div>
+                        <select id="lvSel" class="text-sm">
+                            <option value="easy">简单 (40个已知项)</option>
+                            <option value="mid" selected>中等 (32个已知项)</option>
+                            <option value="hard">困难 (26个已知项)</option>
+                            <option value="expert">专家 (22个已知项)</option>
+                        </select>
+                    </div>
+                    <button id="btnNew" class="btn btn-primary text-sm"><i class="fa-solid fa-plus mr-1"></i>新游戏</button>
+                    <button id="btnPause" class="btn btn-outline text-sm"><i class="fa-solid fa-pause mr-1"></i><span id="pauseTxt">暂停</span></button>
+                </div>
+                <div class="flex items-center gap-4 text-sm font-semibold">
+                    <div><i class="fa-regular fa-clock text-cyan-400 mr-1"></i><span id="timeTxt">00:00</span></div>
+                    <div><i class="fa-solid fa-triangle-exclamation text-amber-400 mr-1"></i>错误: <span id="errorTxt">0</span>/3</div>
+                </div>
             </div>
-            <div id="boardWrap" class="overflow-auto"></div>
-            <div class="flex gap-2 mt-4 flex-wrap">
-                <span class="text-sub-color">输入数字:</span>
-                <div id="numPad"></div>
+
+            <!-- 功能按键区（草稿模式、撤销、擦除、提示） -->
+            <div class="flex items-center justify-between gap-2 mb-4">
+                <button id="btnUndo" class="btn btn-outline flex-1"><i class="fa-solid fa-rotate-left mr-1"></i>撤销</button>
+                <button id="btnErase" class="btn btn-outline flex-1"><i class="fa-solid fa-eraser mr-1"></i>擦除</button>
+                <button id="btnNoteMode" class="btn btn-outline flex-1"><i class="fa-solid fa-pencil mr-1"></i>草稿 (<span id="noteStateTxt">关</span>)</button>
+                <button id="btnHint" class="btn btn-outline flex-1 text-amber-400 border-amber-500/40"><i class="fa-solid fa-lightbulb mr-1"></i>提示 (<span id="hintCnt">3</span>)</button>
+            </div>
+
+            <!-- 棋盘 & 数字键盘区 -->
+            <div class="flex flex-col md:flex-row gap-6 items-center justify-center">
+                <!-- 9x9 数独棋盘 -->
+                <div class="w-full max-w-[420px]">
+                    <div id="boardWrap" class="sudoku-board"></div>
+                </div>
+
+                <!-- 侧边数字填入面板 -->
+                <div class="w-full md:w-auto flex flex-col gap-3 justify-center items-center">
+                    <div id="numPad" class="grid grid-cols-5 md:grid-cols-3 gap-2 w-full max-w-[280px]">
+                        <!-- 动态生成的数字按钮 -->
+                    </div>
+                </div>
             </div>
         </div>
     </main>
+
+    <!-- 胜利弹窗 -->
+    <div id="winModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="tool-card p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div class="text-5xl">🏆</div>
+            <h2 class="text-2xl font-bold text-gradient">挑战成功！</h2>
+            <p class="text-sub-color" id="winText">用时 05:20 秒完成解题！</p>
+            <button id="btnPlayAgain" class="btn btn-primary w-full py-2.5 font-bold">再来一局</button>
+        </div>
+    </div>
+
     <footer class="nav-bar-bg border-t py-6 mt-10">
         <div class="container mx-auto px-4 text-center text-sub-color text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 小游戏</p>
+            <p class="mt-1">© 2026 工具集 | 益智游戏</p>
         </div>
     </footer>
-    <script>
-        function initTheme(){
-            const t=localStorage.getItem("toolTheme")||"dark";
-            document.documentElement.setAttribute("data-theme",t);
-            updateThemeIcon(t);
-        }
-        function updateThemeIcon(t){
-            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
-        }
-        document.getElementById("themeToggle").onclick=()=>{
-            const c=document.documentElement.getAttribute("data-theme");
-            const n=c==="dark"?"light":"dark";
-            document.documentElement.setAttribute("data-theme",n);
-            localStorage.setItem("toolTheme",n);
-            updateThemeIcon(n);
-        }
-        const lvSel = document.getElementById('lvSel');
-        const btnNew = document.getElementById('btnNew');
-        const btnHint = document.getElementById('btnHint');
-        const btnCheck = document.getElementById('btnCheck');
-        const boardWrap = document.getElementById('boardWrap');
-        const numPad = document.getElementById('numPad');
 
-        let board = [];
-        let solution = [];
-        let fixed = [];
-        let selectR = -1, selectC = -1;
+<script>
+// 主题控制
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
 
-        function isValid(b,r,c,val){
-            for(let i=0;i<9;i++){
-                if(b[r][i]===val) return false;
-                if(b[i][c]===val) return false;
-            }
-            const br = Math.floor(r/3)*3;
-            const bc = Math.floor(c/3)*3;
-            for(let dr=0;dr<3;dr++){
-                for(let dc=0;dc<3;dc++){
-                    if(b[br+dr][bc+dc]===val) return false;
-                }
-            }
-            return true;
+const lvSel = document.getElementById('lvSel');
+const btnNew = document.getElementById('btnNew');
+const btnPause = document.getElementById('btnPause');
+const pauseTxt = document.getElementById('pauseTxt');
+const timeTxt = document.getElementById('timeTxt');
+const errorTxt = document.getElementById('errorTxt');
+const btnUndo = document.getElementById('btnUndo');
+const btnErase = document.getElementById('btnErase');
+const btnNoteMode = document.getElementById('btnNoteMode');
+const noteStateTxt = document.getElementById('noteStateTxt');
+const btnHint = document.getElementById('btnHint');
+const hintCntEl = document.getElementById('hintCnt');
+const boardWrap = document.getElementById('boardWrap');
+const numPad = document.getElementById('numPad');
+const winModal = document.getElementById('winModal');
+const winText = document.getElementById('winText');
+const btnPlayAgain = document.getElementById('btnPlayAgain');
+
+let solution = [];
+let initialBoard = [];
+let currentBoard = [];
+let notesBoard = [];
+let fixedMask = [];
+
+let selectR = -1, selectC = -1;
+let isNoteMode = false;
+let historyStack = [];
+let hintLeft = 3;
+let errorCount = 0;
+let timer = null;
+let seconds = 0;
+let isPaused = false;
+
+// 校验数独解法算法
+function isValid(b, r, c, val){
+    for(let i = 0; i < 9; i++){
+        if(b[r][i] === val) return false;
+        if(b[i][c] === val) return false;
+    }
+    const br = Math.floor(r / 3) * 3;
+    const bc = Math.floor(c / 3) * 3;
+    for(let dr = 0; dr < 3; dr++){
+        for(let dc = 0; dc < 3; dc++){
+            if(b[br + dr][bc + dc] === val) return false;
         }
-        function fillSudoku(b){
-            for(let r=0;r<9;r++){
-                for(let c=0;c<9;c++){
-                    if(b[r][c]===0){
-                        const nums = shuffle([1,2,3,4,5,6,7,8,9]);
-                        for(let v of nums){
-                            if(isValid(b,r,c,v)){
-                                b[r][c]=v;
-                                if(fillSudoku(b)) return true;
-                                b[r][c]=0;
-                            }
-                        }
-                        return false;
+    }
+    return true;
+}
+
+function fillSudoku(b){
+    for(let r = 0; r < 9; r++){
+        for(let c = 0; c < 9; c++){
+            if(b[r][c] === 0){
+                const nums = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+                for(let v of nums){
+                    if(isValid(b, r, c, v)){
+                        b[r][c] = v;
+                        if(fillSudoku(b)) return true;
+                        b[r][c] = 0;
                     }
                 }
+                return false;
             }
-            return true;
         }
-        function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-        function createPuzzle(level){
-            const sol = Array(9).fill().map(()=>Array(9).fill(0));
-            fillSudoku(sol);
-            let remove;
-            if(level==='easy') remove=35;
-            else if(level==='mid') remove=45;
-            else remove=55;
-            const puzzle = sol.map(r=>[...r]);
-            const pos = [];
-            for(let r=0;r<9;r++)for(let c=0;c<9;c++)pos.push([r,c]);
-            shuffle(pos);
-            for(let i=0;i<remove;i++){
-                const [r,c] = pos[i];
-                puzzle[r][c]=0;
-            }
-            return {puzzle,sol};
+    }
+    return true;
+}
+
+function shuffle(arr){
+    const a = [...arr];
+    for(let i = a.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+function generatePuzzle(level){
+    const sol = Array(9).fill().map(() => Array(9).fill(0));
+    fillSudoku(sol);
+
+    let clues = 32;
+    if(level === 'easy') clues = 40;
+    else if(level === 'mid') clues = 32;
+    else if(level === 'hard') clues = 26;
+    else if(level === 'expert') clues = 22;
+
+    const removeCount = 81 - clues;
+    const puzzle = sol.map(r => [...r]);
+    const pos = [];
+    for(let r = 0; r < 9; r++) for(let c = 0; c < 9; c++) pos.push([r, c]);
+    const shufPos = shuffle(pos);
+
+    for(let i = 0; i < removeCount; i++){
+        const [r, c] = shufPos[i];
+        puzzle[r][c] = 0;
+    }
+
+    return { puzzle, sol };
+}
+
+function startTimer(){
+    clearInterval(timer);
+    seconds = 0;
+    timeTxt.innerText = "00:00";
+    timer = setInterval(() => {
+        if(!isPaused){
+            seconds++;
+            const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+            const s = String(seconds % 60).padStart(2, '0');
+            timeTxt.innerText = `${m}:${s}`;
         }
-        function initGame(){
-            const lv = lvSel.value;
-            const {puzzle,sol} = createPuzzle(lv);
-            solution = sol;
-            board = puzzle.map(r=>[...r]);
-            fixed = Array(9).fill().map(()=>Array(9).fill(false));
-            for(let r=0;r<9;r++)for(let c=0;c<9;c++) if(board[r][c]!==0) fixed[r][c]=true;
-            selectR=-1;selectC=-1;
-            render();
-        }
-        function render(){
-            let html = `<div class="inline-grid" style="grid-template-columns:repeat(9,2.5rem)">`;
-            for(let r=0;r<9;r++){
-                for(let c=0;c<9;c++){
-                    const v = board[r][c];
-                    let cls = "cell";
-                    if(fixed[r][c]) cls += " cell-fixed";
-                    if(selectR===r&&selectC===c) cls += " ring-2 ring-primary";
-                    html += `<div class="${cls}" data-r="${r}" data-c="${c}">${v||''}</div>`;
-                }
+    }, 1000);
+}
+
+function initGame(){
+    const lv = lvSel.value;
+    const { puzzle, sol } = generatePuzzle(lv);
+    solution = sol;
+    initialBoard = puzzle.map(r => [...r]);
+    currentBoard = puzzle.map(r => [...r]);
+    notesBoard = Array(9).fill().map(() => Array(9).fill().map(() => new Set()));
+    fixedMask = Array(9).fill().map((_, r) => Array(9).fill().map((_, c) => puzzle[r][c] !== 0));
+
+    selectR = -1; selectC = -1;
+    historyStack = [];
+    hintLeft = 3;
+    errorCount = 0;
+    isPaused = false;
+    pauseTxt.innerText = "暂停";
+    errorTxt.innerText = "0";
+    hintCntEl.innerText = "3";
+    winModal.classList.add('hidden');
+
+    startTimer();
+    renderNumPad();
+    renderBoard();
+}
+
+function pushHistory(){
+    const cb = currentBoard.map(r => [...r]);
+    const nb = notesBoard.map(r => r.map(set => new Set(set)));
+    historyStack.push({ cb, nb });
+    if(historyStack.length > 30) historyStack.shift();
+}
+
+btnUndo.onclick = () => {
+    if(historyStack.length === 0) return;
+    const last = historyStack.pop();
+    currentBoard = last.cb;
+    notesBoard = last.nb;
+    renderBoard();
+};
+
+function renderNumPad(){
+    let html = '';
+    for(let i = 1; i <= 9; i++){
+        html += `<button class="btn btn-outline text-lg font-bold py-3 num-btn" data-v="${i}">${i}</button>`;
+    }
+    numPad.innerHTML = html;
+    document.querySelectorAll('.num-btn').forEach(btn => {
+        btn.onclick = () => handleInputNumber(Number(btn.dataset.v));
+    });
+}
+
+function renderBoard(){
+    if(isPaused){
+        boardWrap.innerHTML = `<div class="col-span-9 p-12 text-center text-sub-color">游戏已暂停</div>`;
+        return;
+    }
+
+    let html = '';
+    const selectedVal = (selectR >= 0 && selectC >= 0) ? currentBoard[selectR][selectC] : 0;
+
+    for(let r = 0; r < 9; r++){
+        for(let c = 0; c < 9; c++){
+            const val = currentBoard[r][c];
+            const isFixed = fixedMask[r][c];
+            const isSelected = (r === selectR && c === selectC);
+            const isSameNum = (val !== 0 && val === selectedVal);
+            const isHighlight = (selectR >= 0 && (r === selectR || c === selectC || (Math.floor(r/3) === Math.floor(selectR/3) && Math.floor(c/3) === Math.floor(selectC/3))));
+            
+            let isWrong = false;
+            if(!isFixed && val !== 0 && val !== solution[r][c]){
+                isWrong = true;
             }
-            html += `</div>`;
-            boardWrap.innerHTML = html;
-            document.querySelectorAll('.cell').forEach(el=>{
-                el.onclick=()=>{
-                    selectR=Number(el.dataset.r);
-                    selectC=Number(el.dataset.c);
-                    render();
-                }
-            })
-            let numHtml = '';
-            for(let i=1;i<=9;i++){
-                numHtml += `<button class="btn btn-outline num-btn" data-v="${i}">${i}</button>`;
-            }
-            numHtml += `<button class="btn btn-outline num-btn" data-v="0">⌫</button>`;
-            numPad.innerHTML = numHtml;
-            document.querySelectorAll('.num-btn').forEach(el=>{
-                el.onclick=()=>{
-                    const v = Number(el.dataset.v);
-                    if(selectR>=0&&selectC>=0&&!fixed[selectR][selectC]){
-                        board[selectR][selectC] = v;
-                        render();
+
+            let classes = ['sudoku-cell'];
+            if(isFixed) classes.push('cell-fixed');
+            else if(val !== 0) classes.push('cell-user');
+
+            if(isWrong) classes.push('cell-wrong');
+            else if(isSelected) classes.push('cell-selected');
+            else if(isSameNum) classes.push('cell-same-num');
+            else if(isHighlight) classes.push('cell-highlight');
+
+            let cellContent = '';
+            if(val !== 0){
+                cellContent = val;
+            } else {
+                // 绘制草稿笔记 3x3
+                const set = notesBoard[r][c];
+                if(set && set.size > 0){
+                    let gridHtml = '<div class="notes-grid">';
+                    for(let n = 1; n <= 9; n++){
+                        gridHtml += `<div>${set.has(n) ? n : ''}</div>`;
                     }
-                }
-            })
-        }
-        btnHint.onclick = ()=>{
-            if(selectR<0||selectC<0||fixed[selectR][selectC]) return;
-            board[selectR][selectC] = solution[selectR][selectC];
-            render();
-        }
-        btnCheck.onclick = ()=>{
-            let ok=true;
-            for(let r=0;r<9;r++){
-                for(let c=0;c<9;c++){
-                    if(board[r][c]!==0&&board[r][c]!==solution[r][c]) ok=false;
+                    gridHtml += '</div>';
+                    cellContent = gridHtml;
                 }
             }
-            alert(ok?"✅当前全部填写正确":"❌存在错误，请检查");
+
+            html += `<div class="${classes.join(' ')}" data-r="${r}" data-c="${c}">${cellContent}</div>`;
         }
-        btnNew.onclick = initGame;
-        lvSel.onchange = initGame;
-        initGame();
-        initTheme();
-    </script>
+    }
+    boardWrap.innerHTML = html;
+
+    document.querySelectorAll('.sudoku-cell').forEach(cell => {
+        cell.onclick = () => {
+            selectR = Number(cell.dataset.r);
+            selectC = Number(cell.dataset.c);
+            renderBoard();
+        };
+    });
+}
+
+function handleInputNumber(num){
+    if(selectR < 0 || selectC < 0 || fixedMask[selectR][selectC] || isPaused) return;
+
+    pushHistory();
+
+    if(isNoteMode){
+        // 草稿模式
+        currentBoard[selectR][selectC] = 0;
+        const set = notesBoard[selectR][selectC];
+        if(set.has(num)) set.delete(num);
+        else set.add(num);
+    } else {
+        // 正常填数
+        notesBoard[selectR][selectC].clear();
+        currentBoard[selectR][selectC] = num;
+
+        if(num !== solution[selectR][selectC]){
+            errorCount++;
+            errorTxt.innerText = errorCount;
+        } else {
+            // 清理同一行、列、九宫格中其他单元格的草稿笔记
+            clearRelatedNotes(selectR, selectC, num);
+        }
+    }
+
+    renderBoard();
+    checkWin();
+}
+
+function clearRelatedNotes(r, c, val){
+    for(let i = 0; i < 9; i++){
+        notesBoard[r][i].delete(val);
+        notesBoard[i][c].delete(val);
+    }
+    const br = Math.floor(r / 3) * 3;
+    const bc = Math.floor(c / 3) * 3;
+    for(let dr = 0; dr < 3; dr++){
+        for(let dc = 0; dc < 3; dc++){
+            notesBoard[br + dr][bc + dc].delete(val);
+        }
+    }
+}
+
+btnErase.onclick = () => {
+    if(selectR < 0 || selectC < 0 || fixedMask[selectR][selectC] || isPaused) return;
+    pushHistory();
+    currentBoard[selectR][selectC] = 0;
+    notesBoard[selectR][selectC].clear();
+    renderBoard();
+};
+
+btnNoteMode.onclick = () => {
+    isNoteMode = !isNoteMode;
+    noteStateTxt.innerText = isNoteMode ? "开" : "关";
+    btnNoteMode.className = isNoteMode ? "btn btn-primary flex-1" : "btn btn-outline flex-1";
+};
+
+btnHint.onclick = () => {
+    if(hintLeft <= 0 || selectR < 0 || selectC < 0 || fixedMask[selectR][selectC] || isPaused) return;
+    pushHistory();
+    currentBoard[selectR][selectC] = solution[selectR][selectC];
+    notesBoard[selectR][selectC].clear();
+    hintLeft--;
+    hintCntEl.innerText = hintLeft;
+    renderBoard();
+    checkWin();
+};
+
+btnPause.onclick = () => {
+    isPaused = !isPaused;
+    pauseTxt.innerText = isPaused ? "继续" : "暂停";
+    btnPause.className = isPaused ? "btn btn-primary text-sm" : "btn btn-outline text-sm";
+    renderBoard();
+};
+
+function checkWin(){
+    let isComplete = true;
+    for(let r = 0; r < 9; r++){
+        for(let c = 0; c < 9; c++){
+            if(currentBoard[r][c] !== solution[r][c]){
+                isComplete = false;
+                break;
+            }
+        }
+    }
+    if(isComplete){
+        clearInterval(timer);
+        winText.innerText = `太棒啦！耗时 ${timeTxt.innerText} 成功解开数独！`;
+        winModal.classList.remove('hidden');
+        winModal.classList.add('flex');
+    }
+}
+
+// 键盘事件响应
+document.addEventListener('keydown', (e) => {
+    if(selectR < 0 || selectC < 0 || isPaused) return;
+    if(e.key >= '1' && e.key <= '9'){
+        handleInputNumber(Number(e.key));
+    } else if(e.key === 'Backspace' || e.key === 'Delete'){
+        btnErase.click();
+    } else if(e.key === 'n' || e.key === 'N'){
+        btnNoteMode.click();
+    } else if(e.key === 'ArrowUp' || e.key === 'w'){
+        selectR = Math.max(0, selectR - 1); renderBoard();
+    } else if(e.key === 'ArrowDown' || e.key === 's'){
+        selectR = Math.min(8, selectR + 1); renderBoard();
+    } else if(e.key === 'ArrowLeft' || e.key === 'a'){
+        selectC = Math.max(0, selectC - 1); renderBoard();
+    } else if(e.key === 'ArrowRight' || e.key === 'd'){
+        selectC = Math.min(8, selectC + 1); renderBoard();
+    }
+});
+
+lvSel.onchange = initGame;
+btnNew.onclick = initGame;
+btnPlayAgain.onclick = initGame;
+
+initTheme();
+initGame();
+</script>
 </body>
 </html>

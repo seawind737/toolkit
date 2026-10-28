@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS 视觉样式生成器 - 阴影、高级渐变色、玻璃拟态</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
+        }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); background-color: var(--card); color: var(--text-main); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+        .btn-tab.active { background-color: #3b82f6 !important; color: white !important; border-color: #3b82f6 !important; }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+
+        input[type="range"] { accent-color: #3b82f6; }
+        input[type="color"] { background: none; border: none; width: 32px; height: 32px; cursor: pointer; }
+
+        .preview-box {
+            width: 240px;
+            height: 180px;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        .preset-chip {
+            width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid rgba(255,255,255,0.3); transition: transform 0.2s;
+        }
+        .preset-chip:hover { transform: scale(1.15); border-color: #fff; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-palette mr-2"></i>CSS 视觉样式生成器</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-5xl flex-grow">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-5">
+            
+            <!-- 模式切换选项卡 -->
+            <div class="flex flex-wrap gap-2 border-b border-[var(--border)] pb-3">
+                <button id="tabShadow" class="btn btn-tab active text-xs"><i class="fa-solid fa-box-shadow mr-1.5"></i>Box Shadow 阴影</button>
+                <button id="tabGradient" class="btn btn-tab btn-outline text-xs"><i class="fa-solid fa-paint-roller mr-1.5"></i>高级渐变色 (Gradient)</button>
+                <button id="tabGlass" class="btn btn-tab btn-outline text-xs"><i class="fa-solid fa-glass-water mr-1.5"></i>Glassmorphism 玻璃拟态</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                
+                <!-- 动态参数调节区 -->
+                <div id="panelShadow" class="space-y-4 text-xs">
+                    <div class="font-bold text-primary mb-1"><i class="fa-solid fa-sliders mr-1"></i>Box Shadow 阴影参数调节</div>
+                    <div>
+                        <label class="flex justify-between text-sub-color mb-1">X 轴偏移: <span id="vX">10px</span></label>
+                        <input id="inputX" type="range" min="-50" max="50" value="10" class="w-full">
+                    </div>
+                    <div>
+                        <label class="flex justify-between text-sub-color mb-1">Y 轴偏移: <span id="vY">10px</span></label>
+                        <input id="inputY" type="range" min="-50" max="50" value="10" class="w-full">
+                    </div>
+                    <div>
+                        <label class="flex justify-between text-sub-color mb-1">模糊半径 (Blur): <span id="vBlur">20px</span></label>
+                        <input id="inputBlur" type="range" min="0" max="100" value="20" class="w-full">
+                    </div>
+                    <div>
+                        <label class="flex justify-between text-sub-color mb-1">扩展半径 (Spread): <span id="vSpread">0px</span></label>
+                        <input id="inputSpread" type="range" min="-30" max="50" value="0" class="w-full">
+                    </div>
+                </div>
+
+                <div id="panelGradient" class="hidden space-y-3 text-xs">
+                    <div class="font-bold text-primary mb-1"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>渐变配色与形态微调</div>
+                    
+                    <!-- 热门渐变色预设快捷选择 -->
+                    <div>
+                        <span class="text-sub-color block mb-1.5">🎨 热门精选渐变灵感库：</span>
+                        <div class="flex flex-wrap gap-2 items-center" id="presetPalettes">
+                            <!-- 预设色块由 JS 动态生成 -->
+                        </div>
+                    </div>
+
+                    <div class="pt-1">
+                        <label class="text-sub-color block mb-1">渐变样式类型:</label>
+                        <select id="gradType" class="w-full bg-[var(--card)] border border-[var(--border)] p-1.5 rounded">
+                            <option value="linear">线性渐变 (Linear Gradient)</option>
+                            <option value="radial">径向渐变 (Radial Gradient)</option>
+                        </select>
+                    </div>
+
+                    <div id="angleControlGroup">
+                        <label class="flex justify-between text-sub-color mb-1">渐变角度 (Angle): <span id="vAngle">90deg</span></label>
+                        <input id="inputAngle" type="range" min="0" max="360" value="90" class="w-full">
+                        <div class="flex gap-1.5 mt-1.5">
+                            <button class="btn btn-outline text-[10px] py-1 px-2" onclick="setAngle(0)">0°</button>
+                            <button class="btn btn-outline text-[10px] py-1 px-2" onclick="setAngle(45)">45°</button>
+                            <button class="btn btn-outline text-[10px] py-1 px-2" onclick="setAngle(90)">90°</button>
+                            <button class="btn btn-outline text-[10px] py-1 px-2" onclick="setAngle(135)">135°</button>
+                            <button class="btn btn-outline text-[10px] py-1 px-2" onclick="setAngle(180)">180°</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 pt-1">
+                        <div class="flex items-center justify-between bg-[var(--card-sub)] p-2 rounded">
+                            <span class="text-sub-color">起始色:</span>
+                            <div class="flex items-center gap-1.5"><input id="colorStart" type="color" value="#3b82f6"><span id="txtColorStart" class="font-mono text-[11px]">#3b82f6</span></div>
+                        </div>
+                        <div class="flex items-center justify-between bg-[var(--card-sub)] p-2 rounded">
+                            <span class="text-sub-color">结束色:</span>
+                            <div class="flex items-center gap-1.5"><input id="colorEnd" type="color" value="#22d3ee"><span id="txtColorEnd" class="font-mono text-[11px]">#22d3ee</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="panelGlass" class="hidden space-y-4 text-xs">
+                    <div class="font-bold text-primary mb-1"><i class="fa-solid fa-sliders mr-1"></i>Glassmorphism 玻璃拟态参数调节</div>
+                    <div>
+                        <label class="flex justify-between text-sub-color mb-1">背景模糊度 (Backdrop Blur): <span id="vGlassBlur">10px</span></label>
+                        <input id="inputGlassBlur" type="range" min="0" max="30" value="10" class="w-full">
+                    </div>
+                    <div>
+                        <label class="flex justify-between text-sub-color mb-1">背景透明度 (Opacity): <span id="vGlassOpacity">25%</span></label>
+                        <input id="inputGlassOpacity" type="range" min="0" max="100" value="25" class="w-full">
+                    </div>
+                </div>
+
+                <!-- 实时效果预览与代码生成面板 -->
+                <div class="flex flex-col items-center gap-4 bg-slate-950/50 p-6 rounded-2xl border border-[var(--border)] relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-purple-600/30 via-blue-600/30 to-emerald-600/35 pointer-events-none"></div>
+
+                    <div id="previewBox" class="preview-box bg-blue-500 text-white shadow-2xl relative z-10">
+                        Preview Box
+                    </div>
+
+                    <div class="w-full space-y-2 relative z-10">
+                        <textarea id="cssCode" rows="3" readonly class="w-full text-xs font-mono p-2.5 rounded bg-slate-900 border border-[var(--border)] text-cyan-400"></textarea>
+                        <button id="btnCopy" class="btn btn-primary w-full text-xs font-bold"><i class="fa-solid fa-copy mr-1.5"></i>复制代码</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 前端设计辅助</p>
+        </div>
+    </footer>
+
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
+
+let currentMode = 'shadow';
+
+const tabShadow = document.getElementById('tabShadow');
+const tabGradient = document.getElementById('tabGradient');
+const tabGlass = document.getElementById('tabGlass');
+
+const panelShadow = document.getElementById('panelShadow');
+const panelGradient = document.getElementById('panelGradient');
+const panelGlass = document.getElementById('panelGlass');
+
+const previewBox = document.getElementById('previewBox');
+const cssCode = document.getElementById('cssCode');
+const btnCopy = document.getElementById('btnCopy');
+
+// 阴影控件
+const inputX = document.getElementById('inputX'), inputY = document.getElementById('inputY'), inputBlur = document.getElementById('inputBlur'), inputSpread = document.getElementById('inputSpread');
+const vX = document.getElementById('vX'), vY = document.getElementById('vY'), vBlur = document.getElementById('vBlur'), vSpread = document.getElementById('vSpread');
+
+// 渐变控件
+const gradType = document.getElementById('gradType');
+const inputAngle = document.getElementById('inputAngle'), vAngle = document.getElementById('vAngle');
+const colorStart = document.getElementById('colorStart'), colorEnd = document.getElementById('colorEnd');
+const txtColorStart = document.getElementById('txtColorStart'), txtColorEnd = document.getElementById('txtColorEnd');
+const angleControlGroup = document.getElementById('angleControlGroup');
+const presetPalettes = document.getElementById('presetPalettes');
+
+// 热门渐变色灵感库预设
+// 热门渐变色灵感库预设（扩充版：包含两色与多色精选渐变）
+const PRESETS = [
+    // --- 1. 科技 & 极简 (Tech & Modern) ---
+    { name: '极光霓虹', colors: ['#3b82f6', '#22d3ee'] },
+    { name: '深海幽蓝', colors: ['#0f172a', '#0ea5e9'] },
+    { name: '赛博朋克', colors: ['#8b5cf6', '#ec4899'] },
+    { name: '暗夜星空', colors: ['#1e1b4b', '#312e81'] },
+    { name: '蓝调银河', colors: ['#654ea3', '#eaafc8'] },
+    { name: '黑金至尊', colors: ['#1a2a6c', '#b21f1f', '#fdbb2d'] },
+
+    // --- 2. 暖阳 & 晚霞 (Warm & Sunset) ---
+    { name: '日落晚霞', colors: ['#f43f5e', '#fbbf24'] },
+    { name: '烈焰熔岩', colors: ['#ea580c', '#facc15'] },
+    { name: '秋日胡萝卜', colors: ['#ff7e5f', '#feb47b'] },
+    { name: '赤红橙光', colors: ['#ff416c', '#ff4b2b'] },
+    { name: '黄金流沙', colors: ['#f7971e', '#ffd200'] },
+    { name: '玫瑰金致', colors: ['#f4c4f3', '#fc67fa'] },
+
+    // --- 3. 自然 & 生机 (Nature & Fresh) ---
+    { name: '清新薄荷', colors: ['#10b981', '#6ee7b7'] },
+    { name: '森林绿意', colors: ['#134e5e', '#71b280'] },
+    { name: '翡翠碧波', colors: ['#02aab0', '#00cdac'] },
+    { name: '柠檬汽水', colors: ['#a8ff78', '#78ffd6'] },
+    { name: '热带雨林', colors: ['#00b09b', '#96c93d'] },
+    { name: '青绿山水', colors: ['#200122', '#6f0000'] },
+
+    // --- 4. 梦幻 & 柔和 (Dream & Macaron) ---
+    { name: '薰衣草梦', colors: ['#6366f1', '#d946ef'] },
+    { name: '马卡龙粉蓝', colors: ['#a1c4fd', '#c2e9fb'] },
+    { name: '水蜜桃气泡', colors: ['#ff9a9e', '#fecfef'] },
+    { name: '独角兽紫', colors: ['#e0c3fc', '#8ec5fc'] },
+    { name: '云雾罗兰', colors: ['#fbc2eb', '#a6c1ee'] },
+    { name: '樱花粉黛', colors: ['#ffb199', '#ff0844'] },
+
+    // --- 5. 多色渐变 & 炫彩 (Multi-Color Spectrum) ---
+    { name: '彩虹霓虹', colors: ['#f12711', '#f5af19', '#00c6ff'] },
+    { name: '全息光辉', colors: ['#d4fc79', '#96e6a1', '#84fab0'] },
+    { name: '莫奈花园', colors: ['#a8c0ff', '#3f2b96', '#f8b500'] },
+    { name: '复古迪斯科', colors: ['#fc00ff', '#00dbde'] },
+    { name: '宇宙射线', colors: ['#ff007f', '#7f00ff', '#00ffff'] },
+    { name: '晨曦微光', colors: ['#fbf8cc', '#fde4cf', '#ffcfd2', '#f1c0e8'] }
+];
+
+function renderPresets(){
+    presetPalettes.innerHTML = '';
+    PRESETS.forEach(p => {
+        const chip = document.createElement('div');
+        chip.className = 'preset-chip shadow-md';
+        // 支持 2 色或多色渐变预览
+        const gradStr = p.colors.join(', ');
+        chip.style.background = `linear-gradient(135deg, ${gradStr})`;
+        chip.title = p.name;
+        chip.onclick = () => {
+            // 默认应用首尾两色到颜色选择器
+            colorStart.value = p.colors[0];
+            colorEnd.value = p.colors[p.colors.length - 1];
+            updateCss();
+        };
+        presetPalettes.appendChild(chip);
+    });
+}
+
+function setAngle(deg){
+    inputAngle.value = deg;
+    updateCss();
+}
+
+// 玻璃拟态控件
+const inputGlassBlur = document.getElementById('inputGlassBlur'), vGlassBlur = document.getElementById('vGlassBlur');
+const inputGlassOpacity = document.getElementById('inputGlassOpacity'), vGlassOpacity = document.getElementById('vGlassOpacity');
+
+function switchTab(mode){
+    currentMode = mode;
+    [tabShadow, tabGradient, tabGlass].forEach(btn => btn.className = 'btn btn-tab btn-outline text-xs');
+    [panelShadow, panelGradient, panelGlass].forEach(p => p.classList.add('hidden'));
+
+    if(mode === 'shadow'){
+        tabShadow.className = 'btn btn-tab active text-xs';
+        panelShadow.classList.remove('hidden');
+    } else if(mode === 'gradient'){
+        tabGradient.className = 'btn btn-tab active text-xs';
+        panelGradient.classList.remove('hidden');
+    } else if(mode === 'glass'){
+        tabGlass.className = 'btn btn-tab active text-xs';
+        panelGlass.classList.remove('hidden');
+    }
+    updateCss();
+}
+
+tabShadow.onclick = () => switchTab('shadow');
+tabGradient.onclick = () => switchTab('gradient');
+tabGlass.onclick = () => switchTab('glass');
+
+gradType.onchange = () => {
+    if(gradType.value === 'radial'){
+        angleControlGroup.classList.add('hidden');
+    } else {
+        angleControlGroup.classList.remove('hidden');
+    }
+    updateCss();
+};
+
+function updateCss(){
+    if(currentMode === 'shadow'){
+        const x = inputX.value + 'px';
+        const y = inputY.value + 'px';
+        const blur = inputBlur.value + 'px';
+        const spread = inputSpread.value + 'px';
+
+        vX.innerText = x; vY.innerText = y; vBlur.innerText = blur; vSpread.innerText = spread;
+
+        const code = `box-shadow: ${x} ${y} ${blur} ${spread} rgba(0, 0, 0, 0.35);`;
+        previewBox.style.cssText = `width: 240px; height: 180px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1rem; background-color: #3b82f6; color: #ffffff; box-shadow: ${x} ${y} ${blur} ${spread} rgba(0, 0, 0, 0.35);`;
+        cssCode.value = code;
+
+    } else if(currentMode === 'gradient'){
+        const start = colorStart.value;
+        const end = colorEnd.value;
+        txtColorStart.innerText = start;
+        txtColorEnd.innerText = end;
+
+        let code = '';
+        if(gradType.value === 'radial'){
+            code = `background: radial-gradient(circle, ${start}, ${end});`;
+            previewBox.style.cssText = `width: 240px; height: 180px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1rem; color: #ffffff; background: radial-gradient(circle, ${start}, ${end}); box-shadow: 0 10px 25px rgba(0,0,0,0.2);`;
+        } else {
+            const angle = inputAngle.value + 'deg';
+            vAngle.innerText = angle;
+            code = `background: linear-gradient(${angle}, ${start}, ${end});`;
+            previewBox.style.cssText = `width: 240px; height: 180px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1rem; color: #ffffff; background: linear-gradient(${angle}, ${start}, ${end}); box-shadow: 0 10px 25px rgba(0,0,0,0.2);`;
+        }
+        cssCode.value = code;
+
+    } else if(currentMode === 'glass'){
+        const blur = inputGlassBlur.value + 'px';
+        vGlassBlur.innerText = blur;
+        vGlassOpacity.innerText = inputGlassOpacity.value + '%';
+
+        const code = `background: rgba(255, 255, 255, ${inputGlassOpacity.value / 100});\nbackdrop-filter: blur(${blur});\nborder: 1px solid rgba(255, 255, 255, 0.2);`;
+        previewBox.style.cssText = `width: 240px; height: 180px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1rem; color: #ffffff; background: rgba(255, 255, 255, ${inputGlassOpacity.value / 100}); backdrop-filter: blur(${blur}); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);`;
+        cssCode.value = code;
+    }
+}
+
+// 绑定事件
+[inputX, inputY, inputBlur, inputSpread, inputAngle, colorStart, colorEnd, inputGlassBlur, inputGlassOpacity].forEach(el => {
+    el.oninput = updateCss;
+    el.onchange = updateCss;
+});
+
+btnCopy.onclick = () => {
+    navigator.clipboard.writeText(cssCode.value);
+    btnCopy.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i>已成功复制！';
+    setTimeout(() => btnCopy.innerHTML = '<i class="fa-solid fa-copy mr-1.5"></i>复制代码', 1500);
+};
+
+initTheme();
+renderPresets();
+switchTab('shadow');
+</script>
+</body>
+</html>

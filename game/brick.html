@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打砖块弹球 - 旗舰定制版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
+        }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+            --canvas-bg: #020617;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+            --canvas-bg: #f8fafc;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+        .select-sub-color { background-color: var(--card); color: var(--text-main); }
+
+        canvas {
+            border: 2px solid var(--border);
+            border-radius: 0.75rem;
+            background-color: var(--canvas-bg);
+            display: block;
+            margin: 0 auto;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-baseball mr-2"></i>打砖块弹球</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-4">
+            
+            <div class="flex flex-wrap gap-3 items-center justify-between bg-[var(--card-sub)] p-3.5 rounded-xl">
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button id="btnStart" class="btn btn-primary text-sm"><i class="fa-solid fa-play mr-1"></i>开始游戏</button>
+                    
+                    <div class="flex items-center gap-1 text-xs">
+                        <label class="text-sub-color">难度:</label>
+                        <select id="diffSel" class="text-xs select-sub-color p-1 rounded">
+                            <option value="easy">🟢 初级 (宽挡板/慢速)</option>
+                            <option value="mid" selected>🟡 中级 (标准)</option>
+                            <option value="hard">🔴 高级 (窄挡板/极速)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-6 text-sm font-semibold">
+                    <div>得分: <span id="scoreTxt" class="text-primary font-bold">0</span></div>
+                    <div>生命: <span id="livesTxt" class="text-red-400 font-bold">❤️❤️❤️</span></div>
+                </div>
+            </div>
+
+            <div class="flex justify-center overflow-auto p-1">
+                <canvas id="canvas" width="480" height="400"></canvas>
+            </div>
+
+            <div class="text-xs text-sub-color text-center border-t border-[var(--border)] pt-3">
+                💡 电脑端按 <kbd class="px-1 border rounded">←</kbd> <kbd class="px-1 border rounded">→</kbd>（或 <kbd class="px-1 border rounded">A</kbd> <kbd class="px-1 border rounded">D</kbd>）键与移动鼠标控制挡板；手机端左右滑动。
+            </div>
+        </div>
+    </main>
+
+    <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="tool-card p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div id="modalEmoji" class="text-5xl">🎉</div>
+            <h2 id="modalTitle" class="text-2xl font-bold text-gradient">通关成功！</h2>
+            <p id="modalBody" class="text-sub-color">得分: 1200</p>
+            <button id="btnModalAgain" class="btn btn-primary w-full py-2.5 font-bold">再玩一次</button>
+        </div>
+    </div>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 经典小游戏</p>
+        </div>
+    </footer>
+
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const btnStart = document.getElementById('btnStart');
+const diffSel = document.getElementById('diffSel');
+const scoreTxt = document.getElementById('scoreTxt');
+const livesTxt = document.getElementById('livesTxt');
+const modal = document.getElementById('modal');
+const modalEmoji = document.getElementById('modalEmoji');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+const btnModalAgain = document.getElementById('btnModalAgain');
+
+let paddle = { x: 190, w: 100, h: 12, speed: 7 };
+let ball = { x: 240, y: 350, dx: 4, dy: -4, r: 7 };
+let bricks = [];
+let score = 0;
+let lives = 3;
+let isRunning = false;
+let animId = null;
+
+// 键盘控制状态
+let rightPressed = false;
+let leftPressed = false;
+
+const brickColors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type){
+    try {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const now = audioCtx.currentTime;
+        if(type === 'hit'){
+            osc.frequency.setValueAtTime(400, now);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.04);
+        } else if(type === 'break'){
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(850, now + 0.06);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.06);
+        }
+    } catch(e){}
+}
+
+function applyDifficulty(){
+    const diff = diffSel.value;
+    if(diff === 'easy'){
+        paddle.w = 120;
+        ball.baseSpeed = 3;
+    } else if(diff === 'mid'){
+        paddle.w = 100;
+        ball.baseSpeed = 4;
+    } else {
+        paddle.w = 75; // 高级：窄挡板
+        ball.baseSpeed = 5.5; // 高级：极速
+    }
+}
+
+function initBricks(){
+    bricks = [];
+    const rows = 5, cols = 7;
+    const bw = 58, bh = 18, padding = 8, offsetTop = 40, offsetLeft = 12;
+
+    for(let r=0; r<rows; r++){
+        bricks[r] = [];
+        for(let c=0; c<cols; c++){
+            bricks[r][c] = {
+                x: offsetLeft + c * (bw + padding),
+                y: offsetTop + r * (bh + padding),
+                status: 1,
+                color: brickColors[r]
+            };
+        }
+    }
+}
+
+function initGame(){
+    cancelAnimationFrame(animId);
+    applyDifficulty();
+    score = 0;
+    lives = 3;
+    paddle.x = (canvas.width - paddle.w) / 2;
+    resetBall();
+    initBricks();
+    scoreTxt.innerText = '0';
+    livesTxt.innerText = '❤️❤️❤️';
+    modal.classList.add('hidden');
+    isRunning = true;
+    update();
+}
+
+function resetBall(){
+    ball.x = canvas.width / 2;
+    ball.y = canvas.height - 40;
+    const angleDir = Math.random() > 0.5 ? 1 : -1;
+    ball.dx = angleDir * (ball.baseSpeed * 0.8);
+    ball.dy = -ball.baseSpeed;
+}
+
+function update(){
+    if(!isRunning) return;
+
+    // 键盘移动挡板逻辑
+    if(rightPressed){
+        paddle.x = Math.min(canvas.width - paddle.w, paddle.x + paddle.speed);
+    } else if(leftPressed){
+        paddle.x = Math.max(0, paddle.x - paddle.speed);
+    }
+
+    // 移动球
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+
+    // 碰左右墙
+    if(ball.x + ball.r > canvas.width || ball.x - ball.r < 0){
+        ball.dx = -ball.dx;
+        playSound('hit');
+    }
+    // 碰顶墙
+    if(ball.y - ball.r < 0){
+        ball.dy = -ball.dy;
+        playSound('hit');
+    }
+
+    // 碰挡板
+    if(ball.y + ball.r >= canvas.height - paddle.h - 5 && ball.y + ball.r <= canvas.height){
+        if(ball.x >= paddle.x && ball.x <= paddle.x + paddle.w){
+            const hitPos = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+            ball.dx = hitPos * (ball.baseSpeed + 1);
+            ball.dy = -Math.abs(ball.dy);
+            playSound('hit');
+        }
+    }
+
+    // 碰底边界（掉落）
+    if(ball.y + ball.r > canvas.height){
+        lives--;
+        livesTxt.innerText = '❤️'.repeat(lives);
+        if(lives === 0){
+            isRunning = false;
+            modalEmoji.innerText = '💀';
+            modalTitle.innerText = '游戏结束！';
+            modalBody.innerText = `最终得分: ${score}`;
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            return;
+        } else {
+            resetBall();
+        }
+    }
+
+    // 碰砖块检测
+    let allCleared = true;
+    for(let r=0; r<bricks.length; r++){
+        for(let c=0; c<bricks[r].length; c++){
+            const b = bricks[r][c];
+            if(b.status === 1){
+                allCleared = false;
+                if(ball.x > b.x && ball.x < b.x + 58 && ball.y > b.y && ball.y < b.y + 18){
+                    ball.dy = -ball.dy;
+                    b.status = 0;
+                    score += 10;
+                    scoreTxt.innerText = score;
+                    playSound('break');
+                }
+            }
+        }
+    }
+
+    if(allCleared){
+        isRunning = false;
+        modalEmoji.innerText = '🏆';
+        modalTitle.innerText = '全部击碎！恭喜通关！';
+        modalBody.innerText = `最终得分: ${score}`;
+        modal.classList.remove('hidden'); modal.classList.add('flex');
+        return;
+    }
+
+    draw();
+    animId = requestAnimationFrame(update);
+}
+
+function draw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 绘制挡板
+    ctx.fillStyle = '#3b82f6';
+    ctx.beginPath();
+    ctx.roundRect(paddle.x, canvas.height - paddle.h - 5, paddle.w, paddle.h, 6);
+    ctx.fill();
+
+    // 绘制球
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 绘制砖块
+    for(let r=0; r<bricks.length; r++){
+        for(let c=0; c<bricks[r].length; c++){
+            const b = bricks[r][c];
+            if(b.status === 1){
+                ctx.fillStyle = b.color;
+                ctx.beginPath();
+                ctx.roundRect(b.x, b.y, 58, 18, 4);
+                ctx.fill();
+            }
+        }
+    }
+}
+
+// 键鼠与触控事件绑定
+document.addEventListener('keydown', e => {
+    if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') rightPressed = true;
+    else if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') leftPressed = true;
+});
+
+document.addEventListener('keyup', e => {
+    if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') rightPressed = false;
+    else if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') leftPressed = false;
+});
+
+document.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const relativeX = e.clientX - rect.left;
+    if(relativeX > 0 && relativeX < canvas.width){
+        paddle.x = Math.max(0, Math.min(canvas.width - paddle.w, relativeX - paddle.w / 2));
+    }
+});
+
+canvas.addEventListener('touchmove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const relativeX = e.touches[0].clientX - rect.left;
+    if(relativeX > 0 && relativeX < canvas.width){
+        paddle.x = Math.max(0, Math.min(canvas.width - paddle.w, relativeX - paddle.w / 2));
+    }
+}, {passive: true});
+
+diffSel.onchange = () => {
+    if(!isRunning) applyDifficulty();
+};
+
+btnStart.onclick = initGame;
+btnModalAgain.onclick = initGame;
+
+initTheme();
+applyDifficulty();
+initBricks();
+draw();
+</script>
+</body>
+</html>

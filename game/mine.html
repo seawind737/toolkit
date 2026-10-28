@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>扫雷小游戏</title>
+    <title>经典扫雷 - 全自定义版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -17,57 +17,99 @@
             }
         }
     </script>
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
-            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
-            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
-            .btn-danger { @apply bg-red-500 text-white hover:bg-red-500/80; }
-            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
-            .cell { @apply w-7 h-7 border flex items-center justify-center select-none cursor-pointer font-bold text-sm; }
-            .cell-closed { @apply bg-slate-300 dark:bg-slate-600 border-slate-400 dark:border-slate-500; }
-            .cell-opened { @apply bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 cursor-default; }
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
         }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
         html[data-theme="dark"] {
-            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
-            --text-main: #e2e8f0;--text-sub: #94a3b8;
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+            --cell-closed: #334155;
+            --cell-closed-hover: #475569;
+            --cell-opened: #0f172a;
         }
         html[data-theme="light"] {
-            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
-            --text-main: #111827;--text-sub: #64748b;
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+            --cell-closed: #cbd5e1;
+            --cell-closed-hover: #94a3b8;
+            --cell-opened: #f1f5f9;
         }
         body {
             background-color: var(--bg); color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
         }
-        body::before{
-            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
             background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
+            background-size: 24px 24px;
         }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
-        }
-        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
-        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
-        .sub-panel-bg { background-color: var(--card-sub); }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
         .text-sub-color { color: var(--text-sub); }
-        textarea,input,select {
-            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
-            font-family: Consolas,Menlo,monospace;
+        
+        input, select {
+            background-color: var(--card); border: 1px solid var(--border); color: var(--text-main);
+            padding: 0.35rem 0.5rem; border-radius: 0.375rem;
         }
-        textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
-        /*扫雷数字颜色*/
-        .n1{color:#2563eb;}
-        .n2{color:#16a34a;}
-        .n3{color:#dc2626;}
-        .n4{color:#7c3aed;}
-        .n5{color:#b45309;}
-        .n6{color:#0891b2;}
-        .n7{color:#1f2937;}
-        .n8{color:#6b7280;}
+        input:focus, select:focus { outline: none; border-color: #3b82f6; }
+
+        /* 扫雷棋盘与格子 */
+        .mine-board {
+            display: grid;
+            gap: 2px;
+            background-color: var(--border);
+            padding: 4px;
+            border-radius: 0.5rem;
+            user-select: none;
+        }
+        .mine-cell {
+            width: 2.1rem;
+            height: 2.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 0.25rem;
+            transition: background-color 0.1s;
+        }
+        .cell-closed {
+            background-color: var(--cell-closed);
+            box-shadow: inset 1px 1px 0px rgba(255,255,255,0.15), inset -1px -1px 0px rgba(0,0,0,0.2);
+        }
+        .cell-closed:hover { background-color: var(--cell-closed-hover); }
+        .cell-opened {
+            background-color: var(--cell-opened);
+            box-shadow: inset 1px 1px 2px rgba(0,0,0,0.3);
+            cursor: default;
+        }
+        .cell-exploded { background-color: #ef4444 !important; color: white; }
+
+        /* 经典数字颜色 */
+        .n1 { color: #3b82f6; } .n2 { color: #22c55e; }
+        .n3 { color: #ef4444; } .n4 { color: #a855f7; }
+        .n5 { color: #f59e0b; } .n6 { color: #14b8a6; }
+        .n7 { color: #ec4899; } .n8 { color: #64748b; }
     </style>
 </head>
 <body class="flex flex-col">
@@ -76,322 +118,587 @@
             <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
                 <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
             </a>
-            <h1 class="text-xl font-bold text-gradient">💣 扫雷小游戏</h1>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-land-mine-on mr-2"></i>扫雷大挑战</h1>
             <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
                 <i class="fa-solid fa-moon" id="themeIcon"></i>
             </button>
         </div>
     </header>
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <!--难度设置区域 -->
-            <div class="flex flex-wrap gap-3 mb-5 items-end">
-                <div class="flex flex-col gap-2">
-                    <label class="text-sub-color">预设难度</label>
-                    <!-- 修改下拉框宽度 -->
-                    <select id="levelSelect" class="w-48">
-                        <option value="easy">初级(9×9,10雷)</option>
-                        <option value="mid">中级(16×16,40雷)</option>
-                        <option value="hard">高级(16×30,99雷)</option>
-                        <option value="custom">自定义</option>
+
+    <main class="container mx-auto px-4 py-6 max-w-5xl flex-grow">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-5">
+            
+            <!-- 预设与快捷控制 -->
+            <div class="flex flex-wrap gap-3 items-center justify-between bg-[var(--card-sub)] p-3.5 rounded-xl">
+                <div class="flex flex-wrap items-center gap-3">
+                    <div>
+                        <select id="levelSelect" class="text-sm">
+                            <option value="easy">初级 (9×9, 10雷)</option>
+                            <option value="mid" selected>中级 (16×16, 40雷)</option>
+                            <option value="hard">高级 (16×30, 99雷)</option>
+                            <option value="custom">⚙️ 自定义参数...</option>
+                        </select>
+                    </div>
+
+                    <button id="btnStart" class="btn btn-primary text-sm"><i class="fa-solid fa-rotate-right mr-1"></i>重开</button>
+                    <button id="btnHint" class="btn btn-outline text-amber-400 border-amber-500/40 text-sm"><i class="fa-solid fa-lightbulb mr-1"></i>提示</button>
+                </div>
+
+                <!-- 移动端模式切换与皮肤选择 -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <select id="skinSelect" class="text-sm">
+                        <option value="classic">💣 经典探险</option>
+                        <option value="ocean">🦈 深海猎手</option>
+                        <option value="space">🛸 太空科幻</option>
+                        <option value="magic">🍄 魔法森林</option>
                     </select>
-                </div>
-                <div class="flex flex-col gap-2">
-                    <label class="text-sub-color">行数</label>
-                    <input id="rows" type="number" min="5" max="50" value="9" class="w-20">
-                </div>
-                <div class="flex flex-col gap-2">
-                    <label class="text-sub-color">列数</label>
-                    <input id="cols" type="number" min="5" max="50" value="9" class="w-20">
-                </div>
-                <div class="flex flex-col gap-2">
-                    <label class="text-sub-color">地雷数量</label>
-                    <input id="mineCount" type="number" min="1" value="10" class="w-20">
-                </div>
-                <div class="flex gap-2">
-                    <button class="btn btn-primary" id="btnStart"><i class="fa-solid fa-play"></i>开始游戏</button>
-                    <button class="btn btn-danger" id="btnReset"><i class="fa-solid fa-refresh"></i>重置</button>
+
+                    <div class="flex items-center gap-1 border border-[var(--border)] rounded-lg p-0.5">
+                        <button id="btnDigMode" class="btn btn-primary text-xs py-1 px-2.5"><i class="fa-solid fa-shovel mr-1"></i>挖掘</button>
+                        <button id="btnFlagMode" class="btn btn-outline border-none text-xs py-1 px-2.5"><i class="fa-solid fa-flag text-amber-500 mr-1"></i>插旗</button>
+                    </div>
                 </div>
             </div>
-            <!--状态栏：剩余雷数，计时器 -->
-            <div class="flex gap-6 mb-4 text-lg flex-wrap">
-                <div>剩余地雷：<span id="mineLeft" class="font-bold text-red-400">10</span></div>
-                <div>用时：<span id="timer" class="font-bold">0</span> s</div>
-                <div>状态：<span id="gameStatus" class="font-bold">等待开始</span></div>
+
+            <!-- 自定义参数配置展开面板 -->
+            <div id="customPanel" class="hidden bg-slate-900/60 p-4 rounded-xl border border-[var(--border)] space-y-3">
+                <div class="text-sm font-bold text-gradient flex items-center justify-between">
+                    <span><i class="fa-solid fa-sliders mr-2"></i>自定义棋盘参数</span>
+                    <span id="densityInfo" class="text-xs text-sub-color font-normal">地雷密度: 15.6%</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                    <div>
+                        <label class="block text-sub-color mb-1">行数 (5~30): <span id="valRows" class="font-bold text-main">16</span></label>
+                        <input id="inputRows" type="range" min="5" max="30" value="16" class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sub-color mb-1">列数 (5~40): <span id="valCols" class="font-bold text-main">16</span></label>
+                        <input id="inputCols" type="range" min="5" max="40" value="16" class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sub-color mb-1">地雷数: <span id="valMines" class="font-bold text-red-400">40</span></label>
+                        <input id="inputMines" type="range" min="1" max="247" value="40" class="w-full">
+                    </div>
+                </div>
+                <div class="flex items-center justify-between text-xs text-sub-color pt-1 border-t border-slate-800">
+                    <label class="flex items-center gap-1.5 cursor-pointer">
+                        <input id="chkQuestion" type="checkbox" checked/> 启用问号 (❓) 疑点标记
+                    </label>
+                    <label class="flex items-center gap-1.5 cursor-pointer">
+                        <input id="chkSound" type="checkbox" checked/> 开启音效反馈
+                    </label>
+                </div>
             </div>
-            <!--游戏棋盘容器 -->
-            <div id="boardWrap" class="overflow-auto max-w-full"></div>
-            <div class="mt-4 text-sub-color text-sm">提示：<b>左键翻开格子｜右键标记地雷旗帜</b></div>
+
+            <!-- 经典笑脸与状态仪表盘 -->
+            <div class="flex justify-between items-center px-4 py-2.5 bg-slate-950/40 rounded-xl border border-[var(--border)]">
+                <!-- 剩雷计数 -->
+                <div class="flex items-center gap-2 font-mono text-xl font-bold text-red-500">
+                    <span id="skinIconMine">💣</span>
+                    <span id="mineLeftTxt">040</span>
+                </div>
+
+                <!-- 经典笑脸状态 -->
+                <button id="btnSmile" class="text-3xl hover:scale-110 active:scale-95 transition-transform cursor-pointer" title="重置游戏">
+                    😊
+                </button>
+
+                <!-- 计时器 -->
+                <div class="flex items-center gap-2 font-mono text-xl font-bold text-cyan-400">
+                    <i class="fa-regular fa-clock"></i>
+                    <span id="timerTxt">000</span>
+                </div>
+            </div>
+
+            <!-- 棋盘容器 (自适应支持横向滚动) -->
+            <div class="flex justify-center overflow-auto p-2">
+                <div id="boardWrap"></div>
+            </div>
+
+            <div class="flex flex-wrap justify-between items-center text-xs text-sub-color border-t border-[var(--border)] pt-3">
+                <div>💡 鼠标<b>右键</b>支持在（插旗 🚩 ➔ 疑点 ❓ ➔ 清除）之间独立切换。</div>
+                <div>最高最佳纪录: <span id="bestRecordTxt" class="font-bold text-emerald-400">暂无</span></div>
+            </div>
         </div>
     </main>
+
+    <!-- 弹窗 -->
+    <div id="statusModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="tool-card p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div id="modalEmoji" class="text-5xl">🎉</div>
+            <h2 id="modalTitle" class="text-2xl font-bold text-gradient">游戏胜利！</h2>
+            <p id="modalBody" class="text-sub-color">用时 45 秒成功扫除了所有隐患！</p>
+            <button id="btnModalAgain" class="btn btn-primary w-full py-2.5 font-bold">再玩一局</button>
+        </div>
+    </div>
+
     <footer class="nav-bar-bg border-t py-6 mt-10">
         <div class="container mx-auto px-4 text-center text-sub-color text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 小游戏</p>
+            <p class="mt-1">© 2026 工具集 | 经典小游戏</p>
         </div>
     </footer>
-    <script>
-        function initTheme(){
-            const t=localStorage.getItem("toolTheme")||"dark";
-            document.documentElement.setAttribute("data-theme",t);
-            updateThemeIcon(t);
+
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
+
+// 各种皮肤图标配置
+const SKINS = {
+    classic: { mine: '💣', flag: '🚩' },
+    ocean: { mine: '🦈', flag: '⚓' },
+    space: { mine: '🛸', flag: '🛰️' },
+    magic: { mine: '🍄', flag: '🔮' }
+};
+
+const levelSelect = document.getElementById('levelSelect');
+const customPanel = document.getElementById('customPanel');
+const inputRows = document.getElementById('inputRows');
+const inputCols = document.getElementById('inputCols');
+const inputMines = document.getElementById('inputMines');
+const valRows = document.getElementById('valRows');
+const valCols = document.getElementById('valCols');
+const valMines = document.getElementById('valMines');
+const densityInfo = document.getElementById('densityInfo');
+const chkQuestion = document.getElementById('chkQuestion');
+const chkSound = document.getElementById('chkSound');
+
+const skinSelect = document.getElementById('skinSelect');
+const skinIconMine = document.getElementById('skinIconMine');
+const btnStart = document.getElementById('btnStart');
+const btnHint = document.getElementById('btnHint');
+const btnSmile = document.getElementById('btnSmile');
+const btnDigMode = document.getElementById('btnDigMode');
+const btnFlagMode = document.getElementById('btnFlagMode');
+const mineLeftTxt = document.getElementById('mineLeftTxt');
+const timerTxt = document.getElementById('timerTxt');
+const boardWrap = document.getElementById('boardWrap');
+const bestRecordTxt = document.getElementById('bestRecordTxt');
+
+const statusModal = document.getElementById('statusModal');
+const modalEmoji = document.getElementById('modalEmoji');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+const btnModalAgain = document.getElementById('btnModalAgain');
+
+let ROWS = 16, COLS = 16, MINES = 40;
+let board = [];
+let firstClick = true;
+let gameOver = false;
+let gameWin = false;
+let flagCount = 0;
+let seconds = 0;
+let timer = null;
+let currentMobileMode = 'dig';
+
+// Audio Context
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type){
+    if(!chkSound.checked) return;
+    try {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const now = audioCtx.currentTime;
+
+        if(type === 'click'){
+            osc.frequency.setValueAtTime(320, now);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.05);
+        } else if(type === 'flag'){
+            osc.frequency.setValueAtTime(580, now);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.08);
+        } else if(type === 'explode'){
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(120, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.35);
+        } else if(type === 'win'){
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523, now);
+            osc.frequency.setValueAtTime(659, now + 0.1);
+            osc.frequency.setValueAtTime(784, now + 0.2);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.45);
         }
-        function updateThemeIcon(t){
-            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+    } catch(e){}
+}
+
+// 选项与动态自定义参数监听
+levelSelect.onchange = () => {
+    if(levelSelect.value === 'custom'){
+        customPanel.classList.remove('hidden');
+    } else {
+        customPanel.classList.add('hidden');
+    }
+    initGame();
+};
+
+function updateCustomRanges(){
+    const r = Number(inputRows.value);
+    const c = Number(inputCols.value);
+    valRows.innerText = r;
+    valCols.innerText = c;
+    
+    const maxAllowedMines = r * c - 9;
+    inputMines.max = maxAllowedMines;
+    if(Number(inputMines.value) > maxAllowedMines){
+        inputMines.value = maxAllowedMines;
+    }
+    const m = Number(inputMines.value);
+    valMines.innerText = m;
+
+    const density = ((m / (r * c)) * 100).toFixed(1);
+    densityInfo.innerText = `地雷密度: ${density}% ${density > 25 ? '⚠️ 高难度' : ''}`;
+}
+
+inputRows.oninput = inputCols.oninput = inputMines.oninput = () => {
+    updateCustomRanges();
+    if(levelSelect.value === 'custom') initGame();
+};
+
+skinSelect.onchange = () => {
+    const s = SKINS[skinSelect.value] || SKINS.classic;
+    skinIconMine.innerText = s.mine;
+    renderBoard();
+};
+
+btnDigMode.onclick = () => {
+    currentMobileMode = 'dig';
+    btnDigMode.className = 'btn btn-primary text-xs py-1 px-2.5';
+    btnFlagMode.className = 'btn btn-outline border-none text-xs py-1 px-2.5';
+};
+btnFlagMode.onclick = () => {
+    currentMobileMode = 'flag';
+    btnFlagMode.className = 'btn btn-primary text-xs py-1 px-2.5';
+    btnDigMode.className = 'btn btn-outline border-none text-xs py-1 px-2.5';
+};
+
+function getGameConfig(){
+    const v = levelSelect.value;
+    if(v === 'easy'){ ROWS = 9; COLS = 9; MINES = 10; }
+    else if(v === 'mid'){ ROWS = 16; COLS = 16; MINES = 40; }
+    else if(v === 'hard'){ ROWS = 16; COLS = 30; MINES = 99; }
+    else {
+        ROWS = Number(inputRows.value);
+        COLS = Number(inputCols.value);
+        MINES = Number(inputMines.value);
+    }
+}
+
+function initGame(){
+    clearInterval(timer);
+    timer = null;
+    seconds = 0;
+    firstClick = true;
+    gameOver = false;
+    gameWin = false;
+    flagCount = 0;
+
+    btnSmile.innerText = '😊';
+    timerTxt.innerText = '000';
+    statusModal.classList.add('hidden');
+
+    getGameConfig();
+    updateCustomRanges();
+    
+    const currentSkin = SKINS[skinSelect.value] || SKINS.classic;
+    skinIconMine.innerText = currentSkin.mine;
+    mineLeftTxt.innerText = String(MINES).padStart(3, '0');
+    loadBestRecord();
+
+    board = Array(ROWS).fill().map(() => Array(COLS).fill().map(() => ({
+        isMine: false,
+        count: 0,
+        opened: false,
+        state: 0 // 0: 正常未开, 1: 插旗, 2: ❓疑点
+    })));
+
+    renderBoard();
+}
+
+function startTimer(){
+    if(timer) return;
+    timer = setInterval(() => {
+        seconds++;
+        timerTxt.innerText = String(Math.min(999, seconds)).padStart(3, '0');
+    }, 1000);
+}
+
+function placeMines(safeR, safeC){
+    let placed = 0;
+    while(placed < MINES){
+        const r = Math.floor(Math.random() * ROWS);
+        const c = Math.floor(Math.random() * COLS);
+        const isSafeZone = Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1;
+        if(!board[r][c].isMine && !isSafeZone){
+            board[r][c].isMine = true;
+            placed++;
         }
-        document.getElementById("themeToggle").onclick=()=>{
-            const c=document.documentElement.getAttribute("data-theme");
-            const n=c==="dark"?"light":"dark";
-            document.documentElement.setAttribute("data-theme",n);
-            localStorage.setItem("toolTheme",n);
-            updateThemeIcon(n);
-        }
-        const levelSelect = document.getElementById('levelSelect');
-        const rowsEl = document.getElementById('rows');
-        const colsEl = document.getElementById('cols');
-        const mineCountEl = document.getElementById('mineCount');
-        const btnStart = document.getElementById('btnStart');
-        const btnReset = document.getElementById('btnReset');
-        const mineLeftEl = document.getElementById('mineLeft');
-        const timerEl = document.getElementById('timer');
-        const gameStatusEl = document.getElementById('gameStatus');
-        const boardWrap = document.getElementById('boardWrap');
+    }
 
-        let ROWS = 9;
-        let COLS =9;
-        let MINE_NUM =10;
-        let board = []; //每个格子 {isMine,count,opened,flag}
-        let gameOver = false;
-        let gameWin = false;
-        let timerId = null;
-        let timeSecond =0;
-        let flagCount =0;
-        let firstClick = true; // 标记是否第一次点击，第一次点击后才生成地雷
-
-        //预设难度
-        levelSelect.onchange = ()=>{
-            const v = levelSelect.value;
-            switch(v){
-                case "easy":
-                    rowsEl.value=9; colsEl.value=9; mineCountEl.value=10; break;
-                case "mid":
-                    rowsEl.value=16; colsEl.value=16; mineCountEl.value=40; break;
-                case "hard":
-                    rowsEl.value=16; colsEl.value=30; mineCountEl.value=99; break;
-            }
-        }
-
-        //初始化空白棋盘，地雷延迟到第一次点击生成
-        function initBoard(){
-            ROWS = Number(rowsEl.value);
-            COLS = Number(colsEl.value);
-            MINE_NUM = Number(mineCountEl.value);
-            //边界校验
-            const maxMine = ROWS * COLS - 9; //至少保留9格安全区
-            if(MINE_NUM >= maxMine) MINE_NUM = maxMine;
-            mineCountEl.value = MINE_NUM;
-
-            gameOver = false;
-            gameWin = false;
-            firstClick = true;
-            flagCount =0;
-            timeSecond=0;
-            if(timerId) clearInterval(timerId);
-            timerEl.innerText = "0";
-            mineLeftEl.innerText = MINE_NUM - flagCount;
-            gameStatusEl.innerText = "等待第一次点击";
-
-            //初始化空白格子，不放置地雷
-            board = [];
-            for(let r=0;r<ROWS;r++){
-                board[r]=[];
-                for(let c=0;c<COLS;c++){
-                    board[r][c] = {isMine:false,count:0,opened:false,flag:false};
-                }
-            }
-            renderBoard();
-        }
-
-        // 第一次点击：避开点击位置及其8邻域，生成地雷
-        function placeMines(safeR, safeC){
-            let placed =0;
-            while(placed < MINE_NUM){
-                const r = Math.floor(Math.random()*ROWS);
-                const c = Math.floor(Math.random()*COLS);
-                // 不能是点击的格子以及周围一圈
-                const isSafeZone = Math.abs(r-safeR) <=1 && Math.abs(c-safeC) <=1;
-                if(!board[r][c].isMine && !isSafeZone){
-                    board[r][c].isMine = true;
-                    placed++;
-                }
-            }
-            //计算周围地雷数
-            for(let r=0;r<ROWS;r++){
-                for(let c=0;c<COLS;c++){
-                    if(board[r][c].isMine) continue;
-                    board[r][c].count = getAroundMine(r,c);
-                }
-            }
-        }
-
-        //获取8邻域地雷数量
-        function getAroundMine(r,c){
-            let cnt=0;
-            for(let dr=-1;dr<=1;dr++){
-                for(let dc=-1;dc<=1;dc++){
-                    if(dr===0 && dc===0) continue;
-                    const nr = r+dr; const nc = c+dc;
-                    if(nr>=0 && nr<ROWS && nc>=0 && nc<COLS){
+    for(let r = 0; r < ROWS; r++){
+        for(let c = 0; c < COLS; c++){
+            if(board[r][c].isMine) continue;
+            let cnt = 0;
+            for(let dr = -1; dr <= 1; dr++){
+                for(let dc = -1; dc <= 1; dc++){
+                    if(dr === 0 && dc === 0) continue;
+                    const nr = r + dr, nc = c + dc;
+                    if(nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS){
                         if(board[nr][nc].isMine) cnt++;
                     }
                 }
             }
-            return cnt;
+            board[r][c].count = cnt;
         }
+    }
+}
 
-        //渲染棋盘
-        function renderBoard(){
-            let html = `<div class="inline-grid" style="grid-template-columns:repeat(${COLS},1.75rem);">`;
-            for(let r=0;r<ROWS;r++){
-                for(let c=0;c<COLS;c++){
-                    const cell = board[r][c];
-                    let cls = "cell cell-closed";
-                    let content = "";
-                    if(cell.opened){
-                        cls = "cell cell-opened";
-                        if(cell.isMine){
-                            content = '<i class="fa-solid fa-bomb text-red-500"></i>';
-                        }else if(cell.count>0){
-                            content = `<span class="n${cell.count}">${cell.count}</span>`;
-                        }
-                    }else if(cell.flag){
-                        content = '<i class="fa-solid fa-flag text-orange-500"></i>';
-                    }
-                    html += `<div class="${cls}" data-r="${r}" data-c="${c}">${content}</div>`;
-                }
-            }
-            html += "</div>";
-            boardWrap.innerHTML = html;
-            //绑定鼠标事件
-            document.querySelectorAll(".cell").forEach(el=>{
-                el.addEventListener("click",(e)=>{
-                    const r = Number(el.dataset.r);
-                    const c = Number(el.dataset.c);
-                    handleLeftClick(r,c);
-                })
-                el.addEventListener("contextmenu",(e)=>{
-                    e.preventDefault();
-                    const r = Number(el.dataset.r);
-                    const c = Number(el.dataset.c);
-                    handleRightClick(r,c);
-                })
-            })
-        }
-
-        //左键点开
-        function handleLeftClick(r,c){
-            if(gameOver || gameWin) return;
+function renderBoard(){
+    const skin = SKINS[skinSelect.value] || SKINS.classic;
+    let html = `<div class="mine-board" style="grid-template-columns: repeat(${COLS}, minmax(0, 1fr));">`;
+    
+    for(let r = 0; r < ROWS; r++){
+        for(let c = 0; c < COLS; c++){
             const cell = board[r][c];
-            if(cell.opened || cell.flag) return;
+            let cls = ['mine-cell'];
+            let content = '';
 
-            // 首次点击：生成地雷，启动计时器
-            if(firstClick){
-                placeMines(r,c);
-                firstClick = false;
-                startTimer();
-                gameStatusEl.innerText = "游戏进行中";
+            if(cell.opened){
+                cls.push('cell-opened');
+                if(cell.isMine){
+                    cls.push('cell-exploded');
+                    content = skin.mine;
+                } else if(cell.count > 0){
+                    content = `<span class="n${cell.count}">${cell.count}</span>`;
+                }
+            } else {
+                cls.push('cell-closed');
+                if(cell.state === 1){
+                    content = `<span class="text-amber-500">${skin.flag}</span>`;
+                } else if(cell.state === 2){
+                    content = `<span class="text-cyan-400 font-bold">❓</span>`;
+                }
             }
 
-            if(cell.isMine){
-                //踩雷游戏结束
-                gameOver = true;
-                clearInterval(timerId);
-                gameStatusEl.innerText = "💥游戏失败！踩到地雷";
-                //翻开全部地雷
-                for(let i=0;i<ROWS;i++){
-                    for(let j=0;j<COLS;j++){
-                        if(board[i][j].isMine) board[i][j].opened = true;
+            html += `<div class="${cls.join(' ')}" data-r="${r}" data-c="${c}">${content}</div>`;
+        }
+    }
+    html += '</div>';
+    boardWrap.innerHTML = html;
+
+    document.querySelectorAll('.mine-cell').forEach(cellEl => {
+        const r = Number(cellEl.dataset.r);
+        const c = Number(cellEl.dataset.c);
+
+        cellEl.onclick = () => {
+            if(currentMobileMode === 'dig') handleLeftClick(r, c);
+            else handleRightClick(r, c);
+        };
+
+        cellEl.oncontextmenu = (e) => {
+            e.preventDefault();
+            handleRightClick(r, c);
+        };
+
+        cellEl.ondblclick = () => handleChordClick(r, c);
+    });
+}
+
+function handleLeftClick(r, c){
+    if(gameOver || gameWin) return;
+    const cell = board[r][c];
+    if(cell.opened || cell.state === 1) return;
+
+    if(firstClick){
+        firstClick = false;
+        placeMines(r, c);
+        startTimer();
+    }
+
+    if(cell.isMine){
+        cell.opened = true;
+        gameOver = true;
+        clearInterval(timer);
+        playSound('explode');
+        btnSmile.innerText = '😵';
+
+        for(let i = 0; i < ROWS; i++){
+            for(let j = 0; j < COLS; j++){
+                if(board[i][j].isMine) board[i][j].opened = true;
+            }
+        }
+        renderBoard();
+        return;
+    }
+
+    playSound('click');
+    openCell(r, c);
+    checkWin();
+    renderBoard();
+}
+
+function openCell(r, c){
+    if(r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+    const cell = board[r][c];
+    if(cell.opened || cell.state === 1) return;
+
+    cell.opened = true;
+    cell.state = 0;
+    if(cell.count === 0 && !cell.isMine){
+        for(let dr = -1; dr <= 1; dr++){
+            for(let dc = -1; dc <= 1; dc++){
+                if(dr === 0 && dc === 0) continue;
+                openCell(r + dr, c + dc);
+            }
+        }
+    }
+}
+
+function handleRightClick(r, c){
+    if(gameOver || gameWin) return;
+    const cell = board[r][c];
+    if(cell.opened) return;
+
+    const enableQuestion = chkQuestion.checked;
+
+    // 状态轮转逻辑：0 -> 1(旗) -> 2(问号) -> 0
+    if(cell.state === 0){
+        cell.state = 1;
+        flagCount++;
+    } else if(cell.state === 1){
+        flagCount--;
+        cell.state = enableQuestion ? 2 : 0;
+    } else {
+        cell.state = 0;
+    }
+
+    mineLeftTxt.innerText = String(Math.max(0, MINES - flagCount)).padStart(3, '0');
+    playSound('flag');
+    renderBoard();
+}
+
+function handleChordClick(r, c){
+    if(gameOver || gameWin) return;
+    const cell = board[r][c];
+    if(!cell.opened || cell.count === 0) return;
+
+    let flagsAround = 0;
+    for(let dr = -1; dr <= 1; dr++){
+        for(let dc = -1; dc <= 1; dc++){
+            const nr = r + dr, nc = c + dc;
+            if(nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS){
+                if(board[nr][nc].state === 1) flagsAround++;
+            }
+        }
+    }
+
+    if(flagsAround === cell.count){
+        for(let dr = -1; dr <= 1; dr++){
+            for(let dc = -1; dc <= 1; dc++){
+                const nr = r + dr, nc = c + dc;
+                if(nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS){
+                    if(!board[nr][nc].opened && board[nr][nc].state !== 1){
+                        handleLeftClick(nr, nc);
                     }
                 }
-                renderBoard();
+            }
+        }
+    }
+}
+
+// 智能提示 (找到任意未开的 safe 格子)
+btnHint.onclick = () => {
+    if(gameOver || gameWin || firstClick) return alert("先点击盘面开启游戏吧！");
+    for(let r = 0; r < ROWS; r++){
+        for(let c = 0; c < COLS; c++){
+            if(!board[r][c].isMine && !board[r][c].opened){
+                handleLeftClick(r, c);
                 return;
             }
-            openCell(r,c);
-            checkWin();
-            renderBoard();
         }
+    }
+};
 
-        //递归翻开空白格子，0的区域自动扩散一大片
-        function openCell(r,c){
-            if(r<0||r>=ROWS||c<0||c>=COLS) return;
-            const cell = board[r][c];
-            if(cell.opened || cell.flag) return;
-            cell.opened = true;
-            if(cell.count ===0){
-                for(let dr=-1;dr<=1;dr++){
-                    for(let dc=-1;dc<=1;dc++){
-                        if(dr===0&&dc===0) continue;
-                        openCell(r+dr,c+dc);
-                    }
-                }
-            }
-        }
+function checkWin(){
+    let openedNonMines = 0;
+    const totalNonMines = ROWS * COLS - MINES;
 
-        //右键插旗
-        function handleRightClick(r,c){
-            if(gameOver || gameWin) return;
-            // 还没第一次左键点击，不允许插旗子
-            if(firstClick) return;
-            const cell = board[r][c];
-            if(cell.opened) return;
-            cell.flag = !cell.flag;
-            if(cell.flag){
-                flagCount++;
-            }else{
-                flagCount--;
-            }
-            mineLeftEl.innerText = MINE_NUM - flagCount;
-            checkWin();
-            renderBoard();
+    for(let r = 0; r < ROWS; r++){
+        for(let c = 0; c < COLS; c++){
+            if(!board[r][c].isMine && board[r][c].opened) openedNonMines++;
         }
+    }
 
-        //检查胜利：所有非雷格子全部翻开
-        function checkWin(){
-            let noMineOpened =0;
-            let totalNoMine = ROWS*COLS - MINE_NUM;
-            for(let r=0;r<ROWS;r++){
-                for(let c=0;c<COLS;c++){
-                    const cell = board[r][c];
-                    if(!cell.isMine && cell.opened) noMineOpened++;
-                }
-            }
-            if(noMineOpened >= totalNoMine){
-                gameWin = true;
-                clearInterval(timerId);
-                gameStatusEl.innerText = "🎉恭喜，游戏胜利！";
-            }
-        }
+    if(openedNonMines === totalNonMines){
+        gameWin = true;
+        clearInterval(timer);
+        playSound('win');
+        btnSmile.innerText = '😎';
 
-        function startTimer(){
-            if(timerId) clearInterval(timerId);
-            timerId = setInterval(()=>{
-                timeSecond++;
-                timerEl.innerText = String(timeSecond);
-            },1000)
-        }
+        saveBestRecord();
 
-        btnStart.onclick = initBoard;
-        btnReset.onclick = ()=>{
-            if(timerId) clearInterval(timerId);
-            boardWrap.innerHTML = "";
-            timerEl.innerText="0";
-            mineLeftEl.innerText="0";
-            gameStatusEl.innerText="等待开始";
-            gameOver=false;
-            gameWin=false;
-            firstClick = true;
-        }
-        initTheme();
-    </script>
+        modalEmoji.innerText = '🏆';
+        modalTitle.innerText = '挑战成功！';
+        modalBody.innerText = `太厉害了！用时 ${seconds} 秒排除了所有威胁！`;
+        statusModal.classList.remove('hidden');
+        statusModal.classList.add('flex');
+    }
+}
+
+function getRecordKey(){
+    return `mine_best_${levelSelect.value}_${ROWS}x${COLS}_${MINES}`;
+}
+
+function loadBestRecord(){
+    const key = getRecordKey();
+    const best = localStorage.getItem(key);
+    if(best){
+        bestRecordTxt.innerText = `${best} 秒`;
+    } else {
+        bestRecordTxt.innerText = '暂无';
+    }
+}
+
+function saveBestRecord(){
+    const key = getRecordKey();
+    const best = localStorage.getItem(key);
+    if(!best || seconds < Number(best)){
+        localStorage.setItem(key, seconds);
+        loadBestRecord();
+    }
+}
+
+btnStart.onclick = initGame;
+btnSmile.onclick = initGame;
+btnModalAgain.onclick = initGame;
+
+initTheme();
+initGame();
+</script>
 </body>
 </html>

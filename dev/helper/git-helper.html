@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git 命令交互式速查手册 - 分类优化版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
+        }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+            --code-bg: #020617;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+            --code-bg: #f1f5f9;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+
+        input {
+            background-color: var(--card); border: 1px solid var(--border); color: var(--text-main);
+            padding: 0.4rem 0.6rem; border-radius: 0.375rem;
+        }
+        input:focus { outline: none; border-color: #3b82f6; }
+
+        .cate-tab {
+            padding: 0.35rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+            background-color: var(--card);
+            color: var(--text-sub);
+            white-space: nowrap;
+        }
+        .cate-tab.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+        .cmd-card {
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .cmd-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-code-branch mr-2"></i>Git 命令速查助手</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-5xl flex-grow">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-5">
+            
+            <!-- 搜索框与信息统计 -->
+            <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[var(--card-sub)] p-3.5 rounded-xl">
+                <div class="flex items-center gap-3 flex-grow">
+                    <i class="fa-solid fa-magnifying-glass text-sub-color"></i>
+                    <input id="searchInput" type="text" placeholder="搜索 Git 命令、说明或场景 (如: config, gitee, 回滚, push, stash...)" class="w-full text-sm py-1.5">
+                </div>
+                <div class="text-xs text-sub-color text-right shrink-0">
+                    找到 <span id="countTxt" class="text-primary font-bold">0</span> 条命令
+                </div>
+            </div>
+
+            <!-- 快捷分类筛选 Tab 栏 -->
+            <div id="cateTabContainer" class="flex items-center gap-2 overflow-x-auto pb-1 border-b border-[var(--border)]">
+                <!-- 动态生成 Tab 标签 -->
+            </div>
+
+            <!-- 分组命令卡片容器 -->
+            <div id="cmdContainer" class="space-y-6"></div>
+        </div>
+    </main>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 开发运维 CheatSheet</p>
+        </div>
+    </footer>
+
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
+
+// 带分类标识的 Git 命令字典
+const CATEGORIES = [
+    { id: 'all', name: '全部分类', icon: 'fa-list' },
+    { id: 'config', name: '配置与全局', icon: 'fa-gear' },
+    { id: 'remote', name: '多仓库与远程', icon: 'fa-globe' },
+    { id: 'commit', name: '提交与撤销', icon: 'fa-clock-rotate-left' },
+    { id: 'branch', name: '分支与合并', icon: 'fa-code-branch' },
+    { id: 'stash', name: 'Stash 暂存区', icon: 'fa-box-archive' },
+    { id: 'file', name: '文件与状态', icon: 'fa-file-lines' },
+    { id: 'advance', name: '高级操作', icon: 'fa-wand-magic-sparkles' }
+];
+
+const gitCmds = [
+    // 1. 配置与全局
+    { cate: 'config', cateName: '⚙️ 配置与全局环境', title: '设置全局用户名', cmd: 'git config --global user.name "你的名字"', desc: '配置全局提交代码时显示的用户名' },
+    { cate: 'config', cateName: '⚙️ 配置与全局环境', title: '设置全局邮箱', cmd: 'git config --global user.email "你的邮箱@example.com"', desc: '配置全局提交代码时关联的邮箱' },
+    { cate: 'config', cateName: '⚙️ 配置与全局环境', title: '查看所有 Git 配置', cmd: 'git config --list', desc: '检查当前仓库或全局生效的所有配置项' },
+
+    // 2. 多仓库与远程
+    { cate: 'remote', cateName: '🌐 多仓库绑定与远程通信', title: '查看远程仓库地址 (详细)', cmd: 'git remote -v', desc: '查看当前仓库绑定的所有远程仓库名称及 URL' },
+    { cate: 'remote', cateName: '🌐 多仓库绑定与远程通信', title: '添加 GitHub 远程仓库', cmd: 'git remote add origin https://github.com/用户名/仓库名.git', desc: '将本地仓库关联到 GitHub 远端' },
+    { cate: 'remote', cateName: '🌐 多仓库绑定与远程通信', title: '添加 Gitee 镜像仓库', cmd: 'git remote add gitee https://gitee.com/用户名/仓库名.git', desc: '多仓库支持：为本地仓库额外绑定 Gitee 远端' },
+    { cate: 'remote', cateName: '🌐 多仓库绑定与远程通信', title: '修改已有的远程仓库地址', cmd: 'git remote set-url origin <New-URL>', desc: '当仓库迁移或更改链接时更新 origin 地址' },
+    { cate: 'remote', cateName: '🌐 多仓库绑定与远程通信', title: '解绑某个远程仓库', cmd: 'git remote remove gitee', desc: '移除一个已经绑定的远程仓库' },
+    { cate: 'remote', cateName: '🌐 多仓库绑定与远程通信', title: '推送到 GitHub 主仓库', cmd: 'git push -u origin main', desc: '首次推送或常规推送到 GitHub (origin)' },
+    { cate: 'remote', cateName: '🌐 多仓库绑定与远程通信', title: '推送到 Gitee 镜像仓库', cmd: 'git push -u gitee main', desc: '将代码同步推送到 Gitee 仓库' },
+    { cate: 'remote', cateName: '🌐 多仓库绑定与远程通信', title: '同时推送到多个仓库 (进阶技巧)', cmd: 'git remote set-url --add origin <Gitee-URL>', desc: '让 origin 拥有多个 URL，执行一次 git push 即可同时推送到 GitHub 和 Gitee' },
+    { cate: 'remote', cateName: '🌐 多仓库绑定与远程通信', title: '拉取远端代码更新', cmd: 'git pull origin main', desc: '把远端最新代码同步合并到本地' },
+    { cate: 'remote', cateName: '🌐 多仓库绑定与远程通信', title: '安全拉取不自动合并', cmd: 'git fetch origin', desc: '拉取远端更新记录，不自动合并，适合先对比代码' },
+
+    // 3. 提交与撤销
+    { cate: 'commit', cateName: '⏪ 提交、撤销与回滚', title: '撤销未提交的本地修改', cmd: 'git checkout .', desc: '放弃工作区所有未暂存的修改' },
+    { cate: 'commit', cateName: '⏪ 提交、撤销与回滚', title: '修改上一次 Commit 信息', cmd: 'git commit --amend -m "新的提交信息"', desc: '合并修改并更新上一次的 Commit' },
+    { cate: 'commit', cateName: '⏪ 提交、撤销与回滚', title: '回滚指定 Commit (保留代码)', cmd: 'git reset --soft HEAD~1', desc: '撤销提交，保留本地修改至暂存区' },
+    { cate: 'commit', cateName: '⏪ 提交、撤销与回滚', title: '强行重置为远端最新代码', cmd: 'git fetch origin && git reset --hard origin/main', desc: '用远端代码强行覆盖本地未提交的内容' },
+    { cate: 'commit', cateName: '⏪ 提交、撤销与回滚', title: '取消 git add 暂存', cmd: 'git reset HEAD <文件名>', desc: '把已经 add 的文件移出暂存区，文件内容不变' },
+
+    // 4. 分支与合并
+    { cate: 'branch', cateName: '🌿 分支管理与代码合并', title: '查看本地所有分支', cmd: 'git branch', desc: '列出本地分支，* 代表当前所在分支' },
+    { cate: 'branch', cateName: '🌿 分支管理与代码合并', title: '查看本地+远端全部分支', cmd: 'git branch -a', desc: '同时看到本地分支和远程所有分支' },
+    { cate: 'branch', cateName: '🌿 分支管理与代码合并', title: '切换到已有分支 (经典)', cmd: 'git checkout dev', desc: '切换到指定分支 dev（传统写法）' },
+    { cate: 'branch', cateName: '🌿 分支管理与代码合并', title: '切换分支 (新版推荐)', cmd: 'git switch dev', desc: '新版 Git 推荐，语义更清晰' },
+    { cate: 'branch', cateName: '🌿 分支管理与代码合并', title: '创建并切换到新分支', cmd: 'git checkout -b feature/new-branch', desc: '新建分支并立即切换进入' },
+    { cate: 'branch', cateName: '🌿 分支管理与代码合并', title: '新建分支 (新版推荐)', cmd: 'git switch -c feature/new-branch', desc: '新版 Git：创建+切换新分支' },
+    { cate: 'branch', cateName: '🌿 分支管理与代码合并', title: '安全删除本地分支', cmd: 'git branch -d feature/old', desc: '删除已经合并完的本地分支' },
+    { cate: 'branch', cateName: '🌿 分支管理与代码合并', title: '强制删除未合并分支', cmd: 'git branch -D feature/abandon', desc: '强制删除还没合并的废弃分支' },
+    { cate: 'branch', cateName: '🌿 分支管理与代码合并', title: '合并分支到当前分支', cmd: 'git merge dev', desc: '把 dev 分支代码合并进当前所在分支' },
+    { cate: 'branch', cateName: '🌿 分支管理与代码合并', title: '推送新建分支到远端', cmd: 'git push -u origin feature/new-branch', desc: '首次推送新建分支，建立跟踪关系' },
+
+    // 5. Stash 暂存区
+    { cate: 'stash', cateName: '📦 Stash 临时工作区堆栈', title: '暂存当前修改以便切分支', cmd: 'git stash save "temp work"', desc: '把未完成的代码临时保存到堆栈' },
+    { cate: 'stash', cateName: '📦 Stash 临时工作区堆栈', title: '查看所有 Stash 列表', cmd: 'git stash list', desc: '查看所有保存的临时工作快照' },
+    { cate: 'stash', cateName: '📦 Stash 临时工作区堆栈', title: '恢复最近 stash (保留记录)', cmd: 'git stash apply', desc: '取出暂存代码，stash 记录不删除' },
+    { cate: 'stash', cateName: '📦 Stash 临时工作区堆栈', title: '恢复并弹出最近 stash', cmd: 'git stash pop', desc: '恢复暂存代码，同时移除该条 stash 记录' },
+    { cate: 'stash', cateName: '📦 Stash 临时工作区堆栈', title: '清空全部 Stash', cmd: 'git stash clear', desc: '清空所有临时暂存快照' },
+
+    // 6. 文件与状态
+    { cate: 'file', cateName: '📄 工作区状态与提交日志', title: '查看当前仓库状态', cmd: 'git status', desc: '查看哪些文件修改、新增、删除、待提交' },
+    { cate: 'file', cateName: '📄 工作区状态与提交日志', title: '查看未 add 的代码差异', cmd: 'git diff', desc: '查看工作区还没 add 的具体代码修改' },
+    { cate: 'file', cateName: '📄 工作区状态与提交日志', title: '查看已 add 暂存的改动', cmd: 'git diff --cached', desc: '查看已经 git add 之后的代码变更' },
+    { cate: 'file', cateName: '📄 工作区状态与提交日志', title: '精简展示提交历史', cmd: 'git log --oneline', desc: '简短展示所有提交记录与 commit id' },
+    { cate: 'file', cateName: '📄 工作区状态与提交日志', title: '图形化查看分支合并图', cmd: 'git log --oneline --graph --all', desc: '精简展示所有分支的提交与合并图表' },
+    { cate: 'file', cateName: '📄 工作区状态与提交日志', title: '添加所有修改到暂存区', cmd: 'git add .', desc: '把当前目录所有改动加入暂存' },
+    { cate: 'file', cateName: '📄 工作区状态与提交日志', title: '提交暂存区代码', cmd: 'git commit -m "feat: 新增xx功能"', desc: '提交暂存改动并填写 Commit 备注' },
+
+    // 7. 高级操作：tag / cherry-pick / rebase / clean（新增分组）
+    { cate: 'advance', cateName: '✨ 高级操作：Tag、Rebase、拣选、清理', title: '创建版本Tag（轻量标签）', cmd: 'git tag v1.0.0', desc: '给当前commit打上版本标签，用于发布版本' },
+    { cate: 'advance', cateName: '✨ 高级操作：Tag、Rebase、拣选、清理', title: '创建带备注的Annotated标签', cmd: 'git tag -a v1.0.0 -m "正式版本v1.0.0"', desc: '带说明的正式版本标签，推荐生产发版使用' },
+    { cate: 'advance', cateName: '✨ 高级操作：Tag、Rebase、拣选、清理', title: '查看所有Tag版本', cmd: 'git tag', desc: '列出仓库全部版本标签' },
+    { cate: 'advance', cateName: '✨ 高级操作：Tag、Rebase、拣选、清理', title: '推送Tag到远程仓库', cmd: 'git push origin v1.0.0', desc: '把本地版本标签推送到GitHub/Gitee远端' },
+    { cate: 'advance', cateName: '✨ 高级操作：Tag、Rebase、拣选、清理', title: '删除本地Tag', cmd: 'git tag -d v1.0.0', desc: '删除本地的版本标签' },
+    { cate: 'advance', cateName: '✨ 高级操作：Tag、Rebase、拣选、清理', title: '拣选指定提交到当前分支(cherry-pick)', cmd: 'git cherry-pick <commit-id>', desc: '把某一条单独commit复制到当前分支，跨分支拿功能' },
+    { cate: 'advance', cateName: '✨ 高级操作：Tag、Rebase、拣选、清理', title: '变基：将当前分支rebase到目标分支', cmd: 'git rebase main', desc: '把当前分支起点移动到main最新提交，提交记录线性整洁（慎用）' },
+    { cate: 'advance', cateName: '✨ 高级操作：Tag、Rebase、拣选、清理', title: '中断/退出rebase（冲突放弃）', cmd: 'git rebase --abort', desc: 'rebase遇到冲突不想继续，直接恢复到rebase之前状态' },
+    { cate: 'advance', cateName: '✨ 高级操作：Tag、Rebase、拣选、清理', title: '继续rebase（解决冲突后）', cmd: 'git rebase --continue', desc: '冲突修改完成add之后，继续执行变基流程' },
+    { cate: 'advance', cateName: '✨ 高级操作：Tag、Rebase、拣选、清理', title: '预览待删除的未跟踪文件', cmd: 'git clean -nfd', desc: '模拟清理，只展示会删掉哪些文件，不会真删（安全预览）' },
+    { cate: 'advance', cateName: '✨ 高级操作：Tag、Rebase、拣选、清理', title: '强制清理未跟踪文件与目录', cmd: 'git clean -fd', desc: '删除所有没被git跟踪的文件和文件夹，⚠️不可恢复' }
+];
+
+
+let activeCate = 'all';
+
+const cateTabContainer = document.getElementById('cateTabContainer');
+const cmdContainer = document.getElementById('cmdContainer');
+const searchInput = document.getElementById('searchInput');
+const countTxt = document.getElementById('countTxt');
+
+// 渲染分类 Tab 按钮
+function renderCateTabs(){
+    cateTabContainer.innerHTML = '';
+    CATEGORIES.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = `cate-tab ${activeCate === c.id ? 'active' : ''}`;
+        btn.innerHTML = `<i class="fa-solid ${c.icon} mr-1.5"></i>${c.name}`;
+        btn.onclick = () => {
+            activeCate = c.id;
+            renderCateTabs();
+            renderCmds(searchInput.value.trim());
+        };
+        cateTabContainer.appendChild(btn);
+    });
+}
+
+// 渲染命令列表（按分类分组呈现）
+function renderCmds(filter = ''){
+    cmdContainer.innerHTML = '';
+
+    // 过滤数据
+    const filtered = gitCmds.filter(item => {
+        const matchesCate = activeCate === 'all' || item.cate === activeCate;
+        const matchesSearch = !filter || 
+            item.title.toLowerCase().includes(filter.toLowerCase()) || 
+            item.cmd.toLowerCase().includes(filter.toLowerCase()) ||
+            item.desc.toLowerCase().includes(filter.toLowerCase());
+        return matchesCate && matchesSearch;
+    });
+
+    countTxt.innerText = filtered.length;
+
+    if(filtered.length === 0){
+        cmdContainer.innerHTML = `
+            <div class="text-center py-12 text-sub-color text-sm">
+                <i class="fa-solid fa-ghost text-4xl mb-3 opacity-40"></i>
+                <p>未找到与 "${filter}" 相关的 Git 命令</p>
+            </div>
+        `;
+        return;
+    }
+
+    // 按 cateName 分组
+    const groups = {};
+    filtered.forEach(item => {
+        if(!groups[item.cateName]) groups[item.cateName] = [];
+        groups[item.cateName].push(item);
+    });
+
+    // 循环分组渲染
+    Object.keys(groups).forEach(cateTitle => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'space-y-3';
+
+        // 分组标题栏
+        groupEl.innerHTML = `
+            <div class="flex items-center gap-2 text-sm font-bold text-gradient pb-1 border-b border-[var(--border)]">
+                <span>${cateTitle}</span>
+                <span class="text-xs text-sub-color font-normal">(${groups[cateTitle].length})</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                ${groups[cateTitle].map(item => `
+                    <div class="cmd-card p-3.5 rounded-xl border border-[var(--border)] bg-[var(--card-sub)] space-y-2">
+                        <div class="text-xs font-bold text-main flex justify-between items-center">
+                            <span>${item.title}</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-[var(--code-bg)] p-2 rounded-lg text-xs font-mono text-cyan-400 border border-[var(--border)] overflow-x-auto">
+                            <code class="whitespace-nowrap">${escapeHtml(item.cmd)}</code>
+                            <button class="btn btn-outline text-xs p-1 px-2.5 ml-2 shrink-0 hover:bg-blue-500 hover:text-white transition-colors" onclick="copyText('${escapeJsString(item.cmd)}')">
+                                <i class="fa-solid fa-copy mr-1"></i>复制
+                            </button>
+                        </div>
+                        <div class="text-xs text-sub-color">${item.desc}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        cmdContainer.appendChild(groupEl);
+    });
+}
+
+function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function escapeJsString(str) {
+    return str.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+function copyText(txt){
+    navigator.clipboard.writeText(txt);
+    // 简易 toast 提示
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-6 right-6 bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-xl z-50 transition-all';
+    toast.innerHTML = `<i class="fa-solid fa-check mr-1.5"></i>命令已复制到剪贴板！`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 1800);
+}
+
+searchInput.oninput = () => renderCmds(searchInput.value.trim());
+
+initTheme();
+renderCateTabs();
+renderCmds();
+</script>
+</body>
+</html>

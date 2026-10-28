@@ -3,228 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>随机密码生成</title>
+    <title>高强度随机密码生成器</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
             darkMode: ['class', '[data-theme="dark"]'],
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#3b82f6',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                }
-            }
+            theme: { extend: { colors: { primary: '#3b82f6' } } }
         }
     </script>
     <style type="text/tailwindcss">
         @layer utilities {
-            .card-hover {
-                @apply transition-all duration-300 hover:shadow-xl;
-            }
-            .text-gradient {
-                @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400;
-            }
-            .btn {
-                @apply px-4 py-2 rounded-lg transition-all duration-200;
-            }
-            .btn-primary {
-                @apply bg-primary text-white hover:bg-primary/80;
-            }
-            .btn-danger {
-                @apply bg-red-500 text-white hover:bg-red-500/80;
-            }
-            .btn-success {
-                @apply bg-emerald-500 text-white hover:bg-emerald-500/80;
-            }
-            .btn-purple {
-                @apply bg-purple-500 text-white hover:bg-purple-500/80;
-            }
-            .btn-gray {
-                @apply bg-gray-600 text-white hover:bg-gray-600/80;
-            }
-            .btn-outline {
-                @apply border border-[var(--border)] hover:bg-[var(--card-sub)];
-            }
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-3.5 py-2 rounded-lg transition-all duration-200 text-xs flex items-center justify-center gap-1.5 cursor-pointer font-medium; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-danger { @apply bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
         }
-
-        html[data-theme="dark"] {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --card-sub: #334155;
-            --border: #475569;
-            --text-main: #e2e8f0;
-            --text-sub: #94a3b8;
-            --card-glow: rgba(59,130,246,0.08);
-        }
-        html[data-theme="light"] {
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --card-sub: #e2e8f0;
-            --border: #cbd5e1;
-            --text-main: #111827;
-            --text-sub: #64748b;
-            --card-glow: rgba(59,130,246,0.06);
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease;
-            min-height: 100vh;
-        }
-        body::before{
-            content:"";
-            position:fixed;
-            inset:0;
-            z-index:-1;
-            opacity:0.45;
-            pointer-events:none;
-            transition:background-image 0.35s ease;
-        }
-        html[data-theme="dark"] body::before{
-            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
-        }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
-        }
-
-        .nav-bar-bg {
-            background-color: var(--card);
-            border-color: var(--border);
-            transition: background-color 0.35s ease, border-color 0.35s ease;
-        }
-        .tool-card{
-            background-color: var(--card);
-            border:1px solid var(--border);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
-        }
-        .tool-card:hover{
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 0 14px var(--card-glow);
-        }
-        .sub-panel-bg {
-            background-color: var(--card-sub);
-        }
-        .text-sub-color {
-            color: var(--text-sub);
-        }
-        textarea,input,select{
-            background-color: var(--card);
-            border:1px solid var(--border);
-            color:var(--text-main);
-            font-family: Consolas,Menlo,monospace;
-        }
-        textarea:focus,input:focus,select:focus{
-            outline:none;
-            border-color:#3b82f6;
-        }
-        .copy-btn-inline{
-            cursor:pointer;
-            opacity:0.65;
-            margin-left:8px;
-        }
-        .copy-btn-inline:hover{
-            opacity:1;
-        }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; --input-bg: #020617; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; --input-bg: #f1f5f9; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; }
+        body::before { content:""; position:fixed; inset:0; z-index:-1; opacity:0.45; pointer-events:none; background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size:24px 24px; }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        input[type="number"], input[type="range"] { background-color: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); }
+        input:focus { outline: none; border-color: #3b82f6; }
     </style>
 </head>
 <body class="flex flex-col">
     <header class="nav-bar-bg sticky top-0 z-10 border-b">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
-                <i class="fa-solid fa-arrow-left"></i>
-                <span>返回首页</span>
-            </a>
-            <h1 class="text-xl font-bold text-gradient">随机密码生成</h1>
-            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
-                <i class="fa-solid fa-moon" id="themeIcon"></i>
-            </button>
+            <a href="index.html" class="btn btn-outline flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i><span>返回首页</span></a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-key mr-2"></i>高强度随机密码生成器</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <div class="flex flex-wrap gap-2 mb-5">
-                <button class="btn btn-primary" id="btnGen"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>生成密码</button>
-                <button class="btn btn-danger" id="btnClear"><i class="fa-solid fa-eraser mr-1"></i>清空</button>
+    <main class="container mx-auto px-4 py-8 max-w-4xl flex-grow space-y-5">
+        <div class="tool-card p-6 rounded-2xl space-y-6">
+            
+            <!-- 生成控制面板 -->
+            <div class="space-y-4 bg-[var(--card-sub)] p-4 rounded-xl border border-[var(--border)] text-xs">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <span class="font-bold text-[var(--text-sub)]">密码长度 (4 - 64 字符):</span>
+                    <div class="flex items-center gap-3 w-full sm:w-64">
+                        <input type="range" id="pwdLen" min="4" max="64" value="16" class="flex-1 cursor-pointer accent-blue-500">
+                        <input type="number" id="lenInput" min="4" max="64" value="16" class="w-16 py-1 px-2 text-center rounded text-xs font-mono">
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-6 pt-2 border-t border-[var(--border)]">
+                    <label class="flex items-center gap-2 cursor-pointer font-medium"><input type="checkbox" id="hasUpper" checked class="accent-blue-500 w-4 h-4"> 大写字母 (A-Z)</label>
+                    <label class="flex items-center gap-2 cursor-pointer font-medium"><input type="checkbox" id="hasLower" checked class="accent-blue-500 w-4 h-4"> 小写字母 (a-z)</label>
+                    <label class="flex items-center gap-2 cursor-pointer font-medium"><input type="checkbox" id="hasDigit" checked class="accent-blue-500 w-4 h-4"> 数字 (0-9)</label>
+                    <label class="flex items-center gap-2 cursor-pointer font-medium"><input type="checkbox" id="hasSymbol" checked class="accent-blue-500 w-4 h-4"> 特殊符号 (!@#...)</label>
+                </div>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-6 mb-5">
-                <div class="flex flex-col gap-3">
-                    <label class="text-sub-color">密码长度</label>
+            <div class="flex gap-3">
+                <button class="btn btn-primary flex-1 py-2.5 text-sm font-bold" id="btnGen"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i>立即生成高强度密码</button>
+                <button class="btn btn-danger" id="btnClear"><i class="fa-solid fa-eraser"></i>重置</button>
+            </div>
+
+            <!-- 结果展示区 -->
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-[var(--text-sub)]">生成结果</label>
+                <div class="sub-panel-bg p-4 rounded-xl flex items-center justify-between gap-3 border border-[var(--border)] bg-[var(--input-bg)]">
+                    <span id="pwdResult" class="font-mono text-sm tracking-wider text-emerald-400 select-all">请点击上方按钮生成密码</span>
                     <div class="flex items-center gap-3">
-                        <input type="range" id="pwdLen" min="4" max="64" value="16" class="flex-1">
-                        <input type="number" id="lenInput" min="4" max="64" value="16" class="w-20">
+                        <span id="pwdLevel" class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">等级: --</span>
+                        <button id="copyBtn" class="btn btn-primary text-xs py-1.5"><i class="fa-solid fa-copy mr-1"></i>复制密码</button>
                     </div>
-                </div>
-                <div class="flex flex-wrap gap-4 items-center">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="hasUpper" checked> 大写 A-Z
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="hasLower" checked> 小写 a-z
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="hasDigit" checked> 数字 0-9
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="hasSymbol" checked> 特殊符号
-                    </label>
                 </div>
             </div>
 
-            <div>
-                <label class="block mb-2 text-sub-color">生成结果（点击📋复制该行）</label>
-                <div id="detailPanel" class="sub-panel-bg p-4 rounded-xl text-sm space-y-2">
-                    <div>密码：<span id="pwdResult">-</span>
-                        <i class="fa-solid fa-copy copy-btn-inline" data-val="" title="复制"></i>
-                    </div>
-                    <div>强度：<span id="pwdLevel">-</span></div>
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <label class="block mb-1 text-sub-color">状态信息</label>
-                <div id="msgBox" class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color"></div>
+            <div id="msgBox" class="p-3 rounded-xl bg-[var(--card-sub)] text-xs text-[var(--text-sub)] border border-[var(--border)]">
+                💡 <b>安全提示</b>：利用浏览器密码学安全随机数生成器（<code>crypto.getRandomValues</code>）在本地随机生成，确保绝对安全。
             </div>
         </div>
     </main>
 
     <footer class="nav-bar-bg border-t py-6 mt-10">
-        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+        <div class="container mx-auto px-4 text-center text-[var(--text-sub)] text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 纯前端本地生成，密码不会上传</p>
+            <p class="mt-1">© 2026 开发者工具箱 | 密码生成工具</p>
         </div>
     </footer>
 
     <script>
-        function initTheme() {
-            const saveTheme = localStorage.getItem("toolTheme") || "dark";
-            document.documentElement.setAttribute("data-theme", saveTheme);
-            updateThemeIcon(saveTheme);
+        function initTheme(){
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function updateThemeIcon(theme) {
-            const icon = document.getElementById("themeIcon");
-            icon.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        document.getElementById("themeToggle").onclick = () => {
+            const c = document.documentElement.getAttribute("data-theme");
+            const n = c === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", n);
+            localStorage.setItem("toolTheme", n);
+            document.getElementById("themeIcon").className = n === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function bindThemeToggle() {
-            const btn = document.getElementById("themeToggle");
-            btn.addEventListener("click", ()=>{
-                const current = document.documentElement.getAttribute("data-theme");
-                const next = current === "dark" ? "light" : "dark";
-                document.documentElement.setAttribute("data-theme", next);
-                localStorage.setItem("toolTheme", next);
-                updateThemeIcon(next);
-            })
-        }
+        initTheme();
 
         const pwdLenEl = document.getElementById('pwdLen');
         const lenInputEl = document.getElementById('lenInput');
@@ -235,62 +114,25 @@
         const pwdResultEl = document.getElementById('pwdResult');
         const pwdLevelEl = document.getElementById('pwdLevel');
         const msgBox = document.getElementById('msgBox');
-        const copyBtn = document.querySelector(".copy-btn-inline");
+        const copyBtn = document.getElementById('copyBtn');
 
         let lastPwd = "";
 
-        // 滑块拖动 → 同步数字输入框
-        pwdLenEl.oninput = () => {
-            lenInputEl.value = pwdLenEl.value;
-        }
-        // 数字输入框修改 → 同步滑块，自动限制4~64
+        pwdLenEl.oninput = () => { lenInputEl.value = pwdLenEl.value; genPassword(); };
         lenInputEl.oninput = () => {
             let val = Number(lenInputEl.value);
-            if (isNaN(val)) val = 4;
-            if (val < 4) val = 4;
-            if (val > 64) val = 64;
-            lenInputEl.value = val;
+            if(isNaN(val)) val = 4;
+            if(val < 4) val = 4;
+            if(val > 64) val = 64;
             pwdLenEl.value = val;
-        }
+            genPassword();
+        };
 
-        function setMsg(text, isError = false) {
-            msgBox.innerText = text;
-            msgBox.style.color = isError ? '#f87171' : 'var(--text-sub)';
-        }
-
-        function resetDetail(){
-            pwdResultEl.innerText = "-";
-            pwdLevelEl.innerText = "-";
-            lastPwd = "";
-            copyBtn.setAttribute("data-val", "");
-        }
-
-        copyBtn.onclick = async function(){
-            const val = this.getAttribute("data-val");
-            if(!val){
-                setMsg("暂无内容可复制",true);
-                return;
-            }
-            try{
-                await navigator.clipboard.writeText(val);
-                setMsg(`✅ 已复制密码`);
-            }catch(e){
-                setMsg("❌ 复制失败，请手动复制",true);
-            }
-        }
-
-        function getPwdLevel(len, types){
-            let score = 0;
-            if(len >=12) score +=2;
-            else if(len >=8) score +=1;
-            score += types;
-            if(score >=4) return {text:"强", color:"#22c55e"};
-            if(score >=3) return {text:"中", color:"#eab308"};
-            return {text:"弱", color:"#ef4444"};
+        function setMsg(txt, err=false){
+            msgBox.innerHTML = err ? `<span class="text-red-400">${txt}</span>` : `<span class="text-emerald-400">${txt}</span>`;
         }
 
         function genPassword(){
-            resetDetail();
             const len = Number(pwdLenEl.value);
             const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             const lower = "abcdefghijklmnopqrstuvwxyz";
@@ -302,37 +144,58 @@
             if(hasLowerEl.checked) { pool += lower; typeCount++; }
             if(hasDigitEl.checked) { pool += digit; typeCount++; }
             if(hasSymbolEl.checked) { pool += symbol; typeCount++; }
+
             if(!pool){
-                setMsg("至少选择一类字符", true);
+                setMsg("⚠️ 请至少勾选一类字符集！", true);
                 return;
             }
+
             let pwd = "";
             const arr = new Uint32Array(len);
             crypto.getRandomValues(arr);
-            for(let i=0;i<len;i++){
+            for(let i=0; i<len; i++){
                 pwd += pool[arr[i] % pool.length];
             }
             lastPwd = pwd;
             pwdResultEl.innerText = pwd;
-            copyBtn.setAttribute("data-val", pwd);
-            const level = getPwdLevel(len, typeCount);
-            pwdLevelEl.innerText = level.text;
-            pwdLevelEl.style.color = level.color;
-            setMsg("✅ 密码生成完成");
+
+            // 强度评级
+            let score = 0;
+            if(len >= 16) score += 2; else if(len >= 8) score += 1;
+            score += typeCount;
+            if(score >= 5){
+                pwdLevelEl.innerText = "强度: 强";
+                pwdLevelEl.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400";
+            } else if(score >= 3){
+                pwdLevelEl.innerText = "强度: 中";
+                pwdLevelEl.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400";
+            } else {
+                pwdLevelEl.innerText = "强度: 弱";
+                pwdLevelEl.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-red-500/20 text-red-400";
+            }
+            setMsg("✅ 随机密码已成功生成");
         }
 
-        function clearAll(){
-            resetDetail();
-            setMsg("");
-        }
+        document.getElementById('btnGen').onclick = genPassword;
+        document.getElementById('btnClear').onclick = () => {
+            pwdResultEl.innerText = "请点击上方按钮生成密码";
+            pwdLevelEl.innerText = "等级: --";
+            pwdLevelEl.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400";
+            setMsg("已重置");
+        };
 
-        function bindEvents(){
-            document.getElementById('btnGen').addEventListener('click', genPassword);
-            document.getElementById('btnClear').addEventListener('click', clearAll);
-        }
+        copyBtn.onclick = async () => {
+            if(!lastPwd){ setMsg("⚠️ 当前没有可复制的密码！", true); return; }
+            try {
+                await navigator.clipboard.writeText(lastPwd);
+                setMsg("✅ 密码已成功复制到剪贴板！");
+            } catch(e) {
+                setMsg("❌ 复制失败", true);
+            }
+        };
 
-        initTheme();
-        bindEvents();
+        // 默认自动生成一个
+        genPassword();
     </script>
 </body>
 </html>

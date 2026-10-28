@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>艺术二维码生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = { darkMode: ['class', '[data-theme="dark"]'], theme: { extend: { colors: { primary: '#3b82f6' } } } }
+    </script>
+    <style>
+        .text-gradient { background-clip: text; -webkit-background-clip: text; color: transparent; background-image: linear-gradient(to right, #60a5fa, #22d3ee); }
+        .btn { padding: 0.5rem 0.85rem; border-radius: 0.5rem; transition: all 0.2s; font-size: 0.875rem; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); background-color: var(--card); color: var(--text-main); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="bg-[var(--card)] border-b border-[var(--border)] sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline"><i class="fa-solid fa-arrow-left mr-2"></i>返回首页</a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-qrcode mr-2"></i>艺术二维码生成器</h1>
+            <button id="themeToggle" class="btn btn-outline"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-5xl flex-grow">
+        <div class="tool-card p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="text-sub-color block mb-1 font-bold">二维码内容 / 网址 (URL)：</label>
+                    <textarea id="qrText" rows="3" class="w-full p-2.5 rounded bg-[var(--card)] border border-[var(--border)] text-sm">https://github.com</textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-sub-color block mb-1">前景色 (Dot Color):</label>
+                        <input id="qrColor" type="color" value="#0f172a" class="w-full h-9 bg-transparent cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="text-sub-color block mb-1">背景色 (Bg Color):</label>
+                        <input id="qrBg" type="color" value="#ffffff" class="w-full h-9 bg-transparent cursor-pointer">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-sub-color block mb-1">尺寸大小 (Size): <span id="vSize">240px</span></label>
+                    <input id="qrSize" type="range" min="150" max="400" value="240" class="w-full accent-blue-500">
+                </div>
+                <button id="btnGenerate" class="btn btn-primary w-full py-2.5 font-bold"><i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i>重新生成艺术二维码</button>
+            </div>
+
+            <div class="flex flex-col items-center justify-center bg-slate-950/40 p-6 rounded-2xl border border-[var(--border)]">
+                <div id="qrcode" class="p-4 bg-white rounded-xl shadow-xl flex items-center justify-center"></div>
+                <button id="btnDownload" class="btn btn-outline mt-4 text-xs"><i class="fa-solid fa-download mr-1.5"></i>下载二维码图片</button>
+            </div>
+        </div>
+    </main>
+
+<script>
+document.getElementById('themeToggle').onclick = () => {
+    const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('toolTheme', t);
+    document.getElementById('themeIcon').className = t === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+};
+const savedT = localStorage.getItem('toolTheme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedT);
+document.getElementById('themeIcon').className = savedT === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+
+const qrText = document.getElementById('qrText');
+const qrColor = document.getElementById('qrColor');
+const qrBg = document.getElementById('qrBg');
+const qrSize = document.getElementById('qrSize');
+const vSize = document.getElementById('vSize');
+const qrcodeDiv = document.getElementById('qrcode');
+const btnGenerate = document.getElementById('btnGenerate');
+
+let qrObj = null;
+function makeCode(){
+    qrcodeDiv.innerHTML = '';
+    const sz = parseInt(qrSize.value);
+    vSize.innerText = sz + 'px';
+    qrObj = new QRCode(qrcodeDiv, {
+        text: qrText.value || 'https://github.com',
+        width: sz,
+        height: sz,
+        colorDark: qrColor.value,
+        colorLight: qrBg.value,
+        correctLevel: QRCode.CorrectLevel.H
+    });
+}
+
+btnGenerate.onclick = makeCode;
+qrSize.oninput = makeCode;
+
+document.getElementById('btnDownload').onclick = () => {
+    const img = qrcodeDiv.querySelector('img');
+    if(!img) return;
+    const a = document.createElement('a');
+    a.href = img.src;
+    a.download = 'art-qrcode.png';
+    a.click();
+};
+
+makeCode();
+</script>
+</body>
+</html>

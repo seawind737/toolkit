@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片裁剪 & 尺寸修改高级版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
+        }
+        .btn {
+            padding: 0.45rem 0.75rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: rgba(59, 130, 246, 0.85);
+        }
+        .btn-outline {
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+        .btn-outline:hover {
+            background-color: var(--card-sub);
+        }
+        .checker-bg {
+            background-image: linear-gradient(45deg, rgba(136,136,136,0.15) 25%, transparent 25%),
+            linear-gradient(-45deg, rgba(136,136,136,0.15) 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, rgba(136,136,136,0.15) 75%),
+            linear-gradient(-45deg, transparent 75%, rgba(136,136,136,0.15) 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #f1f5f9; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        html[data-theme="light"] body::before {
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+            background-size: 28px 28px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .sub-panel-bg { background-color: var(--card-sub); }
+        .text-sub-color { color: var(--text-sub); }
+        input, select {
+            background-color: var(--card); border: 1px solid var(--border); color: var(--text-main);
+        }
+        input:focus, select:focus { outline: none; border-color: #3b82f6; }
+        
+        .crop-wrap {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            touch-action: none;
+        }
+        #viewCanvas { display: block; max-width: 100%; height: auto; }
+        #cropOverlayCanvas { 
+            position: absolute; top: 0; left: 0; 
+            width: 100%; height: 100%;
+            pointer-events: auto;
+        }
+        .result-canvas-wrap {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: inline-block;
+            max-width: 100%;
+            overflow: auto;
+        }
+        #resultCanvas { display: block; max-width: 100%; height: auto; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-20 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="#" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-crop-simple mr-2"></i>图片裁剪 & 尺寸修改</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-7xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <!-- 第一排：动作按钮 -->
+            <div class="flex flex-wrap gap-2 md:gap-3 mb-5 items-center justify-between border-b pb-4 border-[var(--border)]">
+                <div class="flex flex-wrap gap-2 items-center">
+                    <label class="btn btn-primary cursor-pointer shadow-sm">
+                        <i class="fa-solid fa-upload mr-1.5"></i>上传图片
+                        <input type="file" id="fileInput" accept="image/*" class="hidden"/>
+                    </label>
+                    <button id="btnCrop" class="btn btn-outline"><i class="fa-solid fa-scissors mr-1.5"></i>执行裁剪</button>
+                    <button id="btnResize" class="btn btn-outline"><i class="fa-solid fa-arrows-up-down-left-right mr-1.5"></i>按输入尺寸缩放</button>
+                    
+                    <div class="h-5 w-[1px] bg-[var(--border)] mx-1 hidden sm:block"></div>
+                    
+                    <!-- 旋转 & 镜像操作 -->
+                    <button id="btnRotateL" class="btn btn-outline" title="左旋 90°"><i class="fa-solid fa-rotate-left"></i></button>
+                    <button id="btnRotateR" class="btn btn-outline" title="右旋 90°"><i class="fa-solid fa-rotate-right"></i></button>
+                    <button id="btnFlipH" class="btn btn-outline" title="水平镜像"><i class="fa-solid fa-arrows-left-right"></i></button>
+                    <button id="btnFlipV" class="btn btn-outline" title="垂直镜像"><i class="fa-solid fa-arrows-up-down"></i></button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button id="btnReset" class="btn btn-outline"><i class="fa-solid fa-arrow-rotate-left mr-1"></i>重置</button>
+                    <button id="btnDownload" class="btn btn-primary bg-green-600 hover:bg-green-700 border-none"><i class="fa-solid fa-download mr-1.5"></i>保存导出</button>
+                </div>
+            </div>
+
+            <!-- 第二排：控制参数行 -->
+            <div class="flex flex-wrap gap-4 items-center mb-5 text-sm">
+                <!-- 尺寸控制 -->
+                <div class="flex items-center gap-2 bg-[var(--card-sub)] px-3 py-1.5 rounded-lg border border-[var(--border)]">
+                    <span class="font-medium">尺寸 (px):</span>
+                    <label class="text-xs text-sub-color">宽</label>
+                    <input id="inpW" type="number" min="1" class="w-20 px-2 py-0.5 rounded text-center">
+                    <span class="text-sub-color">×</span>
+                    <label class="text-xs text-sub-color">高</label>
+                    <input id="inpH" type="number" min="1" class="w-20 px-2 py-0.5 rounded text-center">
+                    <label class="flex items-center gap-1 cursor-pointer ml-1 text-xs">
+                        <input id="chkRatio" type="checkbox"/> 锁定比例
+                    </label>
+                </div>
+
+                <!-- 预设比例 -->
+                <div class="flex items-center gap-2">
+                    <label class="text-sub-color">比例预设:</label>
+                    <select id="ratioPreset" class="px-2.5 py-1.5 rounded-lg border border-[var(--border)]">
+                        <option value="">自由比例</option>
+                        <option value="1">1:1 (正方形/头像)</option>
+                        <option value="16/9">16:9 (横屏视频/壁纸)</option>
+                        <option value="9/16">9:16 (手机海报/竖屏)</option>
+                        <option value="4/3">4:3 (标准照片)</option>
+                        <option value="3/2">3:2 (单反长宽比)</option>
+                    </select>
+                </div>
+
+                <!-- 导出格式 & 质量 -->
+                <div class="flex items-center gap-3 bg-[var(--card-sub)] px-3 py-1.5 rounded-lg border border-[var(--border)]">
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-sub-color">格式:</label>
+                        <select id="outType" class="px-2 py-0.5 rounded">
+                            <option value="image/png">PNG</option>
+                            <option value="image/jpeg">JPG</option>
+                            <option value="image/webp">WebP</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-sub-color">质量:</label>
+                        <input id="quality" type="range" min="30" max="100" value="90" class="w-20 accent-blue-500">
+                        <span id="qVal" class="w-7 text-right">90</span>%
+                    </div>
+                </div>
+            </div>
+
+            <!-- 画布视图双栏布局 -->
+            <div class="grid lg:grid-cols-2 gap-6">
+                <!-- 原图选区面板 -->
+                <div>
+                    <div class="sub-panel-bg p-3.5 rounded-xl border border-[var(--border)]">
+                        <div class="mb-2 flex justify-between items-center">
+                            <span class="font-medium text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-vector-square text-blue-400"></i> 原图选区 (拖拽框选 / 拖动手柄微调)
+                            </span>
+                            <span id="srcInfo" class="text-xs text-sub-color"></span>
+                        </div>
+                        <div class="crop-wrap checker-bg w-full min-h-[300px] flex items-center justify-center">
+                            <canvas id="viewCanvas"></canvas>
+                            <canvas id="cropOverlayCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 实时导出预览面板 -->
+                <div>
+                    <div class="sub-panel-bg p-3.5 rounded-xl border border-[var(--border)]">
+                        <div class="mb-2 flex justify-between items-center">
+                            <span class="font-medium text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-eye text-green-400"></i> 实时结果预览
+                            </span>
+                            <span id="outInfo" class="text-xs text-sub-color"></span>
+                        </div>
+                        <div class="result-canvas-wrap checker-bg w-full min-h-[300px] flex items-center justify-center">
+                            <canvas id="resultCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="nav-bar-bg border-t py-4 mt-auto">
+        <div class="container mx-auto px-4 text-center text-sub-color text-xs">
+            © 2026 高级图像处理工具 | 本地安全处理，不上传服务器
+        </div>
+    </footer>
+
+<script>
+// 主题控制
+function initTheme() {
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t) {
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
+
+// 画布与 DOM 节点引用
+const viewCanvas = document.getElementById('viewCanvas');
+const cropOverlayCanvas = document.getElementById('cropOverlayCanvas');
+const resultCanvas = document.getElementById('resultCanvas');
+const viewCtx = viewCanvas.getContext('2d');
+const overlayCtx = cropOverlayCanvas.getContext('2d');
+const resultCtx = resultCanvas.getContext('2d');
+
+const fileInput = document.getElementById('fileInput');
+const inpW = document.getElementById('inpW');
+const inpH = document.getElementById('inpH');
+const chkRatio = document.getElementById('chkRatio');
+const ratioPreset = document.getElementById('ratioPreset');
+const outType = document.getElementById('outType');
+const quality = document.getElementById('quality');
+const qVal = document.getElementById('qVal');
+
+const btnCrop = document.getElementById('btnCrop');
+const btnResize = document.getElementById('btnResize');
+const btnRotateL = document.getElementById('btnRotateL');
+const btnRotateR = document.getElementById('btnRotateR');
+const btnFlipH = document.getElementById('btnFlipH');
+const btnFlipV = document.getElementById('btnFlipV');
+const btnDownload = document.getElementById('btnDownload');
+const btnReset = document.getElementById('btnReset');
+const srcInfo = document.getElementById('srcInfo');
+const outInfo = document.getElementById('outInfo');
+
+// 全局图像与选区状态数据
+let originImg = null;
+let originW = 0, originH = 0;
+let scale = 1;
+
+let flipH = false;
+let flipV = false;
+
+// 裁剪选区 (存储基于原始图像的实际像素: x, y, w, h)
+let cropRect = null;
+let resultBlob = null;
+const MAX_VIEW_SIZE = 640;
+const HANDLE_SIZE = 8; // 控制点半径 (CSS px)
+
+// 拖拽与缩放手柄状态
+let currentAction = null; // 'create', 'move', 'nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'
+let actionStart = null;
+
+quality.oninput = () => {
+    qVal.textContent = quality.value;
+    if (resultCanvas.width > 0) exportResult(resultCanvas.width, resultCanvas.height);
+};
+
+outType.onchange = () => {
+    if (resultCanvas.width > 0) exportResult(resultCanvas.width, resultCanvas.height);
+};
+
+// 清空 Overlay 画布
+function clearOverlay() {
+    overlayCtx.clearRect(0, 0, cropOverlayCanvas.width, cropOverlayCanvas.height);
+}
+
+// 绘制 Overlay (暗色遮罩、选区框、8 个拖拽手柄点)
+function drawOverlay() {
+    clearOverlay();
+    if (!cropRect || cropRect.w <= 0 || cropRect.h <= 0) return;
+
+    const sx = cropRect.x * scale;
+    const sy = cropRect.y * scale;
+    const sw = cropRect.w * scale;
+    const sh = cropRect.h * scale;
+
+    // 1. 半透明遮罩
+    overlayCtx.fillStyle = "rgba(0,0,0,0.55)";
+    overlayCtx.fillRect(0, 0, cropOverlayCanvas.width, cropOverlayCanvas.height);
+
+    // 2. 掏空选区
+    overlayCtx.globalCompositeOperation = "destination-out";
+    overlayCtx.fillRect(sx, sy, sw, sh);
+
+    // 3. 绘制选区边框
+    overlayCtx.globalCompositeOperation = "source-over";
+    overlayCtx.strokeStyle = "#3b82f6";
+    overlayCtx.lineWidth = 2;
+    overlayCtx.strokeRect(sx, sy, sw, sh);
+
+    // 4. 绘制九宫格辅助线
+    overlayCtx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    overlayCtx.lineWidth = 1;
+    overlayCtx.beginPath();
+    // 竖线
+    overlayCtx.moveTo(sx + sw / 3, sy); overlayCtx.lineTo(sx + sw / 3, sy + sh);
+    overlayCtx.moveTo(sx + (sw * 2) / 3, sy); overlayCtx.lineTo(sx + (sw * 2) / 3, sy + sh);
+    // 横线
+    overlayCtx.moveTo(sx, sy + sh / 3); overlayCtx.lineTo(sx + sw, sy + sh / 3);
+    overlayCtx.moveTo(sx, sy + (sh * 2) / 3); overlayCtx.lineTo(sx + sw, sy + (sh * 2) / 3);
+    overlayCtx.stroke();
+
+    // 5. 绘制 8 个控制手柄点 (Corner & Edge Handles)
+    const handles = getHandlePositions(sx, sy, sw, sh);
+    overlayCtx.fillStyle = "#ffffff";
+    overlayCtx.strokeStyle = "#3b82f6";
+    overlayCtx.lineWidth = 2;
+
+    for (const key in handles) {
+        const pt = handles[key];
+        overlayCtx.beginPath();
+        overlayCtx.arc(pt.x, pt.y, HANDLE_SIZE / 1.5, 0, Math.PI * 2);
+        overlayCtx.fill();
+        overlayCtx.stroke();
+    }
+}
+
+// 计算 8 个控制点坐标
+function getHandlePositions(sx, sy, sw, sh) {
+    return {
+        nw: { x: sx, y: sy },
+        n:  { x: sx + sw / 2, y: sy },
+        ne: { x: sx + sw, y: sy },
+        e:  { x: sx + sw, y: sy + sh / 2 },
+        se: { x: sx + sw, y: sy + sh },
+        s:  { x: sx + sw / 2, y: sy + sh },
+        sw: { x: sx, y: sy },
+        w:  { x: sx, y: sy + sh / 2 }
+    };
+}
+
+function calcViewScale(ow, oh) {
+    const s1 = MAX_VIEW_SIZE / ow;
+    const s2 = MAX_VIEW_SIZE / oh;
+    return Math.min(s1, s2, 1);
+}
+
+// 重绘主视图 Canvas
+function redrawView() {
+    if (!originImg) return;
+    scale = calcViewScale(originW, originH);
+    const vw = Math.round(originW * scale);
+    const vh = Math.round(originH * scale);
+
+    viewCanvas.width = vw;
+    viewCanvas.height = vh;
+    cropOverlayCanvas.width = vw;
+    cropOverlayCanvas.height = vh;
+
+    viewCtx.save();
+    viewCtx.clearRect(0, 0, vw, vh);
+
+    // 应用镜像翻转
+    viewCtx.translate(flipH ? vw : 0, flipV ? vh : 0);
+    viewCtx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+    viewCtx.drawImage(originImg, 0, 0, originW, originH, 0, 0, vw, vh);
+    viewCtx.restore();
+
+    srcInfo.textContent = `${originW} × ${originH} px (显示缩放 ${(scale * 100).toFixed(1)}%)`;
+
+    // 默认创建全图初始选区
+    if (!cropRect) {
+        cropRect = { x: 0, y: 0, w: originW, h: originH };
+        syncInputsFromCropRect();
+    }
+
+    drawOverlay();
+    autoUpdatePreview();
+}
+
+// 将 cropRect 的尺寸数据同步写回顶部输入框
+function syncInputsFromCropRect() {
+    if (!cropRect) return;
+    inpW.value = Math.round(cropRect.w);
+    inpH.value = Math.round(cropRect.h);
+}
+
+// 精准获取 Mouse/Touch 映射到原始图像的坐标 (px) 及 View Canvas 屏幕像素 (vx, vy)
+function getCoords(e) {
+    const rect = cropOverlayCanvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    const cssX = clientX - rect.left;
+    const cssY = clientY - rect.top;
+
+    const canvasScaleX = cropOverlayCanvas.width / rect.width;
+    const canvasScaleY = cropOverlayCanvas.height / rect.height;
+
+    const vx = cssX * canvasScaleX;
+    const vy = cssY * canvasScaleY;
+
+    return {
+        vx, vy,
+        px: Math.max(0, Math.min(vx / scale, originW)),
+        py: Math.max(0, Math.min(vy / scale, originH))
+    };
+}
+
+// 判断悬停在哪个控制点或选区内
+function hitTest(vx, vy) {
+    if (!cropRect) return null;
+
+    const sx = cropRect.x * scale;
+    const sy = cropRect.y * scale;
+    const sw = cropRect.w * scale;
+    const sh = cropRect.h * scale;
+
+    const handles = getHandlePositions(sx, sy, sw, sh);
+    const hitRadius = HANDLE_SIZE + 4;
+
+    for (const key in handles) {
+        const pt = handles[key];
+        const dist = Math.hypot(vx - pt.x, vy - pt.y);
+        if (dist <= hitRadius) return key;
+    }
+
+    // 检查是否在框内 (移动区域)
+    if (vx >= sx && vx <= sx + sw && vy >= sy && vy <= sy + sh) {
+        return 'move';
+    }
+
+    return null;
+}
+
+// 动态设置鼠标光标样式
+function updateCursor(hit) {
+    const cursors = {
+        nw: 'nwse-resize', se: 'nwse-resize',
+        ne: 'nesw-resize', sw: 'nesw-resize',
+        n: 'ns-resize', s: 'ns-resize',
+        e: 'ew-resize', w: 'ew-resize',
+        move: 'move'
+    };
+    cropOverlayCanvas.style.cursor = cursors[hit] || 'crosshair';
+}
+
+function handleStart(e) {
+    if (!originImg) return;
+    const coords = getCoords(e);
+    const hit = hitTest(coords.vx, coords.vy);
+
+    if (hit) {
+        currentAction = hit;
+        actionStart = {
+            px: coords.px, py: coords.py,
+            rect: { ...cropRect }
+        };
+    } else {
+        // 点击在空白区域 -> 重新划定新框
+        currentAction = 'create';
+        actionStart = { px: coords.px, py: coords.py };
+        cropRect = { x: coords.px, y: coords.py, w: 0, h: 0 };
+    }
+}
+
+function handleMove(e) {
+    if (!originImg) return;
+    const coords = getCoords(e);
+
+    if (!currentAction) {
+        // 未按下时更新 Hover 光标
+        const hit = hitTest(coords.vx, coords.vy);
+        updateCursor(hit);
+        return;
+    }
+
+    if (e.cancelable) e.preventDefault();
+
+    let { px, py } = coords;
+    const preset = ratioPreset.value ? eval(ratioPreset.value) : null;
+
+    if (currentAction === 'create') {
+        let rw = px - actionStart.px;
+        let rh = py - actionStart.py;
+        let startX = actionStart.px;
+        let startY = actionStart.py;
+
+        if (rw < 0) { startX = px; rw = -rw; }
+        if (rh < 0) { startY = py; rh = -rh; }
+
+        if (preset) rh = rw / preset;
+
+        cropRect = {
+            x: Math.max(0, startX),
+            y: Math.max(0, startY),
+            w: Math.min(rw, originW - startX),
+            h: Math.min(rh, originH - startY)
+        };
+    } 
+    else if (currentAction === 'move') {
+        const dx = px - actionStart.px;
+        const dy = py - actionStart.py;
+
+        let nx = actionStart.rect.x + dx;
+        let ny = actionStart.rect.y + dy;
+
+        // 边界限制
+        nx = Math.max(0, Math.min(nx, originW - actionStart.rect.w));
+        ny = Math.max(0, Math.min(ny, originH - actionStart.rect.h));
+
+        cropRect.x = nx;
+        cropRect.y = ny;
+    } 
+    else {
+        // 手柄调整尺寸 (Resizing)
+        let { x, y, w, h } = { ...actionStart.rect };
+        const dx = px - actionStart.px;
+        const dy = py - actionStart.py;
+
+        if (currentAction.includes('e')) w += dx;
+        if (currentAction.includes('s')) h += dy;
+        if (currentAction.includes('w')) { x += dx; w -= dx; }
+        if (currentAction.includes('n')) { y += dy; h -= dy; }
+
+        if (preset) {
+            if (currentAction.includes('e') || currentAction.includes('w')) h = w / preset;
+            else w = h * preset;
+        }
+
+        if (w > 10 && h > 10 && x >= 0 && y >= 0 && x + w <= originW && y + h <= originH) {
+            cropRect = { x, y, w, h };
+        }
+    }
+
+    drawOverlay();
+    syncInputsFromCropRect();
+    autoUpdatePreview();
+}
+
+function handleEnd() {
+    currentAction = null;
+    actionStart = null;
+}
+
+// 绑定事件
+cropOverlayCanvas.addEventListener('mousedown', handleStart);
+cropOverlayCanvas.addEventListener('mousemove', handleMove);
+window.addEventListener('mouseup', handleEnd);
+
+cropOverlayCanvas.addEventListener('touchstart', handleStart, { passive: false });
+cropOverlayCanvas.addEventListener('touchmove', handleMove, { passive: false });
+window.addEventListener('touchend', handleEnd);
+
+// 文件加载处理
+fileInput.onchange = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+        const i = new Image();
+        i.onload = () => {
+            originImg = i;
+            originW = i.width;
+            originH = i.height;
+            cropRect = null;
+            flipH = false;
+            flipV = false;
+            redrawView();
+        };
+        i.src = ev.target.result;
+    };
+    r.readAsDataURL(f);
+};
+
+// 尺寸输入框手动修改响应
+inpW.oninput = () => {
+    if (!originImg || !cropRect) return;
+    let nw = Number(inpW.value);
+    if (nw <= 0) return;
+    if (chkRatio.checked && originW > 0) {
+        const r = cropRect.w / cropRect.h;
+        inpH.value = Math.round(nw / r);
+        cropRect.h = Math.min(originH - cropRect.y, nw / r);
+    }
+    cropRect.w = Math.min(originW - cropRect.x, nw);
+    drawOverlay();
+    autoUpdatePreview();
+};
+
+inpH.oninput = () => {
+    if (!originImg || !cropRect) return;
+    let nh = Number(inpH.value);
+    if (nh <= 0) return;
+    if (chkRatio.checked && originH > 0) {
+        const r = cropRect.w / cropRect.h;
+        inpW.value = Math.round(nh * r);
+        cropRect.w = Math.min(originW - cropRect.x, nh * r);
+    }
+    cropRect.h = Math.min(originH - cropRect.y, nh);
+    drawOverlay();
+    autoUpdatePreview();
+};
+
+ratioPreset.onchange = () => {
+    if (!cropRect || !ratioPreset.value) return;
+    const r = eval(ratioPreset.value);
+    cropRect.h = cropRect.w / r;
+    if (cropRect.y + cropRect.h > originH) {
+        cropRect.h = originH - cropRect.y;
+        cropRect.w = cropRect.h * r;
+    }
+    syncInputsFromCropRect();
+    drawOverlay();
+    autoUpdatePreview();
+};
+
+// 自动生成右侧预览
+function autoUpdatePreview() {
+    if (!originImg || !cropRect || cropRect.w <= 0 || cropRect.h <= 0) return;
+    const tw = Math.round(cropRect.w);
+    const th = Math.round(cropRect.h);
+
+    resultCanvas.width = tw;
+    resultCanvas.height = th;
+
+    resultCtx.save();
+    resultCtx.clearRect(0, 0, tw, th);
+
+    // 考虑镜像状态导出
+    if (flipH || flipV) {
+        resultCtx.translate(flipH ? tw : 0, flipV ? th : 0);
+        resultCtx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+    }
+
+    resultCtx.drawImage(
+        originImg,
+        cropRect.x, cropRect.y, cropRect.w, cropRect.h,
+        0, 0, tw, th
+    );
+    resultCtx.restore();
+
+    exportResult(tw, th);
+}
+
+// 按钮功能绑定
+btnCrop.onclick = () => {
+    if (!originImg || !cropRect) return alert("请先上传图片并框选区域");
+    autoUpdatePreview();
+};
+
+btnResize.onclick = () => {
+    if (!originImg) return alert("请先上传图片");
+    const tw = Number(inpW.value);
+    const th = Number(inpH.value);
+    if (!tw || !th) return alert("请输入有效宽高像素");
+
+    resultCanvas.width = tw;
+    resultCanvas.height = th;
+    resultCtx.drawImage(originImg, 0, 0, originW, originH, 0, 0, tw, th);
+    exportResult(tw, th);
+};
+
+// 旋转 & 镜像
+function rotateImage(deg) {
+    if (!originImg) return;
+    const off = document.createElement('canvas');
+    const ctx = off.getContext('2d');
+
+    if (Math.abs(deg) === 90) {
+        off.width = originH;
+        off.height = originW;
+        ctx.translate(deg === 90 ? off.width : 0, deg === -90 ? off.height : 0);
+        ctx.rotate((deg * Math.PI) / 180);
+    }
+    ctx.drawImage(originImg, 0, 0);
+
+    const newImg = new Image();
+    newImg.onload = () => {
+        originImg = newImg;
+        originW = newImg.width;
+        originH = newImg.height;
+        cropRect = null;
+        redrawView();
+    };
+    newImg.src = off.toDataURL();
+}
+
+btnRotateL.onclick = () => rotateImage(-90);
+btnRotateR.onclick = () => rotateImage(90);
+
+btnFlipH.onclick = () => {
+    flipH = !flipH;
+    redrawView();
+};
+
+btnFlipV.onclick = () => {
+    flipV = !flipV;
+    redrawView();
+};
+
+function exportResult(w, h) {
+    const type = outType.value;
+    const q = Number(quality.value) / 100;
+    resultCanvas.toBlob(b => {
+        if (!b) return;
+        resultBlob = b;
+        outInfo.textContent = `${w} × ${h} px | ${(b.size / 1024).toFixed(2)} KB`;
+    }, type, q);
+}
+
+btnDownload.onclick = () => {
+    if (!resultBlob) return alert("未生成导出图片");
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(resultBlob);
+    const ext = outType.value.split('/')[1];
+    a.download = `cropped_${Date.now()}.${ext}`;
+    a.click();
+};
+
+btnReset.onclick = () => {
+    if (!originImg) return;
+    cropRect = { x: 0, y: 0, w: originW, h: originH };
+    flipH = false;
+    flipV = false;
+    syncInputsFromCropRect();
+    redrawView();
+};
+
+window.addEventListener('resize', () => {
+    if (originImg) redrawView();
+});
+
+initTheme();
+</script>
+</body>
+</html>

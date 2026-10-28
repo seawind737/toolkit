@@ -3,192 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文本压缩解压</title>
+    <title>文本 Gzip / Deflate 压缩解压工具</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: ['class', '[data-theme="dark"]'],
-            theme: {
-                extend: {
-                    colors: { primary: '#3b82f6' },
-                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
-                }
-            }
+            theme: { extend: { colors: { primary: '#3b82f6' } } }
         }
     </script>
     <style type="text/tailwindcss">
         @layer utilities {
             .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
-            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
+            .btn { @apply px-3.5 py-2 rounded-lg transition-all duration-200 text-xs flex items-center justify-center gap-1.5 cursor-pointer font-medium; }
             .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
-            .btn-danger { @apply bg-red-500 text-white hover:bg-red-500/80; }
+            .btn-danger { @apply bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25; }
             .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
         }
-        html[data-theme="dark"] {
-            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
-            --text-main: #e2e8f0;--text-sub: #94a3b8;--card-glow: rgba(59,130,246,0.08);
-        }
-        html[data-theme="light"] {
-            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
-            --text-main: #111827;--text-sub: #64748b;--card-glow: rgba(59,130,246,0.06);
-        }
-        body {
-            background-color: var(--bg); color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
-        }
-        body::before{
-            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
-            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
-        }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
-        }
-        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
-        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
-        .sub-panel-bg { background-color: var(--card-sub); }
-        .text-sub-color { color: var(--text-sub); }
-        textarea,input,select {
-            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
-            font-family: Consolas,Menlo,monospace;
-        }
-        textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
-        .copy-btn-inline { cursor:pointer; opacity:0.65; margin-left:8px; }
-        .copy-btn-inline:hover { opacity:1; }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; --input-bg: #020617; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; --input-bg: #f1f5f9; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; }
+        body::before { content:""; position:fixed; inset:0; z-index:-1; opacity:0.45; pointer-events:none; background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size:24px 24px; }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        textarea, select { background-color: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); font-family: Consolas, Menlo, monospace; }
+        textarea:focus, select:focus { outline: none; border-color: #3b82f6; }
     </style>
 </head>
 <body class="flex flex-col">
     <header class="nav-bar-bg sticky top-0 z-10 border-b">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
-                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
-            </a>
-            <h1 class="text-xl font-bold text-gradient">文本压缩解压</h1>
-            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
-                <i class="fa-solid fa-moon" id="themeIcon"></i>
-            </button>
+            <a href="index.html" class="btn btn-outline flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i><span>返回首页</span></a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-file-zipper mr-2"></i>文本压缩与解压</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
         </div>
     </header>
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <div class="flex flex-wrap gap-2 mb-5 items-center">
-                <select id="modeSelect" class="w-36">
-                    <option value="gzip">gzip</option>
-                    <option value="deflate">deflate</option>
+
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow space-y-5">
+        <div class="tool-card p-6 rounded-2xl space-y-5">
+            <!-- 顶部工具栏 -->
+            <div class="flex flex-wrap gap-3 items-center bg-[var(--card-sub)] p-3.5 rounded-xl text-xs">
+                <span class="font-bold text-[var(--text-sub)]">压缩算法:</span>
+                <select id="modeSelect" class="w-36 py-1.5 px-2 text-xs rounded">
+                    <option value="gzip">Gzip (推荐)</option>
+                    <option value="deflate">Deflate</option>
                 </select>
-                <button class="btn btn-primary" id="btnCompress">压缩</button>
-                <button class="btn btn-primary" id="btnDecompress">解压</button>
-                <button class="btn btn-danger" id="btnClear">清空</button>
-            </div>
-            <div class="grid md:grid-cols-2 gap-6">
-                <div class="flex flex-col gap-3">
-                    <label class="text-sub-color">输入文本 / Base64</label>
-                    <textarea id="srcText" rows="8" placeholder="待压缩文本 或者 gzip base64串"></textarea>
-                </div>
-                <div class="flex flex-col gap-3">
-                    <label class="text-sub-color">输出 <i class="fa-solid fa-copy copy-btn-inline" id="copyResult" title="复制"></i></label>
-                    <textarea id="outText" rows="8" readonly></textarea>
+                <div class="flex gap-2 ml-auto">
+                    <button class="btn btn-primary" id="btnCompress"><i class="fa-solid fa-compress mr-1"></i>压缩文本</button>
+                    <button class="btn btn-outline" id="btnDecompress"><i class="fa-solid fa-expand mr-1 text-emerald-400"></i>解压数据</button>
+                    <button class="btn btn-danger" id="btnClear"><i class="fa-solid fa-eraser"></i>清空</button>
                 </div>
             </div>
-            <div class="mt-4">
-                <label class="block mb-1 text-sub-color">状态信息</label>
-                <div id="msgBox" class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color"></div>
+
+            <!-- 左右分栏 -->
+            <div class="grid md:grid-cols-2 gap-5">
+                <div class="flex flex-col space-y-2">
+                    <label class="text-xs font-bold text-[var(--text-sub)]"><i class="fa-solid fa-file-pen text-primary mr-1"></i>输入文本 / Base64 编码串</label>
+                    <textarea id="srcText" rows="10" class="w-full p-3 rounded-xl text-xs resize-y" placeholder="在此粘贴待压缩的原文，或者待解压的 Gzip Base64 字符串..."></textarea>
+                </div>
+                <div class="flex flex-col space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-[var(--text-sub)]"><i class="fa-solid fa-square-poll-horizontal text-cyan-400 mr-1"></i>输出结果</span>
+                        <button id="copyResult" class="btn btn-outline text-[11px] py-1 px-2.5"><i class="fa-solid fa-copy text-emerald-400 mr-1"></i>复制结果</button>
+                    </div>
+                    <textarea id="outText" rows="10" readonly class="w-full p-3 rounded-xl text-xs resize-y text-cyan-300" placeholder="处理后的结果将在此显示..."></textarea>
+                </div>
+            </div>
+
+            <div id="msgBox" class="p-3 rounded-xl bg-[var(--card-sub)] text-xs text-[var(--text-sub)] border border-[var(--border)]">
+                💡 <b>提示</b>：纯前端本地使用 pako 库进行数据流压缩解压，所有数据均在您的浏览器本地安全处理，绝不上传云端。
             </div>
         </div>
     </main>
+
     <footer class="nav-bar-bg border-t py-6 mt-10">
-        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+        <div class="container mx-auto px-4 text-center text-[var(--text-sub)] text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 纯前端本地处理</p>
+            <p class="mt-1">© 2026 开发者工具箱 | 文本处理中心</p>
         </div>
     </footer>
+
     <script>
         function initTheme(){
-            const t=localStorage.getItem("toolTheme")||"dark";
-            document.documentElement.setAttribute("data-theme",t);
-            updateThemeIcon(t);
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function updateThemeIcon(t){
-            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+        document.getElementById("themeToggle").onclick = () => {
+            const c = document.documentElement.getAttribute("data-theme");
+            const n = c === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", n);
+            localStorage.setItem("toolTheme", n);
+            document.getElementById("themeIcon").className = n === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        document.getElementById("themeToggle").onclick=()=>{
-            const c=document.documentElement.getAttribute("data-theme");
-            const n=c==="dark"?"light":"dark";
-            document.documentElement.setAttribute("data-theme",n);
-            localStorage.setItem("toolTheme",n);
-            updateThemeIcon(n);
+        initTheme();
+
+        const src = document.getElementById("srcText");
+        const out = document.getElementById("outText");
+        const modeSelect = document.getElementById("modeSelect");
+        const msgBox = document.getElementById("msgBox");
+
+        function setMsg(txt, err=false){
+            msgBox.innerHTML = err ? `<span class="text-red-400">${txt}</span>` : `<span class="text-emerald-400">${txt}</span>`;
         }
-        const src=document.getElementById("srcText");
-        const out=document.getElementById("outText");
-        const modeSelect=document.getElementById("modeSelect");
-        const msgBox=document.getElementById("msgBox");
-        const copyBtn=document.getElementById("copyResult");
-        function setMsg(txt,err=false){
-            msgBox.innerText=txt;
-            msgBox.style.color=err?"#f87171":"var(--text-sub)";
-        }
-        function utf8ToUint8(str){
-            return new TextEncoder().encode(str);
-        }
+
+        function utf8ToUint8(str){ return new TextEncoder().encode(str); }
         function uint8ToBase64(u8){
-            let binary="";
-            for(let i=0;i<u8.length;i++) binary+=String.fromCharCode(u8[i]);
+            let binary = "";
+            for(let i=0; i<u8.length; i++) binary += String.fromCharCode(u8[i]);
             return btoa(binary);
         }
         function base64ToUint8(b64){
-            const binary=atob(b64);
-            const arr=new Uint8Array(binary.length);
-            for(let i=0;i<binary.length;i++) arr[i]=binary.charCodeAt(i);
+            const binary = atob(b64);
+            const arr = new Uint8Array(binary.length);
+            for(let i=0; i<binary.length; i++) arr[i] = binary.charCodeAt(i);
             return arr;
         }
-        function uint8ToUtf8(u8){
-            return new TextDecoder().decode(u8);
-        }
-        document.getElementById("btnCompress").onclick=()=>{
-            try{
-                const raw=src.value;
-                const data=utf8ToUint8(raw);
-                let compressed;
-                if(modeSelect.value==="gzip"){
-                    compressed=pako.gzip(data);
-                }else{
-                    compressed=pako.deflate(data);
-                }
-                const b64=uint8ToBase64(compressed);
-                out.value=b64;
-                setMsg(`✅ 压缩完成，原始：${raw.length} 字节，压缩后：${compressed.length} 字节`);
-            }catch(e){
-                setMsg("❌ 压缩失败："+e.message,true);
+        function uint8ToUtf8(u8){ return new TextDecoder().decode(u8); }
+
+        document.getElementById("btnCompress").onclick = () => {
+            try {
+                const raw = src.value;
+                if(!raw){ setMsg("⚠️ 请先输入要压缩的文本！", true); return; }
+                const data = utf8ToUint8(raw);
+                const compressed = modeSelect.value === "gzip" ? pako.gzip(data) : pako.deflate(data);
+                const b64 = uint8ToBase64(compressed);
+                out.value = b64;
+                const rate = ((1 - compressed.length / data.length) * 100).toFixed(1);
+                setMsg(`✅ 压缩成功！原始大小：${data.length} 字节 -> 压缩后：${compressed.length} 字节 (压缩率: ${rate}%)`);
+            } catch(e) {
+                setMsg("❌ 压缩失败：" + e.message, true);
             }
-        }
-        document.getElementById("btnDecompress").onclick=()=>{
-            try{
-                const b64=src.value.trim();
-                const data=base64ToUint8(b64);
-                let decompressed;
-                if(modeSelect.value==="gzip"){
-                    decompressed=pako.gunzip(data);
-                }else{
-                    decompressed=pako.inflate(data);
-                }
-                const str=uint8ToUtf8(decompressed);
-                out.value=str;
-                setMsg(`✅ 解压完成，解压后：${str.length} 字符`);
-            }catch(e){
-                setMsg("❌ 解压失败："+e.message,true);
+        };
+
+        document.getElementById("btnDecompress").onclick = () => {
+            try {
+                const b64 = src.value.trim();
+                if(!b64){ setMsg("⚠️ 请输入待解压的 Base64 字符串！", true); return; }
+                const data = base64ToUint8(b64);
+                const decompressed = modeSelect.value === "gzip" ? pako.gunzip(data) : pako.inflate(data);
+                const str = uint8ToUtf8(decompressed);
+                out.value = str;
+                setMsg(`✅ 解压成功！解压后文本长度：${str.length} 字符`);
+            } catch(e) {
+                setMsg("❌ 解压失败，请检查输入是否为合法的压缩 Base64 串：" + e.message, true);
             }
-        }
-        document.getElementById("btnClear").onclick=()=>{src.value="";out.value="";setMsg("");}
-        copyBtn.onclick=async()=>{
-            if(!out.value){setMsg("暂无内容",true);return;}
-            try{await navigator.clipboard.writeText(out.value);setMsg("✅ 已复制");}
-            catch(e){setMsg("❌ 复制失败",true);}
-        }
-        initTheme();
+        };
+
+        document.getElementById("btnClear").onclick = () => { src.value = ""; out.value = ""; setMsg("已清空内容"); };
+        document.getElementById("copyResult").onclick = async () => {
+            if(!out.value){ setMsg("⚠️ 暂无内容可复制！", true); return; }
+            try {
+                await navigator.clipboard.writeText(out.value);
+                setMsg("✅ 结果已成功复制到剪贴板！");
+            } catch(e) {
+                setMsg("❌ 复制失败", true);
+            }
+        };
     </script>
 </body>
 </html>

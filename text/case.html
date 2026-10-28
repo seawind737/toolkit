@@ -3,168 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大小写转换</title>
+    <title>高级大小写转换与排版工具</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
             darkMode: ['class', '[data-theme="dark"]'],
             theme: {
-                extend: {
-                    colors: { primary: '#3b82f6' },
-                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
-                }
+                extend: { colors: { primary: '#3b82f6' } }
             }
         }
     </script>
     <style type="text/tailwindcss">
         @layer utilities {
             .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
-            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
+            .btn { @apply px-3 py-2 rounded-lg transition-all duration-200 text-xs flex items-center justify-center gap-1.5 cursor-pointer font-medium; }
             .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
-            .btn-danger { @apply bg-red-500 text-white hover:bg-red-500/80; }
+            .btn-danger { @apply bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25; }
             .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
         }
-        html[data-theme="dark"] {
-            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
-            --text-main: #e2e8f0;--text-sub: #94a3b8;--card-glow: rgba(59,130,246,0.08);
-        }
-        html[data-theme="light"] {
-            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
-            --text-main: #111827;--text-sub: #64748b;--card-glow: rgba(59,130,246,0.06);
-        }
-        body {
-            background-color: var(--bg); color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
-        }
-        body::before{
-            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
-            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
-        }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
-        }
-        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
-        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
-        .sub-panel-bg { background-color: var(--card-sub); }
-        .text-sub-color { color: var(--text-sub); }
-        textarea,input,select {
-            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
-            font-family: Consolas,Menlo,monospace;
-        }
-        textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
-        .copy-btn-inline { cursor:pointer; opacity:0.65; margin-left:8px; }
-        .copy-btn-inline:hover { opacity:1; }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; --input-bg: #020617; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; --input-bg: #f1f5f9; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; }
+        body::before { content:""; position:fixed; inset:0; z-index:-1; opacity:0.45; pointer-events:none; background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size:24px 24px; }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        textarea { background-color: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); font-family: Consolas, Menlo, monospace; }
+        textarea:focus { outline: none; border-color: #3b82f6; }
     </style>
 </head>
 <body class="flex flex-col">
     <header class="nav-bar-bg sticky top-0 z-10 border-b">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
-                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
-            </a>
-            <h1 class="text-xl font-bold text-gradient">大小写转换</h1>
-            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
-                <i class="fa-solid fa-moon" id="themeIcon"></i>
-            </button>
+            <a href="index.html" class="btn btn-outline flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i><span>返回首页</span></a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-font mr-2"></i>高级大小写转换</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
         </div>
     </header>
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <div class="flex flex-wrap gap-2 mb-5">
-                <button class="btn btn-primary" data-type="upper">全部大写</button>
-                <button class="btn btn-primary" data-type="lower">全部小写</button>
-                <button class="btn btn-primary" data-type="capital">首字母大写</button>
-                <button class="btn btn-primary" data-type="camel">小驼峰</button>
-                <button class="btn btn-primary" data-type="bigCamel">大驼峰</button>
-                <button class="btn btn-primary" data-type="snake">下划线</button>
-                <button class="btn btn-danger" id="btnClear">清空</button>
+
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow space-y-5">
+        <div class="tool-card p-6 rounded-2xl space-y-5">
+            <!-- 转换模式按钮矩阵 -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+                <button class="btn btn-outline" data-type="upper"><i class="fa-solid fa-arrow-up text-blue-400"></i>全部大写</button>
+                <button class="btn btn-outline" data-type="lower"><i class="fa-solid fa-arrow-down text-cyan-400"></i>全部小写</button>
+                <button class="btn btn-outline" data-type="capital"><i class="fa-solid fa-star text-amber-400"></i>首字母大写</button>
+                <button class="btn btn-outline" data-type="camel"><i class="fa-solid fa-code text-emerald-400"></i>小驼峰</button>
+                <button class="btn btn-outline" data-type="bigCamel"><i class="fa-solid fa-code text-purple-400"></i>大驼峰</button>
+                <button class="btn btn-outline" data-type="snake"><i class="fa-solid fa-minus text-rose-400"></i>下划线</button>
+                <button class="btn btn-outline" data-type="kebab"><i class="fa-solid fa-grip-lines text-indigo-400"></i>短横线</button>
+                <button class="btn btn-danger" id="btnClear"><i class="fa-solid fa-eraser"></i>清空</button>
             </div>
-            <div class="grid md:grid-cols-2 gap-6">
-                <div class="flex flex-col gap-3">
-                    <label class="text-sub-color">输入文本</label>
-                    <textarea id="srcText" rows="8" placeholder="输入待转换文本"></textarea>
+
+            <!-- 左右输入与输出 -->
+            <div class="grid md:grid-cols-2 gap-5">
+                <div class="flex flex-col space-y-2">
+                    <label class="text-xs font-bold text-[var(--text-sub)]"><i class="fa-solid fa-pen-to-square text-primary mr-1"></i>输入文本</label>
+                    <textarea id="srcText" rows="10" class="w-full p-3 rounded-xl text-xs resize-y" placeholder="在这里输入需要转换的文本..."></textarea>
                 </div>
-                <div class="flex flex-col gap-3">
-                    <label class="text-sub-color">输出结果 <i class="fa-solid fa-copy copy-btn-inline" id="copyResult" title="复制结果"></i></label>
-                    <textarea id="outText" rows="8" readonly></textarea>
+                <div class="flex flex-col space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-[var(--text-sub)]"><i class="fa-solid fa-square-poll-horizontal text-emerald-400 mr-1"></i>转换结果输出</span>
+                    </div>
+                    <textarea id="outText" rows="10" readonly class="w-full p-3 rounded-xl text-xs resize-y text-emerald-300" placeholder="转换后的结果将在此展示..."></textarea>
                 </div>
             </div>
-            <div class="mt-4">
-                <label class="block mb-1 text-sub-color">状态信息</label>
-                <div id="msgBox" class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color"></div>
+
+            <button id="copyResult" class="btn btn-outline text-[11px] py-1 px-2.5"><i class="fa-solid fa-copy text-emerald-400 mr-1"></i>复制结果</button>
+
+            <div id="msgBox" class="p-3 rounded-xl bg-[var(--card-sub)] text-xs text-[var(--text-sub)] border border-[var(--border)]">
+                💡 <b>提示</b>：支持驼峰命名法（CamelCase）、下划线（Snake_case）、短横线（Kebab-case）及基础大小写互转。
             </div>
         </div>
     </main>
+
     <footer class="nav-bar-bg border-t py-6 mt-10">
-        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+        <div class="container mx-auto px-4 text-center text-[var(--text-sub)] text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 纯前端本地处理</p>
+            <p class="mt-1">© 2026 开发者工具箱 | 文本处理中心</p>
         </div>
     </footer>
+
     <script>
         function initTheme(){
-            const t=localStorage.getItem("toolTheme")||"dark";
-            document.documentElement.setAttribute("data-theme",t);
-            updateThemeIcon(t);
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function updateThemeIcon(t){
-            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
-        }
-        document.getElementById("themeToggle").onclick=()=>{
-            const c=document.documentElement.getAttribute("data-theme");
-            const n=c==="dark"?"light":"dark";
-            document.documentElement.setAttribute("data-theme",n);
-            localStorage.setItem("toolTheme",n);
-            updateThemeIcon(n);
-        }
-        const src=document.getElementById("srcText");
-        const out=document.getElementById("outText");
-        const msgBox=document.getElementById("msgBox");
-        const copyBtn=document.getElementById("copyResult");
-        function setMsg(txt,err=false){
-            msgBox.innerText=txt;
-            msgBox.style.color=err?"#f87171":"var(--text-sub)";
-        }
-        function capital(str){
-            return str.toLowerCase().replace(/(^|\s)\w/g,m=>m.toUpperCase());
-        }
-        function camel(str){
-            return str.toLowerCase().replace(/[-_\s]+(.)?/g,(_,c)=>c?c.toUpperCase():"");
-        }
-        function bigCamel(str){
-            let s = str.toLowerCase().replace(/[-_\s]+(.)?/g,(_,c)=>c?c.toUpperCase():"");
-            return s.substring(0, 1).toUpperCase() + s.substring(1);
-        }
-        function snake(str){
-            return str.replace(/([A-Z])/g,"_$1").toLowerCase().replace(/\s+/g,"_").replace(/_+/g,"_");
-        }
-        document.querySelectorAll("[data-type]").forEach(btn=>{
-            btn.onclick=()=>{
-                const s=src.value;
-                let r="";
-                switch(btn.dataset.type){
-                    case "upper":r=s.toUpperCase();break;
-                    case "lower":r=s.toLowerCase();break;
-                    case "capital":r=capital(s);break;
-                    case "camel":r=camel(s);break;
-                    case "bigCamel":r=bigCamel(s);break;
-                    case "snake":r=snake(s);break;
-                }
-                out.value=r;
-                setMsg("✅ 转换完成");
-            }
-        })
-        document.getElementById("btnClear").onclick=()=>{src.value="";out.value="";setMsg("");}
-        copyBtn.onclick=async()=>{
-            if(!out.value){setMsg("暂无内容",true);return;}
-            try{await navigator.clipboard.writeText(out.value);setMsg("✅ 已复制");}
-            catch{e=>setMsg("❌ 复制失败",true)}
+        document.getElementById("themeToggle").onclick = () => {
+            const c = document.documentElement.getAttribute("data-theme");
+            const n = c === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", n);
+            localStorage.setItem("toolTheme", n);
+            document.getElementById("themeIcon").className = n === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
         initTheme();
+
+        const src = document.getElementById("srcText");
+        const out = document.getElementById("outText");
+        const msgBox = document.getElementById("msgBox");
+
+        function setMsg(txt, err=false){
+            msgBox.innerHTML = err ? `<span class="text-red-400">${txt}</span>` : `<span class="text-emerald-400">${txt}</span>`;
+        }
+
+        function toCapital(str){
+            return str.toLowerCase().replace(/(^|\s)\w/g, m => m.toUpperCase());
+        }
+        function toCamel(str){
+            return str.toLowerCase().replace(/[-_\s]+(.)?/g, (_, c) => c ? c.toUpperCase() : "");
+        }
+        function toBigCamel(str){
+            let s = toCamel(str);
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        }
+        function toSnake(str){
+            return str.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/[\s-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+        }
+        function toKebab(str){
+            return str.replace(/([A-Z])/g, "-$1").toLowerCase().replace(/[\s_]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+        }
+
+        document.querySelectorAll("[data-type]").forEach(btn => {
+            btn.onclick = () => {
+                const s = src.value;
+                if(!s){ setMsg("⚠️ 请先输入要转换的文本！", true); return; }
+                let r = "";
+                switch(btn.dataset.type){
+                    case "upper": r = s.toUpperCase(); break;
+                    case "lower": r = s.toLowerCase(); break;
+                    case "capital": r = toCapital(s); break;
+                    case "camel": r = toCamel(s); break;
+                    case "bigCamel": r = toBigCamel(s); break;
+                    case "snake": r = toSnake(s); break;
+                    case "kebab": r = toKebab(s); break;
+                }
+                out.value = r;
+                setMsg("✅ 转换成功！");
+            }
+        });
+
+        document.getElementById("btnClear").onclick = () => { src.value = ""; out.value = ""; setMsg("已清空内容"); };
+        document.getElementById("copyResult").onclick = async () => {
+            if(!out.value){ setMsg("⚠️ 暂无内容可复制！", true); return; }
+            try {
+                await navigator.clipboard.writeText(out.value);
+                setMsg("✅ 结果已成功复制到剪贴板！");
+            } catch(e) {
+                setMsg("❌ 复制失败，请手动选择复制", true);
+            }
+        };
     </script>
 </body>
 </html>

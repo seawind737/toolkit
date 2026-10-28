@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>迷宫生成器</title>
+    <title>🌀 迷宫生成与探索大挑战</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -17,39 +17,84 @@
             }
         }
     </script>
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
-            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
-            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
-            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
         }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
         html[data-theme="dark"] {
-            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
-            --text-main: #e2e8f0;--text-sub: #94a3b8;
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+            --maze-wall: #334155;
+            --maze-floor: #0f172a;
         }
         html[data-theme="light"] {
-            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
-            --text-main: #111827;--text-sub: #64748b;
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+            --maze-wall: #94a3b8;
+            --maze-floor: #ffffff;
         }
         body {
             background-color: var(--bg); color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
         }
-        body::before{
-            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
             background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
+            background-size: 24px 24px;
         }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
-        }
-        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
-        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
         .text-sub-color { color: var(--text-sub); }
-        canvas{border:1px solid var(--border);}
+
+        input, select {
+            background-color: var(--card); border: 1px solid var(--border); color: var(--text-main);
+            padding: 0.35rem 0.5rem; border-radius: 0.375rem;
+        }
+        input:focus, select:focus { outline: none; border-color: #3b82f6; }
+
+        canvas {
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* 方向盘按键样式 */
+        .dpad-btn {
+            width: 3rem;
+            height: 3rem;
+            background-color: var(--card-sub);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            user-select: none;
+            cursor: pointer;
+        }
+        .dpad-btn:active {
+            background-color: #3b82f6;
+            color: white;
+        }
     </style>
 </head>
 <body class="flex flex-col">
@@ -58,138 +103,404 @@
             <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
                 <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
             </a>
-            <h1 class="text-xl font-bold text-gradient">🌀 迷宫生成器</h1>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-compass-drafting mr-2"></i>迷宫生成与探索大挑战</h1>
             <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
                 <i class="fa-solid fa-moon" id="themeIcon"></i>
             </button>
         </div>
     </header>
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <div class="flex flex-wrap gap-3 mb-5 items-end">
-                <div class="flex flex-col gap-2">
-                    <label class="text-sub-color">宽</label>
-                    <input id="wEl" type="number" min="5" max="40" value="25" class="w-20">
+
+    <main class="container mx-auto px-4 py-6 max-w-5xl flex-grow">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-4">
+            
+            <!-- 控制菜单栏 -->
+            <div class="flex flex-wrap gap-3 items-center justify-between bg-[var(--card-sub)] p-3.5 rounded-xl">
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs text-sub-color">规格:</label>
+                        <select id="sizeSel" class="text-sm">
+                            <option value="easy">小型 (15×15)</option>
+                            <option value="mid" selected>中型 (25×25)</option>
+                            <option value="hard">大型 (35×35)</option>
+                            <option value="huge">巨大 (45×45)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs text-sub-color">角色:</label>
+                        <select id="avatarSel" class="text-sm">
+                            <option value="🚀">🚀 探险飞船</option>
+                            <option value="🧙">🧙 魔法师</option>
+                            <option value="🤖">🤖 机器人</option>
+                            <option value="🐱">🐱 探险猫</option>
+                        </select>
+                    </div>
+
+                    <button id="btnGen" class="btn btn-primary text-sm"><i class="fa-solid fa-rotate-right mr-1"></i>生成迷宫</button>
+                    <button id="btnHint" class="btn btn-outline text-amber-400 border-amber-500/40 text-sm"><i class="fa-solid fa-lightbulb mr-1"></i>路线提示</button>
+                    <button id="btnSolve" class="btn btn-outline text-cyan-400 border-cyan-500/40 text-sm"><i class="fa-solid fa-route mr-1"></i>自动解答</button>
                 </div>
-                <div class="flex flex-col gap-2">
-                    <label class="text-sub-color">高</label>
-                    <input id="hEl" type="number" min="5" max="40" value="20" class="w-20">
+
+                <div class="flex items-center gap-3 text-xs">
+                    <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                        <input id="chkFog" type="checkbox"/> 开启迷雾视界 🌫️
+                    </label>
                 </div>
-                <button id="btnGen" class="btn btn-primary"><i class="fa-solid fa-refresh"></i>生成迷宫</button>
-                <button id="btnSolve" class="btn btn-outline"><i class="fa-solid fa-route"></i>自动求解</button>
             </div>
-            <div class="overflow-auto">
+
+            <!-- 数据状态显示栏 -->
+            <div class="flex justify-around items-center py-2 bg-slate-950/40 rounded-xl border border-[var(--border)] text-sm font-semibold">
+                <div><i class="fa-solid fa-shoe-prints text-blue-400 mr-1.5"></i>步数: <span id="stepTxt" class="text-blue-400 font-bold">0</span></div>
+                <div><i class="fa-regular fa-clock text-cyan-400 mr-1.5"></i>用时: <span id="timerTxt" class="text-cyan-400 font-bold">00:00</span></div>
+                <div><i class="fa-solid fa-flag-checkered text-emerald-400 mr-1.5"></i>终点: <span class="text-emerald-400">🚩</span></div>
+            </div>
+
+            <!-- 画布 & 移动端控制器 -->
+            <div class="flex flex-col md:flex-row gap-6 items-center justify-center p-2 overflow-auto">
                 <canvas id="canvas"></canvas>
+
+                <!-- 虚拟方向控制手柄 (移动端支持) -->
+                <div class="flex flex-col items-center gap-1 my-2">
+                    <div class="text-xs text-sub-color mb-1">触控/按键方向控制</div>
+                    <button class="dpad-btn" id="btnUp"><i class="fa-solid fa-chevron-up"></i></button>
+                    <div class="flex gap-4">
+                        <button class="dpad-btn" id="btnLeft"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button class="dpad-btn" id="btnRight"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                    <button class="dpad-btn" id="btnDown"><i class="fa-solid fa-chevron-down"></i></button>
+                </div>
+            </div>
+
+            <div class="text-xs text-sub-color text-center border-t border-[var(--border)] pt-3">
+                💡 电脑端可直接使用键盘方向键 <kbd class="px-1 border rounded">↑</kbd> <kbd class="px-1 border rounded">↓</kbd> <kbd class="px-1 border rounded">←</kbd> <kbd class="px-1 border rounded">→</kbd> 或 <kbd class="px-1 border rounded">W</kbd> <kbd class="px-1 border rounded">A</kbd> <kbd class="px-1 border rounded">S</kbd> <kbd class="px-1 border rounded">D</kbd> 操控玩家走向终点 🚩。
             </div>
         </div>
     </main>
+
+    <!-- 胜利提示弹窗 -->
+    <div id="winModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="tool-card p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div class="text-5xl">🏆</div>
+            <h2 class="text-2xl font-bold text-gradient">成功逃离迷宫！</h2>
+            <p id="winBody" class="text-sub-color">一共探索了 42 步，耗时 00:35 秒！</p>
+            <button id="btnPlayAgain" class="btn btn-primary w-full py-2.5 font-bold">再玩一次</button>
+        </div>
+    </div>
+
     <footer class="nav-bar-bg border-t py-6 mt-10">
         <div class="container mx-auto px-4 text-center text-sub-color text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 小游戏</p>
+            <p class="mt-1">© 2026 工具集 | 益智探索</p>
         </div>
     </footer>
-    <script>
-        function initTheme(){
-            const t=localStorage.getItem("toolTheme")||"dark";
-            document.documentElement.setAttribute("data-theme",t);
-            updateThemeIcon(t);
-        }
-        function updateThemeIcon(t){
-            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
-        }
-        document.getElementById("themeToggle").onclick=()=>{
-            const c=document.documentElement.getAttribute("data-theme");
-            const n=c==="dark"?"light":"dark";
-            document.documentElement.setAttribute("data-theme",n);
-            localStorage.setItem("toolTheme",n);
-            updateThemeIcon(n);
-        }
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const wEl = document.getElementById('wEl');
-        const hEl = document.getElementById('hEl');
-        const btnGen = document.getElementById('btnGen');
-        const btnSolve = document.getElementById('btnSolve');
-        const CELL=12;
-        let W=25,H=20;
-        let grid=[];
-        const DIRS = [[0,-2],[2,0],[0,2],[-2,0]];
 
-        function createMosaic(w,h){
-            W=Number(wEl.value); H=Number(hEl.value);
-            W = W%2===1?W:W+1;
-            H = H%2===1?H:H+1;
-            wEl.value=W; hEl.value=H;
-            canvas.width = W*CELL;
-            canvas.height = H*CELL;
-            grid = Array(H).fill().map(()=>Array(W).fill(1));
-            const stack = [[1,1]];
-            grid[1][1]=0;
-            while(stack.length>0){
-                const [x,y] = stack.pop();
-                const sh = [...DIRS].sort(()=>Math.random()-0.5);
-                for(const [dx,dy] of sh){
-                    const nx=x+dx, ny=y+dy;
-                    if(nx>0&&nx<W-1&&ny>0&&ny<H-1&&grid[ny][nx]===1){
-                        grid[y+dy/2][x+dx/2]=0;
-                        grid[ny][nx]=0;
-                        stack.push([nx,ny]);
-                    }
-                }
-            }
-            grid[1][0]=0;
-            grid[H-2][W-1]=0;
-            drawMaze(null);
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+    drawMaze();
+};
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const sizeSel = document.getElementById('sizeSel');
+const avatarSel = document.getElementById('avatarSel');
+const chkFog = document.getElementById('chkFog');
+const btnGen = document.getElementById('btnGen');
+const btnHint = document.getElementById('btnHint');
+const btnSolve = document.getElementById('btnSolve');
+const stepTxt = document.getElementById('stepTxt');
+const timerTxt = document.getElementById('timerTxt');
+const winModal = document.getElementById('winModal');
+const winBody = document.getElementById('winBody');
+const btnPlayAgain = document.getElementById('btnPlayAgain');
+
+const btnUp = document.getElementById('btnUp');
+const btnDown = document.getElementById('btnDown');
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+
+let W = 25, H = 25;
+let CELL_SIZE = 16;
+let grid = []; // 0: 可通行通道, 1: 墙体
+let playerPos = { x: 1, y: 1 };
+let endPos = { x: 23, y: 23 };
+let stepCount = 0;
+let seconds = 0;
+let timer = null;
+let gameWon = false;
+let currentPathHint = null;
+
+// 音效系统
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type){
+    try {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const now = audioCtx.currentTime;
+
+        if(type === 'move'){
+            osc.frequency.setValueAtTime(400, now);
+            gain.gain.setValueAtTime(0.04, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.04);
+        } else if(type === 'win'){
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.setValueAtTime(659.25, now + 0.1);
+            osc.frequency.setValueAtTime(783.99, now + 0.2);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.45);
         }
-        function drawMaze(path){
-            const isDark = document.documentElement.dataset.theme==='dark';
-            const wall = isDark ? '#475569':'#334155';
-            const floor = isDark ? '#0f172a':'#ffffff';
-            const solveColor='#22d3ee';
-            ctx.fillStyle=wall;
-            ctx.fillRect(0,0,canvas.width,canvas.height);
-            for(let y=0;y<H;y++){
-                for(let x=0;x<W;x++){
-                    if(grid[y][x]===0){
-                        ctx.fillStyle = floor;
-                        ctx.fillRect(x*CELL,y*CELL,CELL,CELL);
-                    }
-                }
-            }
-            if(path){
-                ctx.fillStyle = solveColor;
-                for(const [px,py] of path){
-                    ctx.fillRect(px*CELL,py*CELL,CELL,CELL);
-                }
-            }
-        }
-        function solveMaze(){
-            const sx=0,sy=1;
-            const ex=W-1,ey=H-2;
-            const visited = Array(H).fill().map(()=>Array(W).fill(false));
-            const q = [[sx,sy,[[sx,sy]]]];
-            visited[sy][sx]=true;
-            const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-            while(q.length>0){
-                const [x,y,path] = q.shift();
-                if(x===ex&&y===ey){
-                    drawMaze(path);
-                    return;
-                }
-                for(const [dx,dy] of dirs){
-                    const nx=x+dx, ny=y+dy;
-                    if(nx>=0&&nx<W&&ny>=0&&ny<H&&grid[ny][nx]===0&&!visited[ny][nx]){
-                        visited[ny][nx]=true;
-                        q.push([nx,ny,[...path,[nx,ny]]]);
-                    }
-                }
+    } catch(e){}
+}
+
+function getGridSize(){
+    const val = sizeSel.value;
+    if(val === 'easy') { W = 15; H = 15; CELL_SIZE = 24; }
+    else if(val === 'mid') { W = 25; H = 25; CELL_SIZE = 16; }
+    else if(val === 'hard') { W = 35; H = 35; CELL_SIZE = 12; }
+    else { W = 45; H = 45; CELL_SIZE = 10; }
+}
+
+// DFS 回溯法随机生成迷宫
+function generateMaze(){
+    getGridSize();
+    canvas.width = W * CELL_SIZE;
+    canvas.height = H * CELL_SIZE;
+
+    // 初始化为全墙体
+    grid = Array(H).fill().map(() => Array(W).fill(1));
+
+    const stack = [[1, 1]];
+    grid[1][1] = 0;
+
+    const DIRS = [[0, -2], [2, 0], [0, 2], [-2, 0]];
+
+    while(stack.length > 0){
+        const [cx, cy] = stack[stack.length - 1];
+        const neighbors = [];
+
+        for(const [dx, dy] of DIRS){
+            const nx = cx + dx, ny = cy + dy;
+            if(nx > 0 && nx < W - 1 && ny > 0 && ny < H - 1 && grid[ny][nx] === 1){
+                neighbors.push([nx, ny, dx, dy]);
             }
         }
-        btnGen.onclick = createMosaic;
-        btnSolve.onclick = solveMaze;
-        createMosaic();
-        initTheme();
-    </script>
+
+        if(neighbors.length > 0){
+            const [nx, ny, dx, dy] = neighbors[Math.floor(Math.random() * neighbors.length)];
+            grid[cy + dy / 2][cx + dx / 2] = 0;
+            grid[ny][nx] = 0;
+            stack.push([nx, ny]);
+        } else {
+            stack.pop();
+        }
+    }
+
+    playerPos = { x: 1, y: 1 };
+    endPos = { x: W - 2, y: H - 2 };
+    grid[endPos.y][endPos.x] = 0;
+
+    stepCount = 0;
+    seconds = 0;
+    gameWon = false;
+    currentPathHint = null;
+    stepTxt.innerText = '0';
+    timerTxt.innerText = '00:00';
+    winModal.classList.add('hidden');
+
+    startTimer();
+    drawMaze();
+}
+
+function startTimer(){
+    clearInterval(timer);
+    timer = setInterval(() => {
+        if(!gameWon){
+            seconds++;
+            const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+            const s = String(seconds % 60).padStart(2, '0');
+            timerTxt.innerText = `${m}:${s}`;
+        }
+    }, 1000);
+}
+
+// 绘制迷宫及视角
+function drawMaze(){
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    const wallColor = isDark ? '#334155' : '#cbd5e1';
+    const floorColor = isDark ? '#0f172a' : '#ffffff';
+    const isFog = chkFog.checked;
+
+    ctx.fillStyle = wallColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 绘制通道
+    for(let r = 0; r < H; r++){
+        for(let c = 0; c < W; c++){
+            if(grid[r][c] === 0){
+                ctx.fillStyle = floorColor;
+                ctx.fillRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            }
+        }
+    }
+
+    // 绘制路径提示
+    if(currentPathHint){
+        ctx.fillStyle = 'rgba(34, 211, 238, 0.45)';
+        for(const [px, py] of currentPathHint){
+            ctx.fillRect(px * CELL_SIZE, py * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        }
+    }
+
+    // 绘制终点 🚩
+    ctx.font = `${CELL_SIZE * 0.8}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🚩', (endPos.x + 0.5) * CELL_SIZE, (endPos.y + 0.5) * CELL_SIZE);
+
+    // 绘制主角 🚀 / 🧙
+    const avatar = avatarSel.value;
+    ctx.fillText(avatar, (playerPos.x + 0.5) * CELL_SIZE, (playerPos.y + 0.5) * CELL_SIZE);
+
+    // 战争迷雾遮罩绘制
+    if(isFog){
+        const fogRadius = 3.5 * CELL_SIZE;
+        ctx.save();
+        ctx.fillStyle = isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(248, 250, 252, 0.96)';
+        ctx.beginPath();
+        ctx.rect(0, 0, canvas.width, canvas.height);
+        ctx.arc((playerPos.x + 0.5) * CELL_SIZE, (playerPos.y + 0.5) * CELL_SIZE, fogRadius, 0, Math.PI * 2, true);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+// 移动主角逻辑
+function movePlayer(dx, dy){
+    if(gameWon) return;
+
+    const nx = playerPos.x + dx;
+    const ny = playerPos.y + dy;
+
+    if(nx >= 0 && nx < W && ny >= 0 && ny < H && grid[ny][nx] === 0){
+        playerPos.x = nx;
+        playerPos.y = ny;
+        stepCount++;
+        stepTxt.innerText = stepCount;
+        playSound('move');
+
+        if(currentPathHint) currentPathHint = null;
+
+        drawMaze();
+        checkWin();
+    }
+}
+
+function checkWin(){
+    if(playerPos.x === endPos.x && playerPos.y === endPos.y){
+        gameWon = true;
+        clearInterval(timer);
+        playSound('win');
+
+        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        winBody.innerText = `太棒了！你用 ${stepCount} 步，耗时 ${m}:${s} 成功通关！`;
+        winModal.classList.remove('hidden');
+        winModal.classList.add('flex');
+    }
+}
+
+// 广度优先搜索 BFS 自动路径求解
+function findPath(startX, startY, targetX, targetY){
+    const visited = Array(H).fill().map(() => Array(W).fill(false));
+    const queue = [[startX, startY, [[startX, startY]]]];
+    visited[startY][startX] = true;
+
+    const DIRS = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+
+    while(queue.length > 0){
+        const [cx, cy, path] = queue.shift();
+        if(cx === targetX && cy === targetY) return path;
+
+        for(const [dx, dy] of DIRS){
+            const nx = cx + dx, ny = cy + dy;
+            if(nx >= 0 && nx < W && ny >= 0 && ny < H && grid[ny][nx] === 0 && !visited[ny][nx]){
+                visited[ny][nx] = true;
+                queue.push([nx, ny, [...path, [nx, ny]]]);
+            }
+        }
+    }
+    return null;
+}
+
+btnHint.onclick = () => {
+    if(gameWon) return;
+    const path = findPath(playerPos.x, playerPos.y, endPos.x, endPos.y);
+    currentPathHint = path;
+    drawMaze();
+};
+
+btnSolve.onclick = () => {
+    if(gameWon) return;
+    const path = findPath(playerPos.x, playerPos.y, endPos.x, endPos.y);
+    if(!path) return;
+
+    currentPathHint = path;
+    let idx = 0;
+    const solveInterval = setInterval(() => {
+        if(idx < path.length){
+            playerPos.x = path[idx][0];
+            playerPos.y = path[idx][1];
+            stepCount++;
+            stepTxt.innerText = stepCount;
+            drawMaze();
+            idx++;
+        } else {
+            clearInterval(solveInterval);
+            checkWin();
+        }
+    }, 50);
+};
+
+// 键盘控制绑定
+document.addEventListener('keydown', (e) => {
+    if(['ArrowUp', 'w', 'W'].includes(e.key)) movePlayer(0, -1);
+    else if(['ArrowDown', 's', 'S'].includes(e.key)) movePlayer(0, 1);
+    else if(['ArrowLeft', 'a', 'A'].includes(e.key)) movePlayer(-1, 0);
+    else if(['ArrowRight', 'd', 'D'].includes(e.key)) movePlayer(1, 0);
+});
+
+// 虚拟手柄按键绑定
+btnUp.onclick = () => movePlayer(0, -1);
+btnDown.onclick = () => movePlayer(0, 1);
+btnLeft.onclick = () => movePlayer(-1, 0);
+btnRight.onclick = () => movePlayer(1, 0);
+
+sizeSel.onchange = generateMaze;
+avatarSel.onchange = drawMaze;
+chkFog.onchange = drawMaze;
+btnGen.onclick = generateMaze;
+btnPlayAgain.onclick = generateMaze;
+
+initTheme();
+generateMaze();
+</script>
 </body>
 </html>

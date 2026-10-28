@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIF 动图帧处理工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = { darkMode: ['class', '[data-theme="dark"]'], theme: { extend: { colors: { primary: '#3b82f6' } } } }
+    </script>
+    <style>
+        .text-gradient { background-clip: text; -webkit-background-clip: text; color: transparent; background-image: linear-gradient(to right, #60a5fa, #22d3ee); }
+        .btn { padding: 0.5rem 0.85rem; border-radius: 0.5rem; transition: all 0.2s; font-size: 0.875rem; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); background-color: var(--card); color: var(--text-main); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="bg-[var(--card)] border-b border-[var(--border)] sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline"><i class="fa-solid fa-arrow-left mr-2"></i>返回首页</a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-film mr-2"></i>GIF 动图处理中心</h1>
+            <button id="themeToggle" class="btn btn-outline"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow space-y-6">
+        <div class="tool-card p-6 rounded-2xl space-y-4">
+            <div class="border-2 border-dashed border-[var(--border)] rounded-2xl p-8 text-center cursor-pointer hover:border-blue-500 transition-colors" id="dropZone">
+                <input type="file" id="fileInput" accept="image/*" multiple class="hidden">
+                <i class="fa-solid fa-images text-4xl text-blue-500 mb-3"></i>
+                <p class="font-bold text-sm">上传多张连续帧图片（按顺序多选）</p>
+                <p class="text-xs text-sub-color mt-1">支持实时预览播放与帧率调整</p>
+            </div>
+
+            <div id="controlPanel" class="hidden space-y-4 text-xs">
+                <div class="flex items-center justify-between bg-[var(--card-sub)] p-3 rounded-xl">
+                    <div class="flex items-center gap-3">
+                        <span>播放速度 (FPS): <span id="fpsVal">5</span></span>
+                        <input id="fpsRange" type="range" min="1" max="20" value="5" class="accent-blue-500">
+                    </div>
+                    <button id="btnPlay" class="btn btn-primary text-xs"><i class="fa-solid fa-play mr-1"></i>播放动画预览</button>
+                </div>
+
+                <div class="flex justify-center bg-slate-950/40 p-6 rounded-2xl border border-[var(--border)]">
+                    <canvas id="animCanvas" class="max-w-full rounded-lg shadow-lg bg-black" width="300" height="300"></canvas>
+                </div>
+
+                <div class="grid grid-cols-4 sm:grid-cols-8 gap-2 pt-2" id="framesContainer"></div>
+            </div>
+        </div>
+    </main>
+
+<script>
+document.getElementById('themeToggle').onclick = () => {
+    const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('toolTheme', t);
+    document.getElementById('themeIcon').className = t === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+};
+const savedT = localStorage.getItem('toolTheme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedT);
+document.getElementById('themeIcon').className = savedT === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+
+let loadedImages = [];
+let animInterval = null;
+let currentFrame = 0;
+
+const fileInput = document.getElementById('fileInput');
+const dropZone = document.getElementById('dropZone');
+const controlPanel = document.getElementById('controlPanel');
+const animCanvas = document.getElementById('animCanvas');
+const ctx = animCanvas.getContext('2d');
+const framesContainer = document.getElementById('framesContainer');
+const fpsRange = document.getElementById('fpsRange');
+const fpsVal = document.getElementById('fpsVal');
+
+dropZone.onclick = () => fileInput.click();
+fileInput.onchange = (e) => {
+    const files = Array.from(e.target.files);
+    if(files.length === 0) return;
+    loadedImages = [];
+    framesContainer.innerHTML = '';
+    controlPanel.classList.remove('hidden');
+
+    let loadedCount = 0;
+    files.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            const img = new Image();
+            img.onload = () => {
+                loadedImages[idx] = img;
+                loadedCount++;
+                if(loadedCount === files.length){
+                    initAnim();
+                }
+            };
+            img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+};
+
+function initAnim(){
+    if(loadedImages.length === 0) return;
+    animCanvas.width = loadedImages[0].naturalWidth || 300;
+    animCanvas.height = loadedImages[0].naturalHeight || 300;
+    ctx.drawImage(loadedImages[0], 0, 0);
+
+    framesContainer.innerHTML = '';
+    loadedImages.forEach((img, i) => {
+        const thumb = document.createElement('img');
+        thumb.src = img.src;
+        thumb.className = 'w-16 h-16 object-cover rounded border border-[var(--border)]';
+        framesContainer.appendChild(thumb);
+    });
+
+    startPlay();
+}
+
+function startPlay(){
+    if(animInterval) clearInterval(animInterval);
+    const fps = parseInt(fpsRange.value);
+    fpsVal.innerText = fps;
+    animInterval = setInterval(() => {
+        if(loadedImages.length === 0) return;
+        ctx.clearRect(0, 0, animCanvas.width, animCanvas.height);
+        ctx.drawImage(loadedImages[currentFrame], 0, 0);
+        currentFrame = (currentFrame + 1) % loadedImages.length;
+    }, 1000 / fps);
+}
+
+fpsRange.oninput = startPlay;
+document.getElementById('btnPlay').onclick = startPlay;
+</script>
+</body>
+</html>

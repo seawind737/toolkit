@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正则表达式综合工作站 - 可视化/测试/生成/字典</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
+        }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-success { background-color: #10b981; color: white; }
+        .btn-success:hover { background-color: rgba(16, 185, 129, 0.8); }
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-danger:hover { background-color: rgba(239, 68, 68, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+            --canvas-bg: #020617;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+            --canvas-bg: #f8fafc;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+        .select-sub-color { background-color: var(--card); color: var(--text-main); }
+
+        input, select, textarea {
+            background-color: var(--card); border: 1px solid var(--border); color: var(--text-main);
+            padding: 0.35rem 0.5rem; border-radius: 0.375rem; font-family: Consolas, Monaco, monospace;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6; }
+
+        .railroad-container {
+            background-color: var(--canvas-bg);
+            border: 2px dashed var(--border);
+            border-radius: 0.75rem;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: auto;
+            padding: 1rem;
+        }
+        .rr-node {
+            display: inline-flex; align-items: center; padding: 0.3rem 0.6rem;
+            border-radius: 0.375rem; font-family: monospace; font-size: 0.8rem; box-shadow: 0 2px 6px rgba(0,0,0,0.25); white-space: nowrap;
+        }
+        .rr-literal { background-color: #3b82f6; color: white; }
+        .rr-group { background-color: #10b981; color: white; }
+        .rr-quant { background-color: #f59e0b; color: white; }
+        .rr-anchor { background-color: #ef4444; color: white; }
+        .rr-line { height: 2px; background-color: var(--border); width: 16px; flex-shrink: 0; }
+        .rr-circle { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #38bdf8; flex-shrink: 0; }
+
+        .tab-btn { padding: 0.4rem 0.85rem; border-radius: 0.5rem; font-size: 0.85rem; transition: all 0.2s; cursor: pointer; }
+        .tab-btn.active { background-color: #3b82f6; color: white; font-weight: bold; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-asterisk mr-2"></i>正则表达式综合工作站</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-6xl flex-grow space-y-6">
+        
+        <!-- 核心正则输入与修饰符控制区 -->
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-4">
+            <div class="flex flex-wrap gap-3 items-center justify-between bg-[var(--card-sub)] p-3.5 rounded-xl">
+                <div class="flex flex-wrap items-center gap-2 flex-grow">
+                    <span class="text-xl font-mono font-bold text-cyan-400">/</span>
+                    <input id="regexInput" type="text" value="[a-zA-Z0-9_-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}" placeholder="在此输入正则表达式" class="flex-grow font-mono text-sm py-2">
+                    <span class="text-xl font-mono font-bold text-cyan-400">/</span>
+                    
+                    <!-- 修饰符选择区 -->
+                    <div class="flex items-center gap-3 font-mono text-xs select-none pl-2 border-l border-[var(--border)]">
+                        <label class="flex items-center gap-1 cursor-pointer" title="全局匹配：查找所有匹配项"><input type="checkbox" id="flagG" checked class="accent-blue-500">g</label>
+                        <label class="flex items-center gap-1 cursor-pointer" title="忽略大小写：不区分大小写"><input type="checkbox" id="flagI" class="accent-blue-500">i</label>
+                        <label class="flex items-center gap-1 cursor-pointer" title="多行模式：^ 和 $ 匹配每行首尾"><input type="checkbox" id="flagM" class="accent-blue-500">m</label>
+                        <label class="flex items-center gap-1 cursor-pointer" title="单行通配：点号 . 匹配换行符"><input type="checkbox" id="flagS" class="accent-blue-500">s</label>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <select id="presetSel" class="text-xs select-sub-color p-2 rounded max-w-[160px]">
+                        <option value="">常用正则词典...</option>
+                        <option value="[a-zA-Z0-9_-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}">📧 电子邮箱</option>
+                        <option value="1[3-9]\d{9}">📱 手机号码</option>
+                        <option value="[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]">🪪 18位身份证</option>
+                        <option value="(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?">🌐 URL网址</option>
+                        <option value="\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])">📅 日期 YYYY-MM-DD</option>
+                    </select>
+                    <button id="btnCopyRegex" class="btn btn-outline text-xs"><i class="fa-solid fa-copy mr-1"></i>复制</button>
+                    <button id="btnClearAll" class="btn btn-danger text-xs"><i class="fa-solid fa-eraser mr-1"></i>清空</button>
+                </div>
+            </div>
+
+            <!-- 修饰符说明面板 -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-[var(--card-sub)] p-3 rounded-xl text-sub-color">
+                <div><code class="text-cyan-400 font-bold">g (Global)</code>: 全局匹配所有结果</div>
+                <div><code class="text-cyan-400 font-bold">i (Ignore)</code>: 忽略大小写差异</div>
+                <div><code class="text-cyan-400 font-bold">m (Multiline)</code>: 多行首尾定位 (^/$)</div>
+                <div><code class="text-cyan-400 font-bold">s (DotAll)</code>: 点号通配换行符</div>
+            </div>
+
+            <!-- 可视化铁路结构图 -->
+            <div class="space-y-2">
+                <div class="flex justify-between items-center text-xs text-sub-color">
+                    <span><i class="fa-solid fa-route text-primary mr-1"></i>可视化语法铁路图 (Railroad Diagram)</span>
+                    <span id="validStatus" class="text-emerald-400 font-bold"><i class="fa-solid fa-check mr-1"></i>语法正确</span>
+                </div>
+                <div id="diagram" class="railroad-container"></div>
+            </div>
+        </div>
+
+        <!-- 功能切换 Tab -->
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-4">
+            <div class="flex border-b border-[var(--border)] pb-3 gap-2 overflow-x-auto">
+                <button id="tabTest" class="tab-btn active"><i class="fa-solid fa-vial mr-1"></i>正则测试与替换</button>
+                <button id="tabGen" class="tab-btn"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>可视组件生成器</button>
+                <button id="tabDict" class="tab-btn"><i class="fa-solid fa-book mr-1"></i>常用元字符与语法字典</button>
+            </div>
+
+            <!-- TAB 1: 测试与替换 -->
+            <div id="panelTest" class="space-y-4">
+                <div class="bg-[var(--card-sub)] p-3 rounded-xl text-xs text-sub-color space-y-1">
+                    <p>💡 <b>正则测试与替换说明：</b></p>
+                    <p>• <b>测试提取</b>：在大段文本中查找并提取所有符合规则的内容（如抓取文章中的所有 Email）。输入原文后点击<b>「执行测试」</b>即可。</p>
+                    <p>• <b>批量替换</b>：将匹配到的内容批量替换为指定文本（如将文章中的手机号替换为 <code>***</code>）。输入替换内容后点击<b>「执行替换」</b>即可。</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-xs text-sub-color font-bold flex justify-between">
+                            <span>待测试原文 (Input)</span>
+                            <span id="matchCountTxt" class="text-cyan-400">已匹配 0 项</span>
+                        </label>
+                        <textarea id="testSrcText" rows="6" placeholder="在此输入测试文本，例如: 请联系 admin@example.com 或 support@test.cn 获取帮助。" class="w-full text-xs font-mono"></textarea>
+                        
+                        <div class="flex gap-2 pt-1">
+                            <button id="btnRunTest" class="btn btn-primary text-xs flex-1"><i class="fa-solid fa-play mr-1"></i>执行测试 (提取匹配项)</button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-xs text-sub-color font-bold flex justify-between">
+                            <span>替换为 (Replace With)</span>
+                            <span class="text-emerald-400 cursor-pointer" id="btnCopyResult"><i class="fa-solid fa-copy mr-1"></i>复制结果</span>
+                        </label>
+                        <input id="replaceInput" type="text" placeholder="输入替换后的文本，例如: [已隐藏]" class="w-full text-xs font-mono mb-2">
+                        <textarea id="testResultText" rows="4" readonly placeholder="测试提取或替换后的结果将在此显示..." class="w-full text-xs font-mono bg-slate-950/60 text-emerald-400"></textarea>
+                        
+                        <div class="flex gap-2 pt-1">
+                            <button id="btnRunReplace" class="btn btn-success text-xs flex-1"><i class="fa-solid fa-rotate mr-1"></i>执行批量替换</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: 可视化交互生成器 -->
+            <div id="panelGen" class="hidden space-y-4">
+                <div class="text-xs text-sub-color mb-2">勾选所需特征，系统将自动拼装出对应的正则表达式：</div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                    <div class="p-3 bg-[var(--card-sub)] rounded-xl space-y-2">
+                        <div class="font-bold text-primary">包含字符类</div>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="genNum" checked class="accent-blue-500"> 数字 (0-9)</label>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="genLower" checked class="accent-blue-500"> 小写字母 (a-z)</label>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="genUpper" checked class="accent-blue-500"> 大写字母 (A-Z)</label>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="genChinese" class="accent-blue-500"> 中文字符</label>
+                    </div>
+
+                    <div class="p-3 bg-[var(--card-sub)] rounded-xl space-y-2">
+                        <div class="font-bold text-emerald-400">长度限制</div>
+                        <div class="flex items-center gap-2">
+                            <span>最少:</span><input id="genMinLen" type="number" value="4" class="w-16">
+                            <span>最多:</span><input id="genMaxLen" type="number" value="16" class="w-16">
+                        </div>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="genAnchor" checked class="accent-blue-500"> 精确全文本匹配 (^ ... $)</label>
+                    </div>
+
+                    <div class="p-3 bg-[var(--card-sub)] rounded-xl space-y-2">
+                        <div class="font-bold text-amber-400">快捷模式</div>
+                        <button id="btnGenEmail" class="btn btn-outline w-full text-xs py-1">生成 Email 表达式</button>
+                        <button id="btnGenPhone" class="btn btn-outline w-full text-xs py-1">生成 手机号 表达式</button>
+                    </div>
+                </div>
+
+                <button id="btnApplyGen" class="btn btn-primary text-xs font-bold w-full py-2.5"><i class="fa-solid fa-bolt mr-1"></i>应用生成的表达式到上方工作台</button>
+            </div>
+
+            <!-- TAB 3: 常用元字符与语法字典 -->
+            <div id="panelDict" class="hidden space-y-4 text-xs">
+                <div class="text-sub-color">以下为您整理了正则表达式中最常用、最核心的元字符与语法速查表：</div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 bg-[var(--card-sub)] rounded-xl space-y-3">
+                        <div class="font-bold text-primary text-sm border-b border-[var(--border)] pb-2">常用字符类简写</div>
+                        <ul class="space-y-2 font-mono">
+                            <li><code class="text-cyan-400">\d</code> : 匹配任意数字，等价于 <span class="text-sub-color">[0-9]</span></li>
+                            <li><code class="text-cyan-400">\D</code> : 匹配任意非数字字符，等价于 <span class="text-sub-color">[^0-9]</span></li>
+                            <li><code class="text-cyan-400">\w</code> : 匹配字母、数字、下划线，等价于 <span class="text-sub-color">[a-zA-Z0-9_]</span></li>
+                            <li><code class="text-cyan-400">\W</code> : 匹配任意非单词字符</li>
+                            <li><code class="text-cyan-400">\s</code> : 匹配任意空白字符（空格、Tab、换行符）</li>
+                            <li><code class="text-cyan-400">\S</code> : 匹配任意非空白字符（所有可见文本字符）</li>
+                            <li><code class="text-cyan-400">.</code> : 匹配除换行符之外的任意单个字符</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-4 bg-[var(--card-sub)] rounded-xl space-y-3">
+                        <div class="font-bold text-emerald-400 text-sm border-b border-[var(--border)] pb-2">量词与边界锚点</div>
+                        <ul class="space-y-2 font-mono">
+                            <li><code class="text-amber-400">*</code> : 匹配前面的子表达式零次或多次（如 <span class="text-sub-color">\d*</span>）</li>
+                            <li><code class="text-amber-400">+</code> : 匹配前面的子表达式一次或多次（如 <span class="text-sub-color">\d+</span>，至少1个）</li>
+                            <li><code class="text-amber-400">?</code> : 匹配零次或一次，或用于非贪婪匹配</li>
+                            <li><code class="text-amber-400">{n,m}</code> : 匹配前面的子表达式至少 n 次，至多 m 次</li>
+                            <li><code class="text-red-400">^</code> : 匹配输入字符串的开始位置（如 <span class="text-sub-color">^\d</span> 以数字开头）</li>
+                            <li><code class="text-red-400">$</code> : 匹配输入字符串的结束位置（如 <span class="text-sub-color">\d$</span> 以数字结尾）</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 纯前端本地安全处理</p>
+        </div>
+    </footer>
+
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
+
+const regexInput = document.getElementById('regexInput');
+const presetSel = document.getElementById('presetSel');
+const diagram = document.getElementById('diagram');
+const validStatus = document.getElementById('validStatus');
+
+const flagG = document.getElementById('flagG');
+const flagI = document.getElementById('flagI');
+const flagM = document.getElementById('flagM');
+const flagS = document.getElementById('flagS');
+
+const testSrcText = document.getElementById('testSrcText');
+const replaceInput = document.getElementById('replaceInput');
+const testResultText = document.getElementById('testResultText');
+const matchCountTxt = document.getElementById('matchCountTxt');
+
+const tabTest = document.getElementById('tabTest');
+const tabGen = document.getElementById('tabGen');
+const tabDict = document.getElementById('tabDict');
+
+const panelTest = document.getElementById('panelTest');
+const panelGen = document.getElementById('panelGen');
+const panelDict = document.getElementById('panelDict');
+
+tabTest.onclick = () => {
+    tabTest.className = 'tab-btn active'; tabGen.className = 'tab-btn'; tabDict.className = 'tab-btn';
+    panelTest.classList.remove('hidden'); panelGen.classList.add('hidden'); panelDict.classList.add('hidden');
+};
+tabGen.onclick = () => {
+    tabGen.className = 'tab-btn active'; tabTest.className = 'tab-btn'; tabDict.className = 'tab-btn';
+    panelGen.classList.remove('hidden'); panelTest.classList.add('hidden'); panelDict.classList.add('hidden');
+};
+tabDict.onclick = () => {
+    tabDict.className = 'tab-btn active'; tabTest.className = 'tab-btn'; tabGen.className = 'tab-btn';
+    panelDict.classList.remove('hidden'); panelTest.classList.add('hidden'); panelGen.classList.add('hidden');
+};
+
+function getFlags(){
+    let f = '';
+    if(flagG.checked) f += 'g';
+    if(flagI.checked) f += 'i';
+    if(flagM.checked) f += 'm';
+    if(flagS.checked) f += 's';
+    return f;
+}
+
+function getRegExpObj(){
+    const pattern = regexInput.value.trim();
+    if(!pattern) return null;
+    try {
+        const flags = getFlags();
+        const reg = new RegExp(pattern, flags);
+        validStatus.innerHTML = `<i class="fa-solid fa-check mr-1"></i>语法正确`;
+        validStatus.className = `text-emerald-400 font-bold`;
+        renderRailroad(pattern);
+        return reg;
+    } catch(e){
+        validStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i>语法错误`;
+        validStatus.className = `text-red-400 font-bold`;
+        diagram.innerHTML = `<span class="text-red-400 text-xs font-mono">${e.message}</span>`;
+        return null;
+    }
+}
+
+function renderRailroad(pattern){
+    diagram.innerHTML = '';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex items-center gap-1 flex-wrap justify-center';
+
+    const startCircle = document.createElement('div');
+    startCircle.className = 'rr-circle';
+    wrapper.appendChild(startCircle);
+
+    const tokens = tokenizeRegex(pattern);
+    tokens.forEach(token => {
+        const line = document.createElement('div');
+        line.className = 'rr-line';
+        wrapper.appendChild(line);
+
+        const node = document.createElement('div');
+        node.className = `rr-node ${token.cls}`;
+        node.innerText = token.text;
+        wrapper.appendChild(node);
+    });
+
+    const endLine = document.createElement('div');
+    endLine.className = 'rr-line';
+    wrapper.appendChild(endLine);
+
+    const endCircle = document.createElement('div');
+    endCircle.className = 'rr-circle border-emerald-400';
+    wrapper.appendChild(endCircle);
+
+    diagram.appendChild(wrapper);
+}
+
+function tokenizeRegex(str){
+    const tokens = [];
+    let i = 0;
+    while(i < str.length){
+        const ch = str[i];
+        if(ch === '^'){
+            tokens.push({ text: '匹配开头 (^)', cls: 'rr-anchor' }); i++;
+        } else if(ch === '$'){
+            tokens.push({ text: '匹配结尾 ($)', cls: 'rr-anchor' }); i++;
+        } else if(ch === '['){
+            let end = str.indexOf(']', i);
+            if(end === -1) end = str.length - 1;
+            tokens.push({ text: `字符集: ${str.substring(i, end + 1)}`, cls: 'rr-group' });
+            i = end + 1;
+        } else if(ch === '{'){
+            let end = str.indexOf('}', i);
+            if(end === -1) end = str.length - 1;
+            tokens.push({ text: `重复: ${str.substring(i, end + 1)}`, cls: 'rr-quant' });
+            i = end + 1;
+        } else if(ch === '+' || ch === '*' || ch === '?'){
+            tokens.push({ text: `量词 (${ch})`, cls: 'rr-quant' }); i++;
+        } else if(ch === '(' || ch === ')'){
+            tokens.push({ text: ch === '(' ? '分组开头 (' : '分组结尾 )', cls: 'rr-group' }); i++;
+        } else {
+            let next = i + 1;
+            while(next < str.length && !'^$[{()*+?'.includes(str[next])){ next++; }
+            tokens.push({ text: `文本: "${str.substring(i, next)}"`, cls: 'rr-literal' });
+            i = next;
+        }
+    }
+    return tokens;
+}
+
+// 执行测试按钮点击事件
+document.getElementById('btnRunTest').onclick = () => {
+    const reg = getRegExpObj();
+    if(!reg) return;
+    const src = testSrcText.value;
+    if(!src){
+        testResultText.value = '请输入待测试的原文。';
+        matchCountTxt.innerText = '已匹配 0 项';
+        return;
+    }
+    const matches = [...src.matchAll(reg)].map(m => m[0]);
+    matchCountTxt.innerText = `已匹配 ${matches.length} 项`;
+    testResultText.value = matches.length > 0 ? matches.join('\n') : '未找到匹配的项。';
+};
+
+// 执行批量替换按钮点击事件
+document.getElementById('btnRunReplace').onclick = () => {
+    const reg = getRegExpObj();
+    if(!reg) return;
+    const src = testSrcText.value;
+    const repl = replaceInput.value;
+    if(!src){
+        testResultText.value = '请输入待测试的原文。';
+        return;
+    }
+    testResultText.value = src.replace(reg, repl);
+    matchCountTxt.innerText = '已执行批量替换';
+};
+
+document.getElementById('btnApplyGen').onclick = () => {
+    let charset = '';
+    if(document.getElementById('genNum').checked) charset += '0-9';
+    if(document.getElementById('genLower').checked) charset += 'a-z';
+    if(document.getElementById('genUpper').checked) charset += 'A-Z';
+    if(document.getElementById('genChinese').checked) charset += '\\u4e00-\\u9fa5';
+
+    const min = document.getElementById('genMinLen').value;
+    const max = document.getElementById('genMaxLen').value;
+    const isAnchor = document.getElementById('genAnchor').checked;
+
+    let res = `[${charset || 'a-z'}]`;
+    if(min && max) res += `{${min},${max}}`;
+    else if(min) res += `{${min},}`;
+    if(isAnchor) res = `^${res}$`;
+
+    regexInput.value = res;
+    tabTest.click();
+    getRegExpObj();
+};
+
+document.getElementById('btnCopyRegex').onclick = () => {
+    navigator.clipboard.writeText(regexInput.value);
+    alert('正则表达式已成功复制到剪贴板！');
+};
+
+document.getElementById('btnCopyResult').onclick = () => {
+    navigator.clipboard.writeText(testResultText.value);
+    alert('结果已成功复制！');
+};
+
+document.getElementById('btnClearAll').onclick = () => {
+    regexInput.value = ''; testSrcText.value = ''; replaceInput.value = ''; testResultText.value = '';
+    getRegExpObj();
+};
+
+presetSel.onchange = () => {
+    if(presetSel.value){
+        regexInput.value = presetSel.value;
+        getRegExpObj();
+    }
+};
+
+[regexInput, flagG, flagI, flagM, flagS].forEach(el => {
+    el.oninput = getRegExpObj;
+    if(el.type === 'checkbox') el.onchange = getRegExpObj;
+});
+
+initTheme();
+getRegExpObj();
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>记忆翻牌</title>
+    <title>记忆翻牌大挑战</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -17,41 +17,93 @@
             }
         }
     </script>
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
-            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
-            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
-            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
-            .card-item{@apply w-14 h-14 flex items-center justify-center text-2xl rounded-lg cursor-pointer select-none transition-all duration-300;}
-            .card-back{@apply bg-primary/20 border border-[var(--border)];}
-            .card-front{@apply bg-[var(--card-sub)];}
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
         }
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
         html[data-theme="dark"] {
-            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
-            --text-main: #e2e8f0;--text-sub: #94a3b8;
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
         }
         html[data-theme="light"] {
-            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
-            --text-main: #111827;--text-sub: #64748b;
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
         }
         body {
             background-color: var(--bg); color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
         }
-        body::before{
-            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
             background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
+            background-size: 24px 24px;
         }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px 28px;
-        }
-        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
-        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
         .text-sub-color { color: var(--text-sub); }
+        
+        input, select {
+            background-color: var(--card); border: 1px solid var(--border); color: var(--text-main);
+            padding: 0.35rem 0.5rem; border-radius: 0.375rem;
+        }
+        input:focus, select:focus { outline: none; border-color: #3b82f6; }
+
+        /* 3D 翻牌特效 */
+        .memory-card {
+            perspective: 1000px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.5s;
+            transform-style: preserve-3d;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .memory-card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backface-visibility: hidden;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+        }
+        .card-back {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #3b82f6;
+            font-size: 1.5rem;
+        }
+        .card-front {
+            background-color: var(--card-sub);
+            transform: rotateY(180deg);
+            font-size: 2rem;
+        }
     </style>
 </head>
 <body class="flex flex-col">
@@ -60,133 +112,343 @@
             <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
                 <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
             </a>
-            <h1 class="text-xl font-bold text-gradient">🃏 记忆翻牌</h1>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-brain mr-2"></i>记忆翻牌大挑战</h1>
             <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
                 <i class="fa-solid fa-moon" id="themeIcon"></i>
             </button>
         </div>
     </header>
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <div class="flex flex-wrap gap-3 mb-5 items-center">
-                <div class="flex flex-col gap-2">
-                    <label class="text-sub-color">难度</label>
-                    <select id="levelSel" class="w-32">
-                        <option value="easy">简单(4×3)</option>
-                        <option value="mid">中等(4×4)</option>
-                        <option value="hard">困难(6×4)</option>
-                    </select>
+
+    <main class="container mx-auto px-4 py-8 max-w-4xl flex-grow">
+        <div class="tool-card p-6 rounded-2xl">
+            <!-- 控制面板 -->
+            <div class="flex flex-wrap gap-4 mb-6 items-center justify-between bg-[var(--card-sub)] p-4 rounded-xl">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div>
+                        <label class="text-xs text-sub-color block mb-1">游戏难度</label>
+                        <select id="levelSel">
+                            <option value="easy">简单 (3 × 4)</option>
+                            <option value="mid" selected>中等 (4 × 4)</option>
+                            <option value="hard">困难 (4 × 6)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-sub-color block mb-1">卡牌主题</label>
+                        <select id="themeSel">
+                            <option value="fruit">🍎 水果派对</option>
+                            <option value="animal">🐶 可爱动物</option>
+                            <option value="food">🍔 美食日记</option>
+                            <option value="sport">⚽ 运动健身</option>
+                        </select>
+                    </div>
                 </div>
-                <button id="btnReset" class="btn btn-primary"><i class="fa-solid fa-refresh"></i>重新开始</button>
-                <div class="ml-4">步数：<span id="stepCnt" class="font-bold">0</span></div>
+                <div class="flex items-center gap-3">
+                    <button id="btnPeek" class="btn btn-outline text-amber-400 border-amber-500/40"><i class="fa-solid fa-eye mr-1"></i>偷看 (<span id="peekCnt">3</span>)</button>
+                    <button id="btnReset" class="btn btn-primary"><i class="fa-solid fa-rotate-right mr-1"></i>重新开始</button>
+                </div>
             </div>
-            <div id="boardWrap"></div>
+
+            <!-- 数据统计栏 -->
+            <div class="flex justify-around items-center mb-6 text-sm py-2 border-y border-[var(--border)]">
+                <div>步数: <span id="stepCnt" class="font-bold text-primary text-base">0</span></div>
+                <div>耗时: <span id="timeCnt" class="font-bold text-cyan-400 text-base">00:00</span></div>
+                <div>历史最佳: <span id="bestScore" class="font-bold text-emerald-400 text-base">暂无记录</span></div>
+            </div>
+
+            <!-- 游戏主棋盘容器 -->
+            <div class="flex justify-center items-center min-h-[320px]">
+                <div id="boardWrap" class="grid gap-3"></div>
+            </div>
         </div>
     </main>
+
+    <!-- 通关胜利弹窗 -->
+    <div id="winModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="tool-card p-8 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl animate-bounce-short">
+            <div class="text-5xl">🎉</div>
+            <h2 class="text-2xl font-bold text-gradient">恭喜通关！</h2>
+            <p class="text-sub-color" id="winText">你用了 12 步，耗时 00:25 秒完成挑战！</p>
+            <button id="btnNext" class="btn btn-primary w-full py-3 font-bold">再玩一次</button>
+        </div>
+    </div>
+
     <footer class="nav-bar-bg border-t py-6 mt-10">
         <div class="container mx-auto px-4 text-center text-sub-color text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 小游戏</p>
+            <p class="mt-1">© 2026 工具集 | 休闲小游戏</p>
         </div>
     </footer>
-    <script>
-        function initTheme(){
-            const t=localStorage.getItem("toolTheme")||"dark";
-            document.documentElement.setAttribute("data-theme",t);
-            updateThemeIcon(t);
-        }
-        function updateThemeIcon(t){
-            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
-        }
-        document.getElementById("themeToggle").onclick=()=>{
-            const c=document.documentElement.getAttribute("data-theme");
-            const n=c==="dark"?"light":"dark";
-            document.documentElement.setAttribute("data-theme",n);
-            localStorage.setItem("toolTheme",n);
-            updateThemeIcon(n);
-        }
-        const emojis = ['🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍒','🥝','🍑'];
-        const levelSel = document.getElementById('levelSel');
-        const btnReset = document.getElementById('btnReset');
-        const stepCntEl = document.getElementById('stepCnt');
-        const boardWrap = document.getElementById('boardWrap');
 
-        let rows=4,cols=3;
-        let cards = [];
-        let openList = [];
-        let stepCnt=0;
-        let lock = false;
-        let matchCnt=0;
+<script>
+// 主题控制
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
 
-        function shuffle(arr){
-            const a=[...arr];
-            for(let i=a.length-1;i>0;i--){
-                const j = Math.floor(Math.random()*(i+1));
-                [a[i],a[j]] = [a[j],a[i]];
-            }
-            return a;
+// 游戏主题数据
+const themes = {
+    fruit: ['🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍒','🥝','🍑'],
+    animal: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮'],
+    food: ['🍔','🍟','🍕','hotdog','🍿','🥞','🧀','🍗','🥩','🥪','🌮','🌯'].map(x=>x.length>2?x:'🍔'), // 简易转emoji
+    sport: ['⚽','🏀','🏈','⚾','🎾','🏐','🏓','🏸','🥊','🛹','🎳','⛳']
+};
+// 修正food主题
+themes.food = ['🍔','🍟','🍕','🍿','🥞','🧀','🍗','🥩','🥪','🌮','🍜','🍣'];
+
+const levelSel = document.getElementById('levelSel');
+const themeSel = document.getElementById('themeSel');
+const btnReset = document.getElementById('btnReset');
+const btnPeek = document.getElementById('btnPeek');
+const peekCntEl = document.getElementById('peekCnt');
+const stepCntEl = document.getElementById('stepCnt');
+const timeCntEl = document.getElementById('timeCnt');
+const bestScoreEl = document.getElementById('bestScore');
+const boardWrap = document.getElementById('boardWrap');
+const winModal = document.getElementById('winModal');
+const winText = document.getElementById('winText');
+const btnNext = document.getElementById('btnNext');
+
+let rows = 4, cols = 4;
+let cards = [];
+let openList = [];
+let matchedIndices = new Set();
+let stepCnt = 0;
+let lockBoard = false;
+let timer = null;
+let seconds = 0;
+let gameStarted = false;
+let peekLeft = 3;
+
+// 简单的 Web Audio API 提示音
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playTone(freq, type, duration){
+    try {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    } catch(e){}
+}
+
+function shuffle(arr){
+    const a = [...arr];
+    for(let i = a.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+function getGridConfig(){
+    const v = levelSel.value;
+    if(v === 'easy') { rows = 3; cols = 4; }
+    else if(v === 'mid') { rows = 4; cols = 4; }
+    else { rows = 4; cols = 6; }
+}
+
+function initGame(){
+    clearInterval(timer);
+    timer = null;
+    seconds = 0;
+    stepCnt = 0;
+    gameStarted = false;
+    lockBoard = false;
+    openList = [];
+    matchedIndices.clear();
+    peekLeft = 3;
+    
+    stepCntEl.innerText = '0';
+    timeCntEl.innerText = '00:00';
+    peekCntEl.innerText = peekLeft;
+    winModal.classList.add('hidden');
+    winModal.classList.remove('flex');
+
+    getGridConfig();
+    loadBestScore();
+
+    const totalCards = rows * cols;
+    const themeKey = themeSel.value;
+    const sourceEmojis = themes[themeKey] || themes.fruit;
+    const take = sourceEmojis.slice(0, totalCards / 2);
+    cards = shuffle([...take, ...take]);
+
+    renderBoard();
+}
+
+function renderBoard(){
+    boardWrap.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+    let html = '';
+    cards.forEach((emoji, idx) => {
+        const isOpen = matchedIndices.has(idx) || openList.some(x => x.idx === idx);
+        html += `
+        <div class="memory-card w-16 h-16 sm:w-20 sm:h-20 ${isOpen ? 'flipped' : ''}" data-idx="${idx}">
+            <div class="card-inner">
+                <div class="card-back"><i class="fa-solid fa-question text-xl"></i></div>
+                <div class="card-front">${emoji}</div>
+            </div>
+        </div>`;
+    });
+    boardWrap.innerHTML = html;
+
+    document.querySelectorAll('.memory-card').forEach(el => {
+        el.onclick = () => clickCard(Number(el.dataset.idx));
+    });
+}
+
+function startTimer(){
+    if(timer) return;
+    timer = setInterval(() => {
+        seconds++;
+        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        timeCntEl.innerText = `${m}:${s}`;
+    }, 1000);
+}
+
+function clickCard(idx){
+    if(lockBoard) return;
+    if(matchedIndices.has(idx)) return;
+    if(openList.some(x => x.idx === idx)) return;
+
+    if(!gameStarted){
+        gameStarted = true;
+        startTimer();
+    }
+
+    playTone(440, 'sine', 0.1);
+    openList.push({ idx, emoji: cards[idx] });
+    renderBoard();
+
+    if(openList.length === 2){
+        lockBoard = true;
+        stepCnt++;
+        stepCntEl.innerText = stepCnt;
+
+        const [a, b] = openList;
+        if(a.emoji === b.emoji){
+            playTone(660, 'triangle', 0.2);
+            matchedIndices.add(a.idx);
+            matchedIndices.add(b.idx);
+            openList = [];
+            lockBoard = false;
+            checkWin();
+        } else {
+            setTimeout(() => {
+                playTone(220, 'sawtooth', 0.2);
+                openList = [];
+                lockBoard = false;
+                renderBoard();
+            }, 750);
         }
-        function initGame(){
-            stepCnt=0;matchCnt=0;openList=[];lock=false;
-            stepCntEl.innerText = stepCnt;
-            const v = levelSel.value;
-            if(v==='easy'){rows=3;cols=4;}
-            else if(v==='mid'){rows=4;cols=4;}
-            else {rows=4;cols=6;}
-            const total = rows*cols;
-            const take = emojis.slice(0,total/2);
-            cards = shuffle([...take,...take]);
-            render();
+    }
+}
+
+// 偷看功能
+btnPeek.onclick = () => {
+    if(peekLeft <= 0 || lockBoard || matchedIndices.size === cards.length) return;
+    peekLeft--;
+    peekCntEl.innerText = peekLeft;
+    lockBoard = true;
+
+    // 临时翻开所有未匹配的牌
+    const allUnmatched = [];
+    cards.forEach((_, idx) => {
+        if(!matchedIndices.has(idx)) allUnmatched.push(idx);
+    });
+
+    let html = '';
+    cards.forEach((emoji, idx) => {
+        const isOpen = matchedIndices.has(idx) || allUnmatched.includes(idx);
+        html += `
+        <div class="memory-card w-16 h-16 sm:w-20 sm:h-20 ${isOpen ? 'flipped' : ''}" data-idx="${idx}">
+            <div class="card-inner">
+                <div class="card-back"><i class="fa-solid fa-question text-xl"></i></div>
+                <div class="card-front">${emoji}</div>
+            </div>
+        </div>`;
+    });
+    boardWrap.innerHTML = html;
+
+    setTimeout(() => {
+        lockBoard = false;
+        renderBoard();
+    }, 1200);
+};
+
+function checkWin(){
+    if(matchedIndices.size === cards.length){
+        clearInterval(timer);
+        playTone(880, 'sine', 0.4);
+        
+        saveBestScore();
+
+        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        winText.innerHTML = `太棒啦！你在 <b>${stepCnt}</b> 步内完成，耗时 <b>${m}:${s}</b>。`;
+        winModal.classList.remove('hidden');
+        winModal.classList.add('flex');
+    }
+}
+
+function getScoreKey(){
+    return `memory_best_${levelSel.value}_${themeSel.value}`;
+}
+
+function loadBestScore(){
+    const key = getScoreKey();
+    const best = localStorage.getItem(key);
+    if(best){
+        const data = JSON.parse(best);
+        bestScoreEl.innerText = `${data.steps} 步 (${data.time})`;
+    } else {
+        bestScoreEl.innerText = '暂无记录';
+    }
+}
+
+function saveBestScore(){
+    const key = getScoreKey();
+    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    const timeStr = `${m}:${s}`;
+    
+    const best = localStorage.getItem(key);
+    if(!best){
+        localStorage.setItem(key, JSON.stringify({ steps: stepCnt, time: timeStr }));
+    } else {
+        const data = JSON.parse(best);
+        if(stepCnt < data.steps || (stepCnt === data.steps && seconds < data.seconds)){
+            localStorage.setItem(key, JSON.stringify({ steps: stepCnt, time: timeStr }));
         }
-        function render(){
-            let html = `<div class="grid gap-2" style="grid-template-columns:repeat(${cols},3.5rem)">`;
-            cards.forEach((emoji,idx)=>{
-                const item = openList.find(x=>x.idx===idx);
-                const isOpen = !!item;
-                html += `
-                <div class="card-item ${isOpen?'card-front':'card-back'}" data-idx="${idx}" data-emoji="${emoji}">
-                    ${isOpen ? emoji : '?'}
-                </div>`;
-            })
-            html += `</div>`;
-            boardWrap.innerHTML = html;
-            document.querySelectorAll('.card-item').forEach(el=>{
-                el.onclick = ()=>clickCard(Number(el.dataset.idx));
-            })
-        }
-        function clickCard(idx){
-            if(lock) return;
-            if(openList.find(x=>x.idx===idx)) return;
-            openList.push({idx,emoji:cards[idx]});
-            stepCnt++;
-            stepCntEl.innerText = stepCnt;
-            render();
-            if(openList.length===2){
-                lock=true;
-                const [a,b] = openList;
-                if(a.emoji === b.emoji){
-                    matchCnt++;
-                    openList=[];
-                    lock=false;
-                    checkWin();
-                }else{
-                    setTimeout(()=>{
-                        openList=[];
-                        lock=false;
-                        render();
-                    },800)
-                }
-            }
-        }
-        function checkWin(){
-            if(matchCnt === cards.length/2){
-                setTimeout(()=>alert(`🎉恭喜通关！一共${stepCnt}步`),200);
-            }
-        }
-        levelSel.onchange = initGame;
-        btnReset.onclick = initGame;
-        initGame();
-        initTheme();
-    </script>
+    }
+    loadBestScore();
+}
+
+levelSel.onchange = initGame;
+themeSel.onchange = initGame;
+btnReset.onclick = initGame;
+btnNext.onclick = initGame;
+
+initTheme();
+initGame();
+</script>
 </body>
 </html>

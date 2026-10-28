@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>屏幕录制与摄像头截图工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = { darkMode: ['class', '[data-theme="dark"]'], theme: { extend: { colors: { primary: '#3b82f6' } } } }
+    </script>
+    <style>
+        .text-gradient { background-clip: text; -webkit-background-clip: text; color: transparent; background-image: linear-gradient(to right, #60a5fa, #22d3ee); }
+        .btn { padding: 0.5rem 0.85rem; border-radius: 0.5rem; transition: all 0.2s; font-size: 0.875rem; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-danger:hover { background-color: rgba(239, 68, 68, 0.8); }
+        .btn-outline { border: 1px solid var(--border); background-color: var(--card); color: var(--text-main); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="bg-[var(--card)] border-b border-[var(--border)] sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline"><i class="fa-solid fa-arrow-left mr-2"></i>返回首页</a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-video mr-2"></i>屏幕录制与摄像头工具</h1>
+            <button id="themeToggle" class="btn btn-outline"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow space-y-6">
+        <div class="tool-card p-6 rounded-2xl space-y-4">
+            <div class="flex gap-2 border-b border-[var(--border)] pb-3">
+                <button id="tabCam" class="btn btn-primary text-xs"><i class="fa-solid fa-camera mr-1.5"></i>摄像头模式</button>
+                <button id="tabScreen" class="btn btn-outline text-xs"><i class="fa-solid fa-desktop mr-1.5"></i>屏幕录制模式</button>
+            </div>
+
+            <div class="flex flex-col items-center justify-center bg-slate-950/60 p-4 rounded-2xl border border-[var(--border)]">
+                <video id="mediaVideo" autoplay playsinline class="w-full max-h-[400px] object-contain rounded-xl bg-black"></video>
+            </div>
+
+            <div class="flex flex-wrap gap-3 justify-center pt-2">
+                <button id="btnStart" class="btn btn-primary text-xs"><i class="fa-solid fa-circle mr-1.5 text-red-500 animate-pulse"></i>开始录制</button>
+                <button id="btnStop" disabled class="btn btn-outline text-xs opacity-50"><i class="fa-solid fa-stop mr-1.5"></i>停止并下载</button>
+                <button id="btnSnap" class="btn btn-outline text-xs"><i class="fa-solid fa-camera-retro mr-1.5"></i>拍照截图</button>
+            </div>
+        </div>
+    </main>
+
+<script>
+document.getElementById('themeToggle').onclick = () => {
+    const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('toolTheme', t);
+    document.getElementById('themeIcon').className = t === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+};
+const savedT = localStorage.getItem('toolTheme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedT);
+document.getElementById('themeIcon').className = savedT === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+
+const mediaVideo = document.getElementById('mediaVideo');
+const btnStart = document.getElementById('btnStart');
+const btnStop = document.getElementById('btnStop');
+const btnSnap = document.getElementById('btnSnap');
+const tabCam = document.getElementById('tabCam');
+const tabScreen = document.getElementById('tabScreen');
+
+let mediaStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let mode = 'cam';
+
+async function initStream(){
+    if(mediaStream){
+        mediaStream.getTracks().forEach(t => t.stop());
+    }
+    try {
+        if(mode === 'cam'){
+            mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        } else {
+            mediaStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+        }
+        mediaVideo.srcObject = mediaStream;
+    } catch(err){
+        alert('无法获取媒体权限或设备不支持：' + err.message);
+    }
+}
+
+tabCam.onclick = () => {
+    mode = 'cam';
+    tabCam.className = 'btn btn-primary text-xs';
+    tabScreen.className = 'btn btn-outline text-xs';
+    initStream();
+};
+tabScreen.onclick = () => {
+    mode = 'screen';
+    tabScreen.className = 'btn btn-primary text-xs';
+    tabCam.className = 'btn btn-outline text-xs';
+    initStream();
+};
+
+btnStart.onclick = () => {
+    if(!mediaStream) return;
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(mediaStream);
+    mediaRecorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `recording-${Date.now()}.webm`;
+        a.click();
+    };
+    mediaRecorder.start();
+    btnStart.disabled = true; btnStart.classList.add('opacity-50');
+    btnStop.disabled = false; btnStop.classList.remove('opacity-50');
+};
+
+btnStop.onclick = () => {
+    if(mediaRecorder) mediaRecorder.stop();
+    btnStart.disabled = false; btnStart.classList.remove('opacity-50');
+    btnStop.disabled = true; btnStop.classList.add('opacity-50');
+};
+
+btnSnap.onclick = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = mediaVideo.videoWidth || 640;
+    canvas.height = mediaVideo.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(mediaVideo, 0, 0, canvas.width, canvas.height);
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `snapshot-${Date.now()}.png`;
+    a.click();
+};
+
+initStream();
+</script>
+</body>
+</html>

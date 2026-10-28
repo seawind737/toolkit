@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>进制转换工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-3 py-2 rounded-lg transition-all duration-200 text-sm; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
+            --text-main: #e2e8f0;--text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --text-main: #111827;--text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+        }
+        body::before{
+            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .sub-panel-bg { background-color: var(--card-sub); }
+        .text-sub-color { color: var(--text-sub); }
+        textarea,input,select {
+            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
+            font-family: Consolas,Menlo,monospace;
+        }
+        textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-calculator mr-2"></i>进制转换工具</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 max-w-5xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <div class="flex flex-wrap gap-3 mb-5 items-end">
+                <div class="flex flex-col gap-2">
+                    <label class="text-sub-color">输入进制</label>
+                    <select id="fromBase" class="w-44">
+                        <option value="2">二进制 (2)</option>
+                        <option value="8">八进制 (8)</option>
+                        <option value="10" selected>十进制 (10)</option>
+                        <option value="16">十六进制 (16)</option>
+                    </select>
+                </div>
+                <button id="btnClear" class="btn btn-outline"><i class="fa-solid fa-eraser"></i>清空</button>
+                <button id="btnSample" class="btn btn-outline"><i class="fa-solid fa-file-code"></i>填充示例</button>
+            </div>
+
+            <label class="text-sub-color">输入数字</label>
+            <input id="numInput" class="w-full p-4 rounded-xl mt-2" placeholder="例如：A、10、11111111" />
+
+            <div class="mt-6 grid gap-4">
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium">二进制 (Base2)</span>
+                        <button class="btn btn-outline copy-btn" data-target="outBin">复制</button>
+                    </div>
+                    <div id="outBin" class="font-mono text-sm break-all text-sub-color">等待转换</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium">八进制 (Base8)</span>
+                        <button class="btn btn-outline copy-btn" data-target="outOct">复制</button>
+                    </div>
+                    <div id="outOct" class="font-mono text-sm break-all text-sub-color">等待转换</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium">十进制 (Base10)</span>
+                        <button class="btn btn-outline copy-btn" data-target="outDec">复制</button>
+                    </div>
+                    <div id="outDec" class="font-mono text-sm break-all text-sub-color">等待转换</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium">十六进制 (Base16，大写)</span>
+                        <button class="btn btn-outline copy-btn" data-target="outHex">复制</button>
+                    </div>
+                    <div id="outHex" class="font-mono text-sm break-all text-sub-color">等待转换</div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 文本工具</p>
+        </div>
+    </footer>
+    <script>
+        function initTheme(){
+            const t=localStorage.getItem("toolTheme")||"dark";
+            document.documentElement.setAttribute("data-theme",t);
+            updateThemeIcon(t);
+        }
+        function updateThemeIcon(t){
+            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick=()=>{
+            const c=document.documentElement.getAttribute("data-theme");
+            const n=c==="dark"?"light":"dark";
+            document.documentElement.setAttribute("data-theme",n);
+            localStorage.setItem("toolTheme",n);
+            updateThemeIcon(n);
+        }
+
+        const fromBase = document.getElementById('fromBase');
+        const numInput = document.getElementById('numInput');
+        const btnClear = document.getElementById('btnClear');
+        const btnSample = document.getElementById('btnSample');
+
+        const outBin = document.getElementById('outBin');
+        const outOct = document.getElementById('outOct');
+        const outDec = document.getElementById('outDec');
+        const outHex = document.getElementById('outHex');
+
+        // 字符串进制转 BigInt，无精度丢失
+        function strToBigInt(s, base) {
+            s = s.trim().toUpperCase();
+            const map = {'0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'A':10,'B':11,'C':12,'D':13,'E':14,'F':15};
+            let n = 0n;
+            for(const ch of s){
+                const v = map[ch];
+                if(v === undefined || v >= base) throw new Error("非法字符");
+                n = n * BigInt(base) + BigInt(v);
+            }
+            return n;
+        }
+
+        function convertBase(val, srcBase) {
+            val = val.trim();
+            if(!val) return null;
+            try {
+                const num = strToBigInt(val, srcBase);
+                return {
+                    bin: num.toString(2),
+                    oct: num.toString(8),
+                    dec: num.toString(10),
+                    hex: num.toString(16).toUpperCase()
+                }
+            }catch(e){
+                return { bin: "格式错误", oct: "格式错误", dec: "格式错误", hex: "格式错误" }
+            }
+        }
+
+        function render(){
+            const base = Number(fromBase.value);
+            const val = numInput.value;
+            const res = convertBase(val, base);
+            if(!res){
+                outBin.innerText = "等待转换";
+                outOct.innerText = "等待转换";
+                outDec.innerText = "等待转换";
+                outHex.innerText = "等待转换";
+                return;
+            }
+            outBin.innerText = res.bin;
+            outOct.innerText = res.oct;
+            outDec.innerText = res.dec;
+            outHex.innerText = res.hex;
+        }
+
+        function resetAll(){
+            numInput.value = '';
+            outBin.innerText = "等待转换";
+            outOct.innerText = "等待转换";
+            outDec.innerText = "等待转换";
+            outHex.innerText = "等待转换";
+        }
+
+        function fillSample(){
+            fromBase.value = "16";
+            numInput.value = "10";
+            render();
+        }
+
+        // 复制事件
+        document.querySelector('.tool-card').addEventListener('click',async (e)=>{
+            const target = e.target;
+            if(target.classList.contains('copy-btn')){
+                const tid = target.dataset.target;
+                const el = document.getElementById(tid);
+                try{
+                    await navigator.clipboard.writeText(el.innerText);
+                    target.innerText="已复制!";
+                    setTimeout(()=>target.innerText="复制",1200);
+                }catch(err){
+                    alert("复制失败，请手动选中复制");
+                }
+            }
+        })
+
+        numInput.addEventListener('input', render);
+        fromBase.addEventListener('change', render);
+        btnClear.onclick = resetAll;
+        btnSample.onclick = fillSample;
+
+        initTheme();
+        render();
+    </script>
+</body>
+</html>

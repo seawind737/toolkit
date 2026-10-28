@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>贪吃蛇</title>
+    <title>🐍 贪吃蛇大作战</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -17,39 +17,86 @@
             }
         }
     </script>
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
-            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
-            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
-            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
         }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
         html[data-theme="dark"] {
-            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
-            --text-main: #e2e8f0;--text-sub: #94a3b8;
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+            --canvas-bg: #020617;
         }
         html[data-theme="light"] {
-            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
-            --text-main: #111827;--text-sub: #64748b;
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+            --canvas-bg: #f1f5f9;
         }
         body {
             background-color: var(--bg); color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
         }
-        body::before{
-            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
             background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
+            background-size: 24px 24px;
         }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
-        }
-        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
-        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
         .text-sub-color { color: var(--text-sub); }
-        canvas{border:1px solid var(--border);}
+
+        input, select {
+            background-color: var(--card); border: 1px solid var(--border); color: var(--text-main);
+            padding: 0.35rem 0.5rem; border-radius: 0.375rem;
+        }
+        input:focus, select:focus { outline: none; border-color: #3b82f6; }
+
+        canvas {
+            border: 2px solid var(--border);
+            border-radius: 0.75rem;
+            background-color: var(--canvas-bg);
+            display: block;
+            margin: 0 auto;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+        }
+
+        /* 方向盘控制手柄 */
+        .dpad-btn {
+            width: 3.2rem;
+            height: 3.2rem;
+            background-color: var(--card-sub);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            user-select: none;
+            cursor: pointer;
+            transition: transform 0.05s, background-color 0.1s;
+        }
+        .dpad-btn:active {
+            background-color: #3b82f6;
+            color: white;
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body class="flex flex-col">
@@ -58,169 +105,479 @@
             <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
                 <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
             </a>
-            <h1 class="text-xl font-bold text-gradient">🐍 贪吃蛇</h1>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-staff-snake mr-2"></i>贪吃蛇大作战</h1>
             <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
                 <i class="fa-solid fa-moon" id="themeIcon"></i>
             </button>
         </div>
     </header>
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <div class="flex flex-wrap gap-4 mb-4 items-center">
-                <button id="btnStart" class="btn btn-primary"><i class="fa-solid fa-play"></i>开始/重置</button>
-                <div>分数：<span id="scoreEl" class="font-bold">0</span></div>
-                <div>最高分：<span id="bestEl" class="font-bold text-amber-400">0</span></div>
+
+    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-4">
+            
+            <!-- 游戏控制与设置项栏 -->
+            <div class="flex flex-wrap gap-3 items-center justify-between bg-[var(--card-sub)] p-3.5 rounded-xl">
+                <div class="flex flex-wrap items-center gap-3">
+                    <button id="btnStart" class="btn btn-primary text-sm"><i class="fa-solid fa-play mr-1"></i><span id="startTxt">开始游戏</span></button>
+                    <button id="btnPause" class="btn btn-outline text-sm"><i class="fa-solid fa-pause mr-1"></i>暂停</button>
+
+                    <div class="flex items-center gap-1 text-xs">
+                        <label class="text-sub-color">速度:</label>
+                        <select id="speedSel" class="text-xs">
+                            <option value="150">慢速 (休闲)</option>
+                            <option value="100" selected>正常 (标准)</option>
+                            <option value="60">极速 (挑战)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-1 text-xs">
+                        <label class="text-sub-color">边界:</label>
+                        <select id="wallSel" class="text-xs">
+                            <option value="solid" selected>🧱 实体墙壁</option>
+                            <option value="pass">🌀 无界穿越</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 text-xs">
+                    <span class="text-emerald-400 font-bold">🍎+1</span>
+                    <span class="text-amber-400 font-bold">🌟+3</span>
+                    <span class="text-cyan-400 font-bold">🛡️护盾</span>
+                </div>
             </div>
-            <div class="text-sub-color text-sm mb-3">键盘方向键控制，手机可以点下方按钮</div>
-            <canvas id="canvas"></canvas>
-            <div class="mt-4 grid grid-cols-3 w-36 gap-2">
-                <div></div>
-                <button id="btnUp" class="btn btn-outline">↑</button>
-                <div></div>
-                <button id="btnLeft" class="btn btn-outline">←</button>
-                <button id="btnDown" class="btn btn-outline">↓</button>
-                <button id="btnRight" class="btn btn-outline">→</button>
+
+            <!-- 数据战绩面板 -->
+            <div class="flex justify-around items-center py-2 bg-slate-950/40 rounded-xl border border-[var(--border)] text-sm font-semibold">
+                <div><i class="fa-solid fa-star text-amber-400 mr-1.5"></i>当前得分: <span id="scoreEl" class="text-amber-400 text-lg font-bold">0</span></div>
+                <div><i class="fa-solid fa-trophy text-yellow-500 mr-1.5"></i>最高纪录: <span id="bestEl" class="text-yellow-500 text-lg font-bold">0</span></div>
+                <div><i class="fa-solid fa-shield-halved text-cyan-400 mr-1.5"></i>护盾: <span id="shieldEl" class="text-cyan-400 font-bold">无</span></div>
+            </div>
+
+            <!-- 主游戏画布与移动控制器容器 -->
+            <div class="flex flex-col md:flex-row gap-6 items-center justify-center p-2">
+                <canvas id="canvas"></canvas>
+
+                <!-- 触控方向轮盘 -->
+                <div class="flex flex-col items-center gap-1 my-2">
+                    <div class="text-xs text-sub-color mb-1">方向控制键</div>
+                    <button class="dpad-btn" id="btnUp"><i class="fa-solid fa-chevron-up"></i></button>
+                    <div class="flex gap-4">
+                        <button class="dpad-btn" id="btnLeft"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button class="dpad-btn" id="btnRight"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                    <button class="dpad-btn" id="btnDown"><i class="fa-solid fa-chevron-down"></i></button>
+                </div>
+            </div>
+
+            <div class="text-xs text-sub-color text-center border-t border-[var(--border)] pt-3">
+                💡 电脑端可按键盘 <kbd class="px-1 border rounded">↑</kbd> <kbd class="px-1 border rounded">↓</kbd> <kbd class="px-1 border rounded">←</kbd> <kbd class="px-1 border rounded">→</kbd> 或 <kbd class="px-1 border rounded">W</kbd> <kbd class="px-1 border rounded">A</kbd> <kbd class="px-1 border rounded">S</kbd> <kbd class="px-1 border rounded">D</kbd> 控制方向；支持按空格键 <kbd class="px-1 border rounded">Space</kbd> 暂停游戏。
             </div>
         </div>
     </main>
+
+    <!-- 游戏结束弹窗 -->
+    <div id="overModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="tool-card p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div class="text-5xl">💀</div>
+            <h2 class="text-2xl font-bold text-gradient">游戏结束！</h2>
+            <p id="overBody" class="text-sub-color">最终得分：0 分！</p>
+            <button id="btnPlayAgain" class="btn btn-primary w-full py-2.5 font-bold">再玩一次</button>
+        </div>
+    </div>
+
     <footer class="nav-bar-bg border-t py-6 mt-10">
         <div class="container mx-auto px-4 text-center text-sub-color text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 小游戏</p>
+            <p class="mt-1">© 2026 工具集 | 经典小游戏</p>
         </div>
     </footer>
-    <script>
-        function initTheme(){
-            const t=localStorage.getItem("toolTheme")||"dark";
-            document.documentElement.setAttribute("data-theme",t);
-            updateThemeIcon(t);
-        }
-        function updateThemeIcon(t){
-            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
-        }
-        document.getElementById("themeToggle").onclick=()=>{
-            const c=document.documentElement.getAttribute("data-theme");
-            const n=c==="dark"?"light":"dark";
-            document.documentElement.setAttribute("data-theme",n);
-            localStorage.setItem("toolTheme",n);
-            updateThemeIcon(n);
-        }
 
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const btnStart = document.getElementById('btnStart');
-        const scoreEl = document.getElementById('scoreEl');
-        const bestEl = document.getElementById('bestEl');
-        const btnUp = document.getElementById('btnUp');
-        const btnDown = document.getElementById('btnDown');
-        const btnLeft = document.getElementById('btnLeft');
-        const btnRight = document.getElementById('btnRight');
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+    draw();
+};
 
-        const CELL=18;
-        const COLS=24;
-        const ROWS=20;
-        canvas.width = COLS*CELL;
-        canvas.height = ROWS*CELL;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const btnStart = document.getElementById('btnStart');
+const startTxt = document.getElementById('startTxt');
+const btnPause = document.getElementById('btnPause');
+const speedSel = document.getElementById('speedSel');
+const wallSel = document.getElementById('wallSel');
+const scoreEl = document.getElementById('scoreEl');
+const bestEl = document.getElementById('bestEl');
+const shieldEl = document.getElementById('shieldEl');
+const overModal = document.getElementById('overModal');
+const overBody = document.getElementById('overBody');
+const btnPlayAgain = document.getElementById('btnPlayAgain');
 
-        let snake = [];
-        let food = {x:0,y:0};
-        let dir = {dx:1, dy:0};
-        let nextDir = {dx:1, dy:0};
-        let score =0;
-        let best = Number(localStorage.getItem('snakeBest')||0);
-        let timer = null;
-        let gameOver = false;
+const btnUp = document.getElementById('btnUp');
+const btnDown = document.getElementById('btnDown');
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
 
-        bestEl.innerText = best;
+const CELL = 18;
+const COLS = 22;
+const ROWS = 22;
+canvas.width = COLS * CELL;
+canvas.height = ROWS * CELL;
 
-        function spawnFood(){
-            let x,y;
-            while(true){
-                x = Math.floor(Math.random()*COLS);
-                y = Math.floor(Math.random()*ROWS);
-                const hitSnake = snake.some(p=>p.x===x&&p.y===y);
-                if(!hitSnake) break;
-            }
-            food = {x,y};
+let snake = [];
+let dir = { dx: 1, dy: 0 };
+let nextDir = { dx: 1, dy: 0 };
+let foods = []; // 可包含多种类型的食物
+let particles = []; // 吃东西散射粒子
+
+let score = 0;
+let best = Number(localStorage.getItem('snakeBest') || 0);
+let hasShield = false;
+let timer = null;
+let isPaused = false;
+let gameOver = false;
+
+bestEl.innerText = best;
+
+// 音效系统
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type){
+    try {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const now = audioCtx.currentTime;
+
+        if(type === 'eat'){
+            osc.frequency.setValueAtTime(450, now);
+            osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.08);
+        } else if(type === 'gold'){
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523, now);
+            osc.frequency.setValueAtTime(784, now + 0.08);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.16);
+        } else if(type === 'shield'){
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.15);
+        } else if(type === 'die'){
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(160, now);
+            osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.3);
         }
-        function init(){
-            if(timer) clearInterval(timer);
-            snake = [{x:3,y:10},{x:2,y:10},{x:1,y:10}];
-            dir = {dx:1,dy:0};
-            nextDir = {dx:1,dy:0};
-            score=0;
-            scoreEl.innerText=score;
-            gameOver=false;
-            spawnFood();
-            draw();
-            timer = setInterval(update,130);
-        }
-        function draw(){
-            const isDark = document.documentElement.dataset.theme==='dark';
-            ctx.fillStyle = isDark ? '#0f172a':'#ffffff';
-            ctx.fillRect(0,0,canvas.width,canvas.height);
-            ctx.fillStyle='#22c55e';
-            snake.forEach(p=>{
-                ctx.fillRect(p.x*CELL+1,p.y*CELL+1,CELL-2,CELL-2);
-            })
-            ctx.fillStyle='#ef4444';
-            ctx.fillRect(food.x*CELL+1,food.y*CELL+1,CELL-2,CELL-2);
-        }
-        function update(){
-            if(gameOver) return;
-            dir = {...nextDir};
-            const head = {...snake[0]};
-            head.x += dir.dx;
-            head.y += dir.dy;
-            if(head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS){
-                gameOver=true;
-                clearInterval(timer);
-                if(score>best){
-                    best=score;
-                    localStorage.setItem('snakeBest',best);
-                    bestEl.innerText=best;
-                }
-                alert('游戏结束，分数：'+score);
+    } catch(e){}
+}
+
+// 粒子爆炸效果
+function createParticles(x, y, color){
+    for(let i = 0; i < 8; i++){
+        particles.push({
+            x: (x + 0.5) * CELL,
+            y: (y + 0.5) * CELL,
+            vx: (Math.random() - 0.5) * 4,
+            vy: (Math.random() - 0.5) * 4,
+            life: 1.0,
+            color: color
+        });
+    }
+}
+
+function updateParticles(){
+    for(let i = particles.length - 1; i >= 0; i--){
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.05;
+        if(p.life <= 0) particles.splice(i, 1);
+    }
+}
+
+function drawParticles(){
+    particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    });
+}
+
+// 随机生成食物 (type: 'apple' | 'gold' | 'shield')
+function spawnFood(type = 'apple'){
+    let x, y;
+    while(true){
+        x = Math.floor(Math.random() * COLS);
+        y = Math.floor(Math.random() * ROWS);
+        const onSnake = snake.some(p => p.x === x && p.y === y);
+        const onFood = foods.some(f => f.x === x && f.y === y);
+        if(!onSnake && !onFood) break;
+    }
+    foods.push({ x, y, type });
+}
+
+function initGame(){
+    if(timer) clearInterval(timer);
+    snake = [{ x: 5, y: 10 }, { x: 4, y: 10 }, { x: 3, y: 10 }];
+    dir = { dx: 1, dy: 0 };
+    nextDir = { dx: 1, dy: 0 };
+    score = 0;
+    hasShield = false;
+    gameOver = false;
+    isPaused = false;
+    particles = [];
+    foods = [];
+
+    scoreEl.innerText = '0';
+    shieldEl.innerText = '无';
+    shieldEl.className = 'text-cyan-400 font-bold';
+    startTxt.innerText = '重新开始';
+    btnPause.innerText = '暂停';
+    overModal.classList.add('hidden');
+
+    spawnFood('apple');
+    // 随机概率生成特别食物
+    if(Math.random() > 0.4) spawnFood('gold');
+
+    draw();
+    const interval = Number(speedSel.value);
+    timer = setInterval(update, interval);
+}
+
+function update(){
+    if(gameOver || isPaused) return;
+
+    dir = { ...nextDir };
+    const head = { x: snake[0].x + dir.dx, y: snake[0].y + dir.dy };
+
+    const wallMode = wallSel.value;
+
+    // 边界检测逻辑
+    if(head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS){
+        if(wallMode === 'pass'){
+            if(head.x < 0) head.x = COLS - 1;
+            else if(head.x >= COLS) head.x = 0;
+            if(head.y < 0) head.y = ROWS - 1;
+            else if(head.y >= ROWS) head.y = 0;
+        } else {
+            if(hasShield){
+                // 触发防护盾抵抗撞墙
+                hasShield = false;
+                shieldEl.innerText = '已消耗';
+                shieldEl.className = 'text-sub-color font-bold';
+                playSound('shield');
+                if(head.x < 0) head.x = 0;
+                if(head.x >= COLS) head.x = COLS - 1;
+                if(head.y < 0) head.y = 0;
+                if(head.y >= ROWS) head.y = ROWS - 1;
+            } else {
+                handleGameOver('撞击墙壁，游戏结束！');
                 return;
             }
-            if(snake.some(p=>p.x===head.x&&p.y===head.y)){
-                gameOver=true;
-                clearInterval(timer);
-                if(score>best){
-                    best=score;
-                    localStorage.setItem('snakeBest',best);
-                    bestEl.innerText=best;
-                }
-                alert('撞到自己！分数：'+score);
-                return;
-            }
-            snake.unshift(head);
-            if(head.x===food.x && head.y===food.y){
-                score++;
-                scoreEl.innerText=score;
-                spawnFood();
-            }else{
-                snake.pop();
-            }
-            draw();
         }
-        function setDir(dx,dy){
-            if(dir.dx === -dx && dir.dy === -dy) return;
-            nextDir = {dx,dy};
+    }
+
+    // 碰撞自身检测
+    if(snake.some(p => p.x === head.x && p.y === head.y)){
+        if(hasShield){
+            hasShield = false;
+            shieldEl.innerText = '已消耗';
+            shieldEl.className = 'text-sub-color font-bold';
+            playSound('shield');
+        } else {
+            handleGameOver('咬到自己啦，游戏结束！');
+            return;
         }
-        document.addEventListener('keydown',e=>{
-            if(e.key==='ArrowUp') setDir(0,-1);
-            if(e.key==='ArrowDown') setDir(0,1);
-            if(e.key==='ArrowLeft') setDir(-1,0);
-            if(e.key==='ArrowRight') setDir(1,0);
-        })
-        btnUp.onclick = ()=>setDir(0,-1);
-        btnDown.onclick = ()=>setDir(0,1);
-        btnLeft.onclick = ()=>setDir(-1,0);
-        btnRight.onclick = ()=>setDir(1,0);
-        btnStart.onclick = init;
-        init();
-        initTheme();
-    </script>
+    }
+
+    snake.unshift(head);
+
+    // 吃到食物检测
+    let ateIndex = -1;
+    for(let i = 0; i < foods.length; i++){
+        if(foods[i].x === head.x && foods[i].y === head.y){
+            ateIndex = i;
+            break;
+        }
+    }
+
+    if(ateIndex !== -1){
+        const food = foods[ateIndex];
+        foods.splice(ateIndex, 1);
+
+        if(food.type === 'apple'){
+            score += 1;
+            playSound('eat');
+            createParticles(head.x, head.y, '#ef4444');
+        } else if(food.type === 'gold'){
+            score += 3;
+            playSound('gold');
+            createParticles(head.x, head.y, '#f59e0b');
+        } else if(food.type === 'shield'){
+            hasShield = true;
+            shieldEl.innerText = '已开启 🛡️';
+            shieldEl.className = 'text-emerald-400 font-bold';
+            playSound('shield');
+            createParticles(head.x, head.y, '#06b6d4');
+        }
+
+        scoreEl.innerText = score;
+        if(score > best){
+            best = score;
+            localStorage.setItem('snakeBest', best);
+            bestEl.innerText = best;
+        }
+
+        // 刷新食物
+        spawnFood('apple');
+        if(Math.random() < 0.25 && !foods.some(f => f.type === 'gold')) spawnFood('gold');
+        if(Math.random() < 0.15 && !hasShield && !foods.some(f => f.type === 'shield')) spawnFood('shield');
+
+    } else {
+        snake.pop();
+    }
+
+    updateParticles();
+    draw();
+}
+
+function handleGameOver(reason){
+    gameOver = true;
+    clearInterval(timer);
+    playSound('die');
+    overBody.innerText = `${reason} 最终得分：${score} 分`;
+    overModal.classList.remove('hidden');
+    overModal.classList.add('flex');
+}
+
+// 绘制画布
+function draw(){
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    ctx.fillStyle = isDark ? '#020617' : '#f1f5f9';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 绘制微弱网格底纹
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)';
+    ctx.lineWidth = 1;
+    for(let i = 0; i < COLS; i++){
+        ctx.beginPath(); ctx.moveTo(i * CELL, 0); ctx.lineTo(i * CELL, canvas.height); ctx.stroke();
+    }
+    for(let j = 0; j < ROWS; j++){
+        ctx.beginPath(); ctx.moveTo(0, j * CELL); ctx.lineTo(canvas.width, j * CELL); ctx.stroke();
+    }
+
+    // 绘制食物
+    foods.forEach(f => {
+        if(f.type === 'apple'){
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc((f.x + 0.5) * CELL, (f.y + 0.5) * CELL, CELL / 2 - 1, 0, Math.PI * 2);
+            ctx.fill();
+        } else if(f.type === 'gold'){
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc((f.x + 0.5) * CELL, (f.y + 0.5) * CELL, CELL / 2 - 1, 0, Math.PI * 2);
+            ctx.fill();
+        } else if(f.type === 'shield'){
+            ctx.fillStyle = '#06b6d4';
+            ctx.beginPath();
+            ctx.arc((f.x + 0.5) * CELL, (f.y + 0.5) * CELL, CELL / 2 - 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+
+    // 绘制渐变彩虹蛇身
+    snake.forEach((p, idx) => {
+        const isHead = idx === 0;
+        if(isHead){
+            ctx.fillStyle = hasShield ? '#06b6d4' : '#3b82f6';
+            ctx.beginPath();
+            ctx.roundRect(p.x * CELL + 1, p.y * CELL + 1, CELL - 2, CELL - 2, 4);
+            ctx.fill();
+
+            // 绘制蛇的眼睛
+            ctx.fillStyle = '#ffffff';
+            const eyeOffset = 4;
+            let eyeX1 = p.x * CELL + 4, eyeY1 = p.y * CELL + 4;
+            let eyeX2 = p.x * CELL + 12, eyeY2 = p.y * CELL + 4;
+            if(dir.dx === 1) { eyeX1 = eyeX2 = p.x * CELL + 12; eyeY1 = p.y * CELL + 4; eyeY2 = p.y * CELL + 12; }
+            if(dir.dx === -1){ eyeX1 = eyeX2 = p.x * CELL + 4; eyeY1 = p.y * CELL + 4; eyeY2 = p.y * CELL + 12; }
+            if(dir.dy === 1) { eyeY1 = eyeY2 = p.y * CELL + 12; eyeX1 = p.x * CELL + 4; eyeX2 = p.x * CELL + 12; }
+            ctx.fillRect(eyeX1, eyeY1, 3, 3);
+            ctx.fillRect(eyeX2, eyeY2, 3, 3);
+        } else {
+            const alpha = 1 - (idx / (snake.length + 5));
+            ctx.fillStyle = `rgba(59, 130, 246, ${Math.max(0.3, alpha)})`;
+            ctx.beginPath();
+            ctx.roundRect(p.x * CELL + 1.5, p.y * CELL + 1.5, CELL - 3, CELL - 3, 3);
+            ctx.fill();
+        }
+    });
+
+    // 绘制散落粒子
+    drawParticles();
+}
+
+function setDir(dx, dy){
+    if(dir.dx === -dx && dir.dy === -dy) return;
+    nextDir = { dx, dy };
+}
+
+// 键盘控制绑定
+document.addEventListener('keydown', e => {
+    if(e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') setDir(0, -1);
+    else if(e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') setDir(0, 1);
+    else if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') setDir(-1, 0);
+    else if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') setDir(1, 0);
+    else if(e.key === ' '){
+        btnPause.click();
+    }
+});
+
+btnUp.onclick = () => setDir(0, -1);
+btnDown.onclick = () => setDir(0, 1);
+btnLeft.onclick = () => setDir(-1, 0);
+btnRight.onclick = () => setDir(1, 0);
+
+btnPause.onclick = () => {
+    if(gameOver) return;
+    isPaused = !isPaused;
+    btnPause.innerText = isPaused ? '继续' : '暂停';
+    btnPause.className = isPaused ? 'btn btn-primary text-sm' : 'btn btn-outline text-sm';
+};
+
+btnStart.onclick = initGame;
+btnPlayAgain.onclick = initGame;
+speedSel.onchange = () => { if(timer) initGame(); };
+
+initTheme();
+initGame();
+</script>
 </body>
 </html>

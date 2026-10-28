@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP / API 请求调试器与 cURL 导出</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], mono: ['Consolas', 'Monaco', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
+        }
+        .btn {
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.85); }
+        .btn-outline { border: 1px solid var(--border); background-color: var(--card); color: var(--text-main); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
+        .tab-btn {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+            color: var(--text-sub);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8; --input-bg: #020617;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b; --input-bg: #f1f5f9;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+
+        input, select, textarea {
+            background-color: var(--input-bg); border: 1px solid var(--border); color: var(--text-main);
+            padding: 0.35rem 0.6rem; border-radius: 0.375rem; font-size: 0.8rem;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-paper-plane mr-2"></i>HTTP / API 调试器</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-6xl flex-grow space-y-5">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-5">
+            
+            <!-- 请求地址与发送栏 -->
+            <div class="flex flex-wrap gap-2 items-center bg-[var(--card-sub)] p-2.5 rounded-xl border border-[var(--border)]">
+                <select id="methodSel" class="font-bold text-xs text-cyan-400 py-2">
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="PATCH">PATCH</option>
+                    <option value="HEAD">HEAD</option>
+                </select>
+
+                <input id="urlInput" type="text" value="https://jsonplaceholder.typicode.com/todos/1" placeholder="https://api.example.com/v1/resource" class="flex-grow font-mono py-2 text-xs">
+
+                <button id="btnSend" class="btn btn-primary font-bold px-5 py-2"><i class="fa-solid fa-paper-plane mr-1.5"></i>发送请求</button>
+            </div>
+
+            <!-- 请求配置卡片与响应结果展示 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- 左侧：请求配置面板 -->
+                <div class="space-y-3">
+                    <div class="flex border-b border-[var(--border)]">
+                        <button class="tab-btn active" id="tabHeaders">Headers (请求头)</button>
+                        <button class="tab-btn" id="tabBody">Body (请求体)</button>
+                    </div>
+
+                    <!-- Panel: Headers (Key-Value 编辑) -->
+                    <div id="panelHeaders" class="space-y-3">
+                        <div class="flex justify-between items-center text-xs text-sub-color">
+                            <span>设置自定义 Headers：</span>
+                            <button id="btnAddHeader" class="btn btn-outline text-[11px] py-1"><i class="fa-solid fa-plus text-emerald-400 mr-1"></i>添加 Header</button>
+                        </div>
+                        <div id="headersContainer" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
+                    </div>
+
+                    <!-- Panel: Body -->
+                    <div id="panelBody" class="hidden space-y-3">
+                        <div class="flex flex-wrap items-center gap-4 text-xs bg-[var(--card-sub)] p-2 rounded-lg border border-[var(--border)]">
+                            <span class="text-sub-color font-bold">Body 类型:</span>
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="bodyType" value="none" checked class="accent-blue-500"> none</label>
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="bodyType" value="json" class="accent-blue-500"> json</label>
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="bodyType" value="urlencoded" class="accent-blue-500"> x-www-form-urlencoded</label>
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="bodyType" value="formdata" class="accent-blue-500"> form-data</label>
+                        </div>
+
+                        <div id="bodyViewNone" class="text-xs text-sub-color py-8 text-center bg-[var(--input-bg)] rounded-xl border border-[var(--border)]">
+                            该请求未提供请求体 (Body)
+                        </div>
+
+                        <div id="bodyViewJson" class="hidden">
+                            <textarea id="jsonInput" rows="8" class="w-full text-xs font-mono" placeholder='{\n  "key": "value"\n}'></textarea>
+                        </div>
+
+                        <div id="bodyViewUrlencoded" class="hidden space-y-2">
+                            <div class="flex justify-between items-center text-xs text-sub-color">
+                                <span>URL Encoded 参数列表：</span>
+                                <button id="btnAddUrlencoded" class="btn btn-outline text-[11px] py-1"><i class="fa-solid fa-plus text-blue-400 mr-1"></i>添加字段</button>
+                            </div>
+                            <div id="urlencodedContainer" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+                        </div>
+
+                        <div id="bodyViewFormdata" class="hidden space-y-2">
+                            <div class="flex justify-between items-center text-xs text-sub-color">
+                                <span>Multipart Form-Data 参数列表：</span>
+                                <button id="btnAddFormdata" class="btn btn-outline text-[11px] py-1"><i class="fa-solid fa-plus text-emerald-400 mr-1"></i>添加字段/文件</button>
+                            </div>
+                            <div id="formdataContainer" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：响应与 cURL 展示面板 -->
+                <div class="space-y-3">
+                    <div class="flex border-b border-[var(--border)] justify-between items-center">
+                        <div class="flex">
+                            <button class="tab-btn active" id="tabResBody">Response Body</button>
+                            <button class="tab-btn" id="tabResHeaders">Response Headers</button>
+                            <button class="tab-btn" id="tabCurl">cURL 命令</button>
+                        </div>
+                        <div class="text-xs flex gap-3 pb-1">
+                            <span>Status: <strong id="statusTxt" class="text-sub-color">--</strong></span>
+                            <span>Time: <strong id="timeTxt" class="text-sub-color">0 ms</strong></span>
+                        </div>
+                    </div>
+
+                    <div id="panelResBody">
+                        <textarea id="responseView" rows="12" readonly class="w-full text-xs font-mono text-emerald-400 bg-slate-950/80 leading-relaxed" placeholder="等待发送请求..."></textarea>
+                    </div>
+
+                    <div id="panelResHeaders" class="hidden">
+                        <textarea id="responseHeadersView" rows="12" readonly class="w-full text-xs font-mono text-cyan-400 bg-slate-950/80 leading-relaxed" placeholder="等待发送请求..."></textarea>
+                    </div>
+
+                    <div id="panelCurl" class="hidden space-y-2">
+                        <textarea id="curlView" rows="11" readonly class="w-full text-xs font-mono text-amber-300 bg-slate-950/80 leading-relaxed" placeholder="在此查看生成的 cURL 命令..."></textarea>
+                        <button id="btnCopyCurl" class="btn btn-outline text-xs w-full"><i class="fa-solid fa-copy mr-1.5 text-amber-400"></i>复制完整 cURL 命令</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="text-xs text-sub-color text-center border-t border-[var(--border)] pt-3">
+                💡 <b>跨域提示</b>：因浏览器 CORS 安全限制，请求目标域名需支持跨域访问。可在右侧切换 <code>cURL 命令</code> 标签查看标准终端请求。
+            </div>
+        </div>
+    </main>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 接口调试辅助</p>
+        </div>
+    </footer>
+
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+};
+
+// 切换选项卡 Tabs
+const tabHeaders = document.getElementById('tabHeaders');
+const tabBody = document.getElementById('tabBody');
+const panelHeaders = document.getElementById('panelHeaders');
+const panelBody = document.getElementById('panelBody');
+
+tabHeaders.onclick = () => {
+    tabHeaders.classList.add('active');
+    tabBody.classList.remove('active');
+    panelHeaders.classList.remove('hidden');
+    panelBody.classList.add('hidden');
+};
+tabBody.onclick = () => {
+    tabBody.classList.add('active');
+    tabHeaders.classList.remove('active');
+    panelBody.classList.remove('hidden');
+    panelHeaders.classList.add('hidden');
+};
+
+const tabResBody = document.getElementById('tabResBody');
+const tabResHeaders = document.getElementById('tabResHeaders');
+const tabCurl = document.getElementById('tabCurl');
+const panelResBody = document.getElementById('panelResBody');
+const panelResHeaders = document.getElementById('panelResHeaders');
+const panelCurl = document.getElementById('panelCurl');
+
+function switchResTab(activeTab){
+    [tabResBody, tabResHeaders, tabCurl].forEach(t => t.classList.remove('active'));
+    [panelResBody, panelResHeaders, panelCurl].forEach(p => p.classList.add('hidden'));
+    activeTab.classList.add('active');
+}
+tabResBody.onclick = () => { switchResTab(tabResBody); panelResBody.classList.remove('hidden'); };
+tabResHeaders.onclick = () => { switchResTab(tabResHeaders); panelResHeaders.classList.remove('hidden'); };
+tabCurl.onclick = () => { switchResTab(tabCurl); panelCurl.classList.remove('hidden'); generateCurl(); };
+
+// Body 类型切换
+const bodyTypeRadios = document.querySelectorAll('input[name="bodyType"]');
+const bodyViewNone = document.getElementById('bodyViewNone');
+const bodyViewJson = document.getElementById('bodyViewJson');
+const bodyViewUrlencoded = document.getElementById('bodyViewUrlencoded');
+const bodyViewFormdata = document.getElementById('bodyViewFormdata');
+
+bodyTypeRadios.forEach(radio => {
+    radio.onchange = () => {
+        [bodyViewNone, bodyViewJson, bodyViewUrlencoded, bodyViewFormdata].forEach(v => v.classList.add('hidden'));
+        if(radio.value === 'none') bodyViewNone.classList.remove('hidden');
+        else if(radio.value === 'json') bodyViewJson.classList.remove('hidden');
+        else if(radio.value === 'urlencoded') bodyViewUrlencoded.classList.remove('hidden');
+        else if(radio.value === 'formdata') bodyViewFormdata.classList.remove('hidden');
+    }
+});
+
+// KV 编辑器生成
+const headersContainer = document.getElementById('headersContainer');
+function addHeaderRow(key = '', val = '', active = true){
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-2 header-row';
+    row.innerHTML = `
+        <input type="checkbox" ${active ? 'checked' : ''} class="accent-blue-500 row-enable">
+        <input type="text" placeholder="Header Key" value="${key}" class="flex-1 font-mono row-key">
+        <input type="text" placeholder="Value" value="${val}" class="flex-1 font-mono row-val">
+        <button class="text-red-400 hover:text-red-300 p-1 text-xs btn-del"><i class="fa-solid fa-xmark"></i></button>
+    `;
+    row.querySelector('.btn-del').onclick = () => row.remove();
+    headersContainer.appendChild(row);
+}
+document.getElementById('btnAddHeader').onclick = () => addHeaderRow();
+
+const urlencodedContainer = document.getElementById('urlencodedContainer');
+function addUrlencodedRow(key = '', val = ''){
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-2 urlencoded-row';
+    row.innerHTML = `
+        <input type="checkbox" checked class="accent-blue-500 row-enable">
+        <input type="text" placeholder="Key" value="${key}" class="flex-1 font-mono row-key">
+        <input type="text" placeholder="Value" value="${val}" class="flex-1 font-mono row-val">
+        <button class="text-red-400 hover:text-red-300 p-1 text-xs btn-del"><i class="fa-solid fa-xmark"></i></button>
+    `;
+    row.querySelector('.btn-del').onclick = () => row.remove();
+    urlencodedContainer.appendChild(row);
+}
+document.getElementById('btnAddUrlencoded').onclick = () => addUrlencodedRow();
+
+const formdataContainer = document.getElementById('formdataContainer');
+function addFormdataRow(key = '', val = '', type = 'text'){
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-2 formdata-row';
+    row.innerHTML = `
+        <input type="checkbox" checked class="accent-blue-500 row-enable">
+        <select class="text-xs row-type">
+            <option value="text" ${type === 'text' ? 'selected' : ''}>Text</option>
+            <option value="file" ${type === 'file' ? 'selected' : ''}>File</option>
+        </select>
+        <input type="text" placeholder="Key Name" value="${key}" class="flex-1 font-mono row-key">
+        <div class="flex-1 val-container">
+            ${type === 'text' ? `<input type="text" placeholder="Value" value="${val}" class="w-full font-mono row-val">` : `<input type="file" class="w-full text-xs font-mono row-file">`}
+        </div>
+        <button class="text-red-400 hover:text-red-300 p-1 text-xs btn-del"><i class="fa-solid fa-xmark"></i></button>
+    `;
+    const typeSelect = row.querySelector('.row-type');
+    const valContainer = row.querySelector('.val-container');
+    typeSelect.onchange = () => {
+        if(typeSelect.value === 'text') valContainer.innerHTML = `<input type="text" placeholder="Value" class="w-full font-mono row-val">`;
+        else valContainer.innerHTML = `<input type="file" class="w-full text-xs font-mono row-file">`;
+    };
+    row.querySelector('.btn-del').onclick = () => row.remove();
+    formdataContainer.appendChild(row);
+}
+document.getElementById('btnAddFormdata').onclick = () => addFormdataRow();
+
+// 初始预设
+addHeaderRow('Accept', '*/*');
+addHeaderRow('User-Agent', 'Toolkit-API-Client/1.0');
+addUrlencodedRow('foo', 'bar');
+addFormdataRow('username', 'developer', 'text');
+
+// 核心：构建完整的 cURL 命令
+function generateCurl(){
+    const method = document.getElementById('methodSel').value;
+    const url = document.getElementById('urlInput').value.trim() || 'http://localhost';
+    
+    let curl = `curl -X ${method} "${url}"`;
+
+    // 搜集 Headers
+    const headers = {};
+    document.querySelectorAll('.header-row').forEach(row => {
+        const enable = row.querySelector('.row-enable').checked;
+        const k = row.querySelector('.row-key').value.trim();
+        const v = row.querySelector('.row-val').value.trim();
+        if(enable && k) headers[k] = v;
+    });
+
+    const selectedBodyType = document.querySelector('input[name="bodyType"]:checked').value;
+
+    // 处理特殊 Body 类型及自动补全 Header
+    if(['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)){
+        if(selectedBodyType === 'json'){
+            const jsonText = document.getElementById('jsonInput').value.trim();
+            if(jsonText){
+                if(!Object.keys(headers).some(k => k.toLowerCase() === 'content-type')){
+                    headers['Content-Type'] = 'application/json';
+                }
+            }
+        } else if(selectedBodyType === 'urlencoded'){
+            if(!Object.keys(headers).some(k => k.toLowerCase() === 'content-type')){
+                headers['Content-Type'] = 'application/x-www-form-urlencoded';
+            }
+        }
+    }
+
+    // 追加 Headers 到 cURL
+    Object.entries(headers).forEach(([k, v]) => {
+        curl += ` \\\n  -H "${k}: ${v}"`;
+    });
+
+    // 追加 Body 到 cURL
+    if(['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)){
+        if(selectedBodyType === 'json'){
+            const jsonText = document.getElementById('jsonInput').value.trim();
+            if(jsonText){
+                // 转义双引号以适配终端
+                const escapedJson = jsonText.replace(/"/g, '\\"');
+                curl += ` \\\n  -d "${escapedJson}"`;
+            }
+        } else if(selectedBodyType === 'urlencoded'){
+            const params = [];
+            document.querySelectorAll('.urlencoded-row').forEach(row => {
+                const enable = row.querySelector('.row-enable').checked;
+                const k = row.querySelector('.row-key').value.trim();
+                const v = row.querySelector('.row-val').value.trim();
+                if(enable && k) params.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
+            });
+            if(params.length > 0){
+                curl += ` \\\n  -d "${params.join('&')}"`;
+            }
+        } else if(selectedBodyType === 'formdata'){
+            document.querySelectorAll('.formdata-row').forEach(row => {
+                const enable = row.querySelector('.row-enable').checked;
+                const k = row.querySelector('.row-key').value.trim();
+                const type = row.querySelector('.row-type').value;
+                if(enable && k){
+                    if(type === 'text'){
+                        const v = row.querySelector('.row-val').value;
+                        curl += ` \\\n  -F "${k}=${v}"`;
+                    } else {
+                        const fileInputEl = row.querySelector('.row-file');
+                        const fileName = (fileInputEl && fileInputEl.files.length > 0) ? fileInputEl.files[0].name : 'example.file';
+                        curl += ` \\\n  -F "${k}=@/path/to/${fileName}"`;
+                    }
+                }
+            });
+        }
+    }
+
+    document.getElementById('curlView').value = curl;
+}
+
+document.getElementById('btnCopyCurl').onclick = async () => {
+    const curlTxt = document.getElementById('curlView').value;
+    try {
+        await navigator.clipboard.writeText(curlTxt);
+        alert('✅ cURL 命令已成功复制到剪贴板！');
+    } catch(e) {
+        alert('❌ 复制失败，请手动全选复制');
+    }
+};
+
+// 发送 HTTP 请求逻辑
+const statusTxt = document.getElementById('statusTxt');
+const timeTxt = document.getElementById('timeTxt');
+const responseView = document.getElementById('responseView');
+const responseHeadersView = document.getElementById('responseHeadersView');
+
+async function sendRequest(){
+    const url = document.getElementById('urlInput').value.trim();
+    if(!url){
+        alert("请输入有效的请求 URL 地址！");
+        return;
+    }
+
+    // 每次发送时顺便生成当前最新的 cURL
+    generateCurl();
+
+    responseView.value = '请求发送中...';
+    responseHeadersView.value = '等待响应标头...';
+    statusTxt.innerText = '发送中...';
+    statusTxt.className = 'font-bold text-amber-400';
+
+    const method = document.getElementById('methodSel').value;
+    
+    const headers = {};
+    document.querySelectorAll('.header-row').forEach(row => {
+        const enable = row.querySelector('.row-enable').checked;
+        const k = row.querySelector('.row-key').value.trim();
+        const v = row.querySelector('.row-val').value.trim();
+        if(enable && k) headers[k] = v;
+    });
+
+    let body = null;
+    const selectedBodyType = document.querySelector('input[name="bodyType"]:checked').value;
+
+    if(['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)){
+        if(selectedBodyType === 'json'){
+            const jsonText = document.getElementById('jsonInput').value.trim();
+            if(jsonText){
+                body = jsonText;
+                if(!Object.keys(headers).some(k => k.toLowerCase() === 'content-type')){
+                    headers['Content-Type'] = 'application/json';
+                }
+            }
+        } else if(selectedBodyType === 'urlencoded'){
+            const params = new URLSearchParams();
+            document.querySelectorAll('.urlencoded-row').forEach(row => {
+                const enable = row.querySelector('.row-enable').checked;
+                const k = row.querySelector('.row-key').value.trim();
+                const v = row.querySelector('.row-val').value.trim();
+                if(enable && k) params.append(k, v);
+            });
+            body = params.toString();
+            if(!Object.keys(headers).some(k => k.toLowerCase() === 'content-type')){
+                headers['Content-Type'] = 'application/x-www-form-urlencoded';
+            }
+        } else if(selectedBodyType === 'formdata'){
+            const formData = new FormData();
+            document.querySelectorAll('.formdata-row').forEach(row => {
+                const enable = row.querySelector('.row-enable').checked;
+                const k = row.querySelector('.row-key').value.trim();
+                const type = row.querySelector('.row-type').value;
+                if(enable && k){
+                    if(type === 'text'){
+                        const v = row.querySelector('.row-val').value;
+                        formData.append(k, v);
+                    } else {
+                        const fileInputEl = row.querySelector('.row-file');
+                        if(fileInputEl && fileInputEl.files.length > 0){
+                            formData.append(k, fileInputEl.files[0]);
+                        }
+                    }
+                }
+            });
+            body = formData;
+            Object.keys(headers).forEach(k => {
+                if(k.toLowerCase() === 'content-type') delete headers[k];
+            });
+        }
+    }
+
+    const options = { method, headers };
+    if(body !== null) options.body = body;
+
+    const startTime = performance.now();
+
+    try {
+        const res = await fetch(url, options);
+        const endTime = performance.now();
+        const duration = Math.round(endTime - startTime);
+
+        timeTxt.innerText = `${duration} ms`;
+        statusTxt.innerText = `${res.status} ${res.statusText}`;
+        statusTxt.className = res.ok ? 'font-bold text-emerald-400' : 'font-bold text-red-400';
+
+        let resHeadersText = '';
+        res.headers.forEach((v, k) => { resHeadersText += `${k}: ${v}\n`; });
+        responseHeadersView.value = resHeadersText || '无响应标头信息';
+
+        const contentType = res.headers.get('content-type') || '';
+        if(contentType.includes('application/json')){
+            const data = await res.json();
+            responseView.value = JSON.stringify(data, null, 2);
+        } else {
+            responseView.value = await res.text();
+        }
+
+    } catch(err){
+        statusTxt.innerText = '请求失败 (ERR_FAILED)';
+        statusTxt.className = 'font-bold text-red-400';
+        responseView.value = `请求异常：\n${err.message}\n可能原因：\n1. 目标接口未开启 CORS 跨域访问控制；\n2. 网络未连通或域名解析失败。`;
+        responseHeadersView.value = '无法获取标头 (Network Error)';
+    }
+}
+
+document.getElementById('btnSend').onclick = sendRequest;
+initTheme();
+</script>
+</body>
+</html>

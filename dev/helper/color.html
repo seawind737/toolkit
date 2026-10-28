@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级颜色转换与拾色器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: { colors: { primary: '#3b82f6' } }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-3.5 py-2 rounded-lg transition-all duration-200 text-xs flex items-center justify-center gap-1.5 cursor-pointer font-medium; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-danger { @apply bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+        }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; --input-bg: #020617; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; --input-bg: #f1f5f9; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; }
+        body::before { content:""; position:fixed; inset:0; z-index:-1; opacity:0.45; pointer-events:none; background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size:24px 24px; }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        input[type="text"], input[type="color"] { background-color: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); }
+        input:focus { outline: none; border-color: #3b82f6; }
+        .color-block { cursor: pointer; transition: transform 0.15s; }
+        .color-block:hover { transform: scale(1.08); }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="index.html" class="btn btn-outline flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i><span>返回首页</span></a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-palette mr-2"></i>高级颜色转换与拾色工具</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-4xl flex-grow space-y-5">
+        <div class="tool-card p-6 rounded-2xl space-y-6">
+            
+            <!-- 大色块实时预览与拾色 -->
+            <div class="space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="font-bold text-[var(--text-sub)]">颜色实时预览 (点击拾色器直接更改)</span>
+                    <label class="btn btn-outline text-xs py-1 cursor-pointer">
+                        <i class="fa-solid fa-eye-dropper text-primary"></i>打开系统拾色器
+                        <input type="color" id="colorPicker" value="#3b82f6" class="opacity-0 w-0 h-0 absolute">
+                    </label>
+                </div>
+                <div id="preview" class="w-full h-32 rounded-xl shadow-inner border border-[var(--border)] transition-colors duration-200"></div>
+            </div>
+
+            <!-- 色彩格式数值面板 -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div class="bg-[var(--card-sub)] p-3.5 rounded-xl border border-[var(--border)] space-y-2">
+                    <div class="flex justify-between items-center text-[var(--text-sub)]">
+                        <span>HEX 格式</span>
+                        <button class="text-blue-400 hover:underline copy-btn" data-target="hexInput"><i class="fa-solid fa-copy"></i>复制</button>
+                    </div>
+                    <input id="hexInput" type="text" value="#3b82f6" class="w-full font-mono py-1.5 px-2.5 rounded text-xs">
+                </div>
+
+                <div class="bg-[var(--card-sub)] p-3.5 rounded-xl border border-[var(--border)] space-y-2">
+                    <div class="flex justify-between items-center text-[var(--text-sub)]">
+                        <span>RGB 格式</span>
+                        <button class="text-blue-400 hover:underline copy-btn" data-target="rgbInput"><i class="fa-solid fa-copy"></i>复制</button>
+                    </div>
+                    <input id="rgbInput" type="text" value="rgb(59, 130, 246)" class="w-full font-mono py-1.5 px-2.5 rounded text-xs">
+                </div>
+
+                <div class="bg-[var(--card-sub)] p-3.5 rounded-xl border border-[var(--border)] space-y-2">
+                    <div class="flex justify-between items-center text-[var(--text-sub)]">
+                        <span>HSL 格式</span>
+                        <button class="text-blue-400 hover:underline copy-btn" data-target="hslInput"><i class="fa-solid fa-copy"></i>复制</button>
+                    </div>
+                    <input id="hslInput" type="text" value="hsl(217, 91%, 60%)" class="w-full font-mono py-1.5 px-2.5 rounded text-xs">
+                </div>
+            </div>
+
+            <!-- 常用调色板快速点击 -->
+            <div class="space-y-2 pt-2">
+                <span class="text-xs font-bold text-[var(--text-sub)]">快捷预设色板</span>
+                <div class="flex flex-wrap gap-2" id="presetPalette">
+                    <div class="w-8 h-8 rounded-lg color-block shadow-sm" style="background:#ef4444" data-color="#ef4444" title="Red"></div>
+                    <div class="w-8 h-8 rounded-lg color-block shadow-sm" style="background:#f97316" data-color="#f97316" title="Orange"></div>
+                    <div class="w-8 h-8 rounded-lg color-block shadow-sm" style="background:#eab308" data-color="#eab308" title="Yellow"></div>
+                    <div class="w-8 h-8 rounded-lg color-block shadow-sm" style="background:#22c55e" data-color="#22c55e" title="Green"></div>
+                    <div class="w-8 h-8 rounded-lg color-block shadow-sm" style="background:#06b6d4" data-color="#06b6d4" title="Cyan"></div>
+                    <div class="w-8 h-8 rounded-lg color-block shadow-sm" style="background:#3b82f6" data-color="#3b82f6" title="Blue"></div>
+                    <div class="w-8 h-8 rounded-lg color-block shadow-sm" style="background:#a855f7" data-color="#a855f7" title="Purple"></div>
+                    <div class="w-8 h-8 rounded-lg color-block shadow-sm" style="background:#ec4899" data-color="#ec4899" title="Pink"></div>
+                    <div class="w-8 h-8 rounded-lg color-block shadow-sm" style="background:#64748b" data-color="#64748b" title="Slate"></div>
+                    <div class="w-8 h-8 rounded-lg color-block shadow-sm" style="background:#0f172a" data-color="#0f172a" title="Dark"></div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button class="btn btn-primary flex-1 py-2 text-xs font-bold" id="btnParse"><i class="fa-solid fa-rotate mr-1.5"></i>解析并应用输入框颜色</button>
+                <button class="btn btn-danger text-xs py-2" id="btnClear"><i class="fa-solid fa-eraser mr-1"></i>重置</button>
+            </div>
+
+            <div id="msgBox" class="p-3 rounded-xl bg-[var(--card-sub)] text-xs text-[var(--text-sub)] border border-[var(--border)]">
+                💡 <b>提示</b>：修改任意输入框的颜色数值后，点击“解析并应用”或直接联动。
+            </div>
+        </div>
+    </main>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-[var(--text-sub)] text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 开发者工具箱 | 颜色转换工具</p>
+        </div>
+    </footer>
+
+    <script>
+        function initTheme(){
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick = () => {
+            const c = document.documentElement.getAttribute("data-theme");
+            const n = c === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", n);
+            localStorage.setItem("toolTheme", n);
+            document.getElementById("themeIcon").className = n === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        }
+        initTheme();
+
+        const picker = document.getElementById("colorPicker");
+        const preview = document.getElementById("preview");
+        const hexInput = document.getElementById("hexInput");
+        const rgbInput = document.getElementById("rgbInput");
+        const hslInput = document.getElementById("hslInput");
+        const msgBox = document.getElementById("msgBox");
+
+        function setMsg(txt, err=false){
+            msgBox.innerHTML = err ? `<span class="text-red-400">${txt}</span>` : `<span class="text-emerald-400">${txt}</span>`;
+        }
+
+        function hexToRgb(hex){
+            let h = hex.replace("#","");
+            if(h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+            const r = parseInt(h.slice(0,2), 16);
+            const g = parseInt(h.slice(2,4), 16);
+            const b = parseInt(h.slice(4,6), 16);
+            return {r, g, b};
+        }
+
+        function rgbToHex(r, g, b){
+            return "#" + [r, g, b].map(x => Math.max(0, Math.min(255, x)).toString(16).padStart(2,"0")).join("");
+        }
+
+        function rgbToHsl(r, g, b){
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h = 0, s = 0;
+            const l = (max + min) / 2;
+            if(max !== min){
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch(max){
+                    case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                    case g: h = ((b - r) / d + 2) / 6; break;
+                    case b: h = ((r - g) / d + 4) / 6; break;
+                }
+            }
+            return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+        }
+
+        function updateAll(hex){
+            try {
+                const {r, g, b} = hexToRgb(hex);
+                const {h, s, l} = rgbToHsl(r, g, b);
+                picker.value = hex;
+                hexInput.value = hex;
+                rgbInput.value = `rgb(${r}, ${g}, ${b})`;
+                hslInput.value = `hsl(${h}, ${s}%, ${l}%)`;
+                preview.style.backgroundColor = hex;
+                setMsg(`✅ 颜色加载成功: ${hex}`);
+            } catch(e) {
+                setMsg("❌ 色彩格式解析错误", true);
+            }
+        }
+
+        preview.onclick = () => picker.click();
+        picker.oninput = () => updateAll(picker.value);
+
+        // 预设色板点击
+        document.querySelectorAll("#presetPalette > div").forEach(block => {
+            block.onclick = () => {
+                const col = block.getAttribute("data-color");
+                updateAll(col);
+            };
+        });
+
+        // 解析自定义输入
+        document.getElementById("btnParse").onclick = () => {
+            const val = (hexInput.value || rgbInput.value || hslInput.value).trim();
+            try {
+                const temp = document.createElement("div");
+                temp.style.color = val;
+                document.body.appendChild(temp);
+                const c = getComputedStyle(temp).color;
+                document.body.removeChild(temp);
+                const m = c.match(/\d+/g);
+                if(!m) throw new Error("无法识别的颜色");
+                const hex = rgbToHex(+m[0], +m[1], +m[2]);
+                updateAll(hex);
+            } catch(e) {
+                setMsg("❌ 颜色解析失败，请检查输入格式是否正确", true);
+            }
+        };
+
+        document.getElementById("btnClear").onclick = () => {
+            updateAll("#3b82f6");
+            setMsg("已重置为默认颜色");
+        };
+
+        // 复制按钮绑定
+        document.querySelectorAll(".copy-btn").forEach(btn => {
+            btn.onclick = async () => {
+                const targetId = btn.getAttribute("data-target");
+                const text = document.getElementById(targetId).value;
+                try {
+                    await navigator.clipboard.writeText(text);
+                    setMsg(`✅ 已复制: ${text}`);
+                } catch(e) {
+                    setMsg("❌ 复制失败", true);
+                }
+            };
+        });
+
+        updateAll("#3b82f6");
+    </script>
+</body>
+</html>

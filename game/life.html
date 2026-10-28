@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>生命游戏</title>
+    <title>🧬 康威生命游戏 - 细胞自动机</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -17,40 +17,68 @@
             }
         }
     </script>
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
-            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
-            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
-            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
-            .btn-danger { @apply bg-red-500 text-white hover:bg-red-500/80; }
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
         }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-danger:hover { background-color: rgba(239, 68, 68, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
         html[data-theme="dark"] {
-            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
-            --text-main: #e2e8f0;--text-sub: #94a3b8;
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+            --canvas-bg: #020617;
         }
         html[data-theme="light"] {
-            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
-            --text-main: #111827;--text-sub: #64748b;
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+            --canvas-bg: #f8fafc;
         }
         body {
             background-color: var(--bg); color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
         }
-        body::before{
-            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
             background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
+            background-size: 24px 24px;
         }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
-        }
-        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
-        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
         .text-sub-color { color: var(--text-sub); }
-        canvas{border:1px solid var(--border);}
+
+        input, select {
+            background-color: var(--card); border: 1px solid var(--border); color: var(--text-main);
+            padding: 0.35rem 0.5rem; border-radius: 0.375rem;
+        }
+        input:focus, select:focus { outline: none; border-color: #3b82f6; }
+
+        canvas {
+            border: 2px solid var(--border);
+            border-radius: 0.75rem;
+            background-color: var(--canvas-bg);
+            display: block;
+            margin: 0 auto;
+            cursor: crosshair;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body class="flex flex-col">
@@ -59,178 +87,386 @@
             <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
                 <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
             </a>
-            <h1 class="text-xl font-bold text-gradient">🧬 生命游戏</h1>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-dna mr-2"></i>康威生命游戏</h1>
             <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
                 <i class="fa-solid fa-moon" id="themeIcon"></i>
             </button>
         </div>
     </header>
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <div class="flex flex-wrap gap-3 mb-5 items-center">
-                <button id="btnStart" class="btn btn-primary"><i class="fa-solid fa-play"></i>开始</button>
-                <button id="btnPause" class="btn btn-outline"><i class="fa-solid fa-pause"></i>暂停</button>
-                <button id="btnRandom" class="btn btn-outline"><i class="fa-solid fa-shuffle"></i>随机生成</button>
-                <button id="btnClear" class="btn btn-danger"><i class="fa-solid fa-eraser"></i>清空</button>
-                <div class="flex items-center gap-2">
-                    <label class="text-sub-color">速度:</label>
-                    <input id="speed" type="range" min="50" max="500" value="150">
+
+    <main class="container mx-auto px-4 py-6 max-w-5xl flex-grow">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-4">
+            
+            <!-- 运行与操控面板 -->
+            <div class="flex flex-wrap gap-3 items-center justify-between bg-[var(--card-sub)] p-3.5 rounded-xl">
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button id="btnStartPause" class="btn btn-primary text-sm"><i class="fa-solid fa-play mr-1"></i><span id="startTxt">开始演化</span></button>
+                    <button id="btnStep" class="btn btn-outline text-sm"><i class="fa-solid fa-forward-step mr-1"></i>单步</button>
+                    <button id="btnRandom" class="btn btn-outline text-sm"><i class="fa-solid fa-shuffle mr-1"></i>随机</button>
+                    <button id="btnClear" class="btn btn-danger text-sm"><i class="fa-solid fa-eraser mr-1"></i>清空</button>
+                </div>
+
+                <!-- 经典结构预设加载下拉框 -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <div class="flex items-center gap-1 text-xs">
+                        <label class="text-sub-color">阵型:</label>
+                        <select id="presetSel" class="text-xs">
+                            <option value="">选择经典阵型...</option>
+                            <option value="glider">🚀 滑翔机 (Glider)</option>
+                            <option value="gun">🔫 高空滑翔机炮 (Gun)</option>
+                            <option value="lwss">🛸 飞船 (LWSS)</option>
+                            <option value="pulsar">💥 脉冲星 (Pulsar)</option>
+                            <option value="rpentomino">🌀 混沌骨牌 (R-pentomino)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-1 text-xs">
+                        <label class="text-sub-color">配色风格:</label>
+                        <select id="colorSel" class="text-xs">
+                            <option value="neon">⚡ 荧光赛博</option>
+                            <option value="heatmap">🔥 演化热图</option>
+                            <option value="matrix">🟩 骇客帝国</option>
+                            <option value="rainbow">🌈 虹彩渐变</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            <div class="text-sub-color text-sm mb-3">提示：鼠标在画布上点击绘制/擦除细胞</div>
-            <div class="overflow-auto">
+
+            <!-- 数据监控与演化速度滑块 -->
+            <div class="flex flex-wrap justify-between items-center px-4 py-2.5 bg-slate-950/40 rounded-xl border border-[var(--border)] text-sm">
+                <div class="flex items-center gap-6 font-mono font-semibold">
+                    <div><i class="fa-solid fa-arrows-spin text-cyan-400 mr-1.5"></i>世代: <span id="genTxt" class="text-cyan-400 font-bold">0</span></div>
+                    <div><i class="fa-solid fa-bacteria text-emerald-400 mr-1.5"></i>存活细胞: <span id="popTxt" class="text-emerald-400 font-bold">0</span></div>
+                </div>
+
+                <div class="flex items-center gap-2 text-xs">
+                    <label class="text-sub-color">速度: <span id="speedTxt" class="font-bold text-main">100ms</span></label>
+                    <input id="speedRange" type="range" min="20" max="500" value="100" class="w-28 accent-blue-500">
+                </div>
+            </div>
+
+            <!-- 画布中心容器 -->
+            <div class="flex justify-center overflow-auto p-1">
                 <canvas id="canvas"></canvas>
+            </div>
+
+            <div class="text-xs text-sub-color text-center border-t border-[var(--border)] pt-3">
+                💡 <b>绘制指南</b>：鼠标在画布上按住<b>左键拖拽</b>可快速绘制细胞，再次点击可擦除。
             </div>
         </div>
     </main>
+
     <footer class="nav-bar-bg border-t py-6 mt-10">
         <div class="container mx-auto px-4 text-center text-sub-color text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 小游戏</p>
+            <p class="mt-1">© 2026 工具集 | 细胞自动机模拟</p>
         </div>
     </footer>
-    <script>
-        function initTheme(){
-            const t=localStorage.getItem("toolTheme")||"dark";
-            document.documentElement.setAttribute("data-theme",t);
-            updateThemeIcon(t);
-        }
-        function updateThemeIcon(t){
-            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
-        }
-        document.getElementById("themeToggle").onclick=()=>{
-            const c=document.documentElement.getAttribute("data-theme");
-            const n=c==="dark"?"light":"dark";
-            document.documentElement.setAttribute("data-theme",n);
-            localStorage.setItem("toolTheme",n);
-            updateThemeIcon(n);
-        }
 
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const btnStart = document.getElementById('btnStart');
-        const btnPause = document.getElementById('btnPause');
-        const btnRandom = document.getElementById('btnRandom');
-        const btnClear = document.getElementById('btnClear');
-        const speedEl = document.getElementById('speed');
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+    draw();
+};
 
-        const CELL_SIZE =12;
-        const COLS =60;
-        const ROWS =40;
-        canvas.width = COLS * CELL_SIZE;
-        canvas.height = ROWS * CELL_SIZE;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
 
-        let grid = [];
-        let running = false;
-        let timer = null;
-        let intervalMs = 150;
-        let isMouseDown = false;
+const btnStartPause = document.getElementById('btnStartPause');
+const startTxt = document.getElementById('startTxt');
+const btnStep = document.getElementById('btnStep');
+const btnRandom = document.getElementById('btnRandom');
+const btnClear = document.getElementById('btnClear');
+const presetSel = document.getElementById('presetSel');
+const colorSel = document.getElementById('colorSel');
+const speedRange = document.getElementById('speedRange');
+const speedTxt = document.getElementById('speedTxt');
+const genTxt = document.getElementById('genTxt');
+const popTxt = document.getElementById('popTxt');
 
-        function initGrid(){
-            grid = Array(ROWS).fill().map(()=>Array(COLS).fill(0));
+const CELL_SIZE = 10;
+const COLS = 70;
+const ROWS = 45;
+
+canvas.width = COLS * CELL_SIZE;
+canvas.height = ROWS * CELL_SIZE;
+
+let grid = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+let ageGrid = Array(ROWS).fill().map(() => Array(COLS).fill(0)); // 用于热度计算
+
+let isRunning = false;
+let timer = null;
+let generation = 0;
+let isMouseDown = false;
+let drawMode = 1; // 1: 放置, 0: 擦除
+
+function initGrid(){
+    grid = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+    ageGrid = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+    generation = 0;
+    updateStats();
+}
+
+function countNeighbors(r, c){
+    let count = 0;
+    for(let dr = -1; dr <= 1; dr++){
+        for(let dc = -1; dc <= 1; dc++){
+            if(dr === 0 && dc === 0) continue;
+            const nr = (r + dr + ROWS) % ROWS; // 闭合环形边界
+            const nc = (c + dc + COLS) % COLS;
+            if(grid[nr][nc] > 0) count++;
         }
-        function draw(){
-            const isDark = document.documentElement.dataset.theme === 'dark';
-            ctx.fillStyle = isDark ? '#0f172a' : '#ffffff';
-            ctx.fillRect(0,0,canvas.width,canvas.height);
-            ctx.fillStyle = isDark ? '#22d3ee' : '#2563eb';
-            for(let r=0;r<ROWS;r++){
-                for(let c=0;c<COLS;c++){
-                    if(grid[r][c]){
-                        ctx.fillRect(c*CELL_SIZE, r*CELL_SIZE, CELL_SIZE-1, CELL_SIZE-1);
-                    }
+    }
+    return count;
+}
+
+// 演化单步逻辑 (B3/S23 标准规则)
+function step(){
+    const nextGrid = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+    const nextAgeGrid = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+    let population = 0;
+
+    for(let r = 0; r < ROWS; r++){
+        for(let c = 0; c < COLS; c++){
+            const neighbors = countNeighbors(r, c);
+            const isAlive = grid[r][c] > 0;
+
+            if(isAlive && (neighbors === 2 || neighbors === 3)){
+                nextGrid[r][c] = 1;
+                nextAgeGrid[r][c] = ageGrid[r][c] + 1;
+                population++;
+            } else if(!isAlive && neighbors === 3){
+                nextGrid[r][c] = 1;
+                nextAgeGrid[r][c] = 1;
+                population++;
+            }
+        }
+    }
+
+    grid = nextGrid;
+    ageGrid = nextAgeGrid;
+    generation++;
+    updateStats(population);
+    draw();
+}
+
+function updateStats(popCount){
+    genTxt.innerText = generation;
+    if(popCount === undefined){
+        popCount = grid.reduce((acc, row) => acc + row.reduce((a, b) => a + (b > 0 ? 1 : 0), 0), 0);
+    }
+    popTxt.innerText = popCount;
+}
+
+function draw(){
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    ctx.fillStyle = isDark ? '#020617' : '#f8fafc';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 微弱网格线
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.03)';
+    ctx.lineWidth = 1;
+    for(let c = 0; c <= COLS; c++){
+        ctx.beginPath(); ctx.moveTo(c * CELL_SIZE, 0); ctx.lineTo(c * CELL_SIZE, canvas.height); ctx.stroke();
+    }
+    for(let r = 0; r <= ROWS; r++){
+        ctx.beginPath(); ctx.moveTo(0, r * CELL_SIZE); ctx.lineTo(canvas.width, r * CELL_SIZE); ctx.stroke();
+    }
+
+    const theme = colorSel.value;
+
+    for(let r = 0; r < ROWS; r++){
+        for(let c = 0; c < COLS; c++){
+            if(grid[r][c] > 0){
+                const age = ageGrid[r][c];
+
+                if(theme === 'heatmap'){
+                    const hue = Math.max(0, 240 - age * 8); // 年长细胞逐渐变暖变红
+                    ctx.fillStyle = `hsl(${hue}, 90%, 55%)`;
+                } else if(theme === 'matrix'){
+                    ctx.fillStyle = '#22c55e';
+                } else if(theme === 'rainbow'){
+                    const hue = (c * 8 + r * 8 + generation * 4) % 360;
+                    ctx.fillStyle = `hsl(${hue}, 85%, 60%)`;
+                } else {
+                    // 赛博荧光
+                    ctx.fillStyle = isDark ? '#22d3ee' : '#2563eb';
                 }
-            }
-        }
-        function countNeighbors(r,c){
-            let cnt=0;
-            for(let dr=-1;dr<=1;dr++){
-                for(let dc=-1;dc<=1;dc++){
-                    if(dr===0&&dc===0)continue;
-                    const nr=r+dr, nc=c+dc;
-                    if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS){
-                        cnt+=grid[nr][nc];
-                    }
-                }
-            }
-            return cnt;
-        }
-        function step(){
-            const next = Array(ROWS).fill().map(()=>Array(COLS).fill(0));
-            for(let r=0;r<ROWS;r++){
-                for(let c=0;c<COLS;c++){
-                    const n = countNeighbors(r,c);
-                    if(grid[r][c]){
-                        next[r][c] = (n===2||n===3) ?1:0;
-                    }else{
-                        next[r][c] = n===3?1:0;
-                    }
-                }
-            }
-            grid = next;
-            draw();
-        }
-        function startRun(){
-            if(running) return;
-            running=true;
-            timer = setInterval(step, intervalMs);
-        }
-        function pauseRun(){
-            running=false;
-            clearInterval(timer);
-        }
-        function randomFill(){
-            pauseRun();
-            for(let r=0;r<ROWS;r++){
-                for(let c=0;c<COLS;c++){
-                    grid[r][c] = Math.random()>0.7 ?1:0;
-                }
-            }
-            draw();
-        }
-        function clearAll(){
-            pauseRun();
-            initGrid();
-            draw();
-        }
 
-        canvas.addEventListener('mousedown',e=>{
-            isMouseDown=true;
-            handleDraw(e);
-        })
-        canvas.addEventListener('mousemove',e=>{
-            if(isMouseDown) handleDraw(e);
-        })
-        canvas.addEventListener('mouseup',()=>isMouseDown=false);
-        canvas.addEventListener('mouseleave',()=>isMouseDown=false);
-
-        function handleDraw(e){
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const c = Math.floor(x / CELL_SIZE);
-            const r = Math.floor(y / CELL_SIZE);
-            if(r>=0&&r<ROWS&&c>=0&&c<COLS){
-                grid[r][c] = grid[r][c] ?0:1;
-                draw();
+                ctx.fillRect(c * CELL_SIZE + 0.5, r * CELL_SIZE + 0.5, CELL_SIZE - 1, CELL_SIZE - 1);
             }
         }
+    }
+}
 
-        speedEl.oninput = ()=>{
-            intervalMs = Number(speedEl.value);
-            if(running){
-                clearInterval(timer);
-                timer = setInterval(step, intervalMs);
-            }
-        }
-        btnStart.onclick = startRun;
-        btnPause.onclick = pauseRun;
-        btnRandom.onclick = randomFill;
-        btnClear.onclick = clearAll;
-
-        initGrid();
+// 绘画交互
+canvas.addEventListener('mousedown', e => {
+    isMouseDown = true;
+    const { r, c } = getCanvasCoords(e);
+    if(r >= 0 && r < ROWS && c >= 0 && c < COLS){
+        drawMode = grid[r][c] ? 0 : 1;
+        grid[r][c] = drawMode;
+        ageGrid[r][c] = drawMode ? 1 : 0;
+        updateStats();
         draw();
-        initTheme();
-    </script>
+    }
+});
+
+canvas.addEventListener('mousemove', e => {
+    if(!isMouseDown) return;
+    const { r, c } = getCanvasCoords(e);
+    if(r >= 0 && r < ROWS && c >= 0 && c < COLS){
+        grid[r][c] = drawMode;
+        ageGrid[r][c] = drawMode ? 1 : 0;
+        updateStats();
+        draw();
+    }
+});
+
+window.addEventListener('mouseup', () => isMouseDown = false);
+
+function getCanvasCoords(e){
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    return {
+        c: Math.floor(x / CELL_SIZE),
+        r: Math.floor(y / CELL_SIZE)
+    };
+}
+
+// 演化控制
+function togglePlay(){
+    isRunning = !isRunning;
+    if(isRunning){
+        startTxt.innerText = '暂停演化';
+        btnStartPause.className = 'btn btn-primary bg-amber-600 hover:bg-amber-500 text-sm';
+        btnStartPause.innerHTML = '<i class="fa-solid fa-pause mr-1"></i><span>暂停演化</span>';
+        timer = setInterval(step, Number(speedRange.value));
+    } else {
+        btnStartPause.className = 'btn btn-primary text-sm';
+        btnStartPause.innerHTML = '<i class="fa-solid fa-play mr-1"></i><span>开始演化</span>';
+        clearInterval(timer);
+    }
+}
+
+btnStartPause.onclick = togglePlay;
+
+btnStep.onclick = () => {
+    if(isRunning) togglePlay();
+    step();
+};
+
+btnRandom.onclick = () => {
+    if(isRunning) togglePlay();
+    initGrid();
+    for(let r = 0; r < ROWS; r++){
+        for(let c = 0; c < COLS; c++){
+            if(Math.random() > 0.72){
+                grid[r][c] = 1;
+                ageGrid[r][c] = 1;
+            }
+        }
+    }
+    updateStats();
+    draw();
+};
+
+btnClear.onclick = () => {
+    if(isRunning) togglePlay();
+    initGrid();
+    draw();
+};
+
+speedRange.oninput = () => {
+    speedTxt.innerText = `${speedRange.value}ms`;
+    if(isRunning){
+        clearInterval(timer);
+        timer = setInterval(step, Number(speedRange.value));
+    }
+};
+
+colorSel.onchange = draw;
+
+// 预设阵型模版库加载
+presetSel.onchange = () => {
+    const val = presetSel.value;
+    if(!val) return;
+    if(isRunning) togglePlay();
+    initGrid();
+
+    const midR = Math.floor(ROWS / 2);
+    const midC = Math.floor(COLS / 2);
+
+    if(val === 'glider'){
+        const pattern = [[0,1],[1,2],[2,0],[2,1],[2,2]];
+        pattern.forEach(([dr, dc]) => {
+            grid[midR + dr][midC + dc] = 1;
+            ageGrid[midR + dr][midC + dc] = 1;
+        });
+    } else if(val === 'gun'){
+        const gunPattern = [
+            [5,1],[5,2],[6,1],[6,2],[5,11],[6,11],[7,11],[4,12],[8,12],[3,13],[9,13],[3,14],[9,14],[6,15],[4,16],[8,16],[5,17],[6,17],[7,17],[6,18],
+            [3,21],[4,21],[5,21],[3,22],[4,22],[5,22],[2,23],[6,23],[1,25],[2,25],[6,25],[7,25],[3,35],[4,35],[3,36],[4,36]
+        ];
+        gunPattern.forEach(([r, c]) => {
+            if(r < ROWS && c < COLS){
+                grid[r][c] = 1; ageGrid[r][c] = 1;
+            }
+        });
+    } else if(val === 'lwss'){
+        const pattern = [[0,1],[0,4],[1,0],[2,0],[2,4],[3,0],[3,1],[3,2],[3,3]];
+        pattern.forEach(([dr, dc]) => {
+            grid[midR + dr][midC + dc] = 1; ageGrid[midR + dr][midC + dc] = 1;
+        });
+    } else if(val === 'pulsar'){
+        const p = [
+            [-6,-4],[-6,-3],[-6,-2],[-6,2],[-6,3],[-6,4],
+            [-4,-6],[-3,-6],[-2,-6],[2,-6],[3,-6],[4,-6],
+            [-4,-1],[-3,-1],[-2,-1],[2,-1],[3,-1],[4,-1],
+            [-1,-4],[-1,-3],[-1,-2],[-1,2],[-1,3],[-1,4],
+            [1,-4],[1,-3],[1,-2],[1,2],[1,3],[1,4],
+            [4,-1],[3,-1],[2,-1],[-2,-1],[-3,-1],[-4,-1],
+            [4,-6],[3,-6],[2,-6],[-2,-6],[-3,-6],[-4,-6],
+            [6,-4],[6,-3],[6,-2],[6,2],[6,3],[6,4],
+            [-4,1],[-3,1],[-2,1],[2,1],[3,1],[4,1],
+            [-4,6],[-3,6],[-2,6],[2,6],[3,6],[4,6],
+            [1,4],[1,3],[1,2],[1,-2],[1,-3],[1,-4]
+        ];
+        p.forEach(([dr, dc]) => {
+            if(midR + dr >= 0 && midR + dr < ROWS && midC + dc >= 0 && midC + dc < COLS){
+                grid[midR + dr][midC + dc] = 1; ageGrid[midR + dr][midC + dc] = 1;
+            }
+        });
+    } else if(val === 'rpentomino'){
+        const pattern = [[0,1],[0,2],[1,0],[1,1],[2,1]];
+        pattern.forEach(([dr, dc]) => {
+            grid[midR + dr][midC + dc] = 1; ageGrid[midR + dr][midC + dc] = 1;
+        });
+    }
+
+    presetSel.value = '';
+    updateStats();
+    draw();
+};
+
+initGrid();
+draw();
+initTheme();
+</script>
 </body>
 </html>

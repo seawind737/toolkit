@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>俄罗斯方块 - 旗舰定制版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #22d3ee);
+        }
+        .btn {
+            padding: 0.5rem 0.85rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+
+        html[data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569;
+            --text-main: #e2e8f0; --text-sub: #94a3b8;
+            --canvas-bg: #020617;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1;
+            --text-main: #111827; --text-sub: #64748b;
+            --canvas-bg: #f8fafc;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh;
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+
+        input, select {
+            background-color: var(--card); border: 1px solid var(--border); color: var(--text-main);
+            padding: 0.35rem 0.5rem; border-radius: 0.375rem;
+        }
+        input:focus, select:focus { outline: none; border-color: #3b82f6; }
+
+        canvas {
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            background-color: var(--canvas-bg);
+            display: block;
+        }
+        .dpad-btn {
+            width: 3rem; height: 3rem;
+            background-color: var(--card-sub);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; cursor: pointer; user-select: none;
+        }
+        .dpad-btn:active { background-color: #3b82f6; color: white; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-cubes mr-2"></i>俄罗斯方块</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-4">
+            
+            <!-- 控制与个性化配置菜单 -->
+            <div class="flex flex-wrap gap-3 items-center justify-between bg-[var(--card-sub)] p-3.5 rounded-xl">
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button id="btnStart" class="btn btn-primary text-sm"><i class="fa-solid fa-play mr-1"></i><span id="startTxt">开始游戏</span></button>
+                    <button id="btnPause" class="btn btn-outline text-sm"><i class="fa-solid fa-pause mr-1"></i>暂停</button>
+
+                    <div class="flex items-center gap-1 text-xs">
+                        <label class="text-sub-color">背景:</label>
+                        <select id="bgSel" class="text-xs">
+                            <option value="deep">🌌 星空深渊</option>
+                            <option value="cyber">⚡ 赛博网格</option>
+                            <option value="pure">⬛ 纯净暗夜</option>
+                        </select>
+                    </div>
+
+                    <label class="flex items-center gap-1.5 text-xs cursor-pointer select-none">
+                        <input id="chkGrid" type="checkbox" checked class="accent-blue-500"> 网格线
+                    </label>
+                </div>
+
+                <div class="flex items-center gap-4 text-xs font-semibold">
+                    <div>得分: <span id="scoreTxt" class="text-primary text-base font-bold">0</span></div>
+                    <div>等级: <span id="levelTxt" class="text-emerald-400 text-base font-bold">1</span></div>
+                    <div>最高: <span id="bestTxt" class="text-amber-400 text-base font-bold">0</span></div>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-6 items-center justify-center p-2">
+                <!-- 主盘面画布（宽 200，刚好等于 10 列 * 20 格） -->
+                <canvas id="canvas" width="200" height="400"></canvas>
+
+                <!-- 侧边预览与手柄 -->
+                <div class="flex flex-col gap-4 items-center">
+                    <div class="bg-slate-950/40 p-3 rounded-xl border border-[var(--border)] text-center">
+                        <div class="text-xs text-sub-color mb-2">下一个方块</div>
+                        <canvas id="nextCanvas" width="90" height="90"></canvas>
+                    </div>
+
+                    <!-- 虚拟操作按键 -->
+                    <div class="flex flex-col items-center gap-1">
+                        <button class="dpad-btn" id="btnRotate"><i class="fa-solid fa-rotate-right"></i></button>
+                        <div class="flex gap-3">
+                            <button class="dpad-btn" id="btnLeft"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button class="dpad-btn" id="btnDown"><i class="fa-solid fa-chevron-down"></i></button>
+                            <button class="dpad-btn" id="btnRight"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                        <button class="dpad-btn w-28 mt-1" id="btnDrop">速降 ⚡</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-xs text-sub-color text-center border-t border-[var(--border)] pt-3">
+                💡 电脑端按 <kbd class="px-1 border rounded">←</kbd> <kbd class="px-1 border rounded">→</kbd> 左右移动，<kbd class="px-1 border rounded">↑</kbd> 旋转，<kbd class="px-1 border rounded">↓</kbd> 加速，<kbd class="px-1 border rounded">Space</kbd> 空格速降。
+            </div>
+        </div>
+    </main>
+
+    <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="tool-card p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div class="text-5xl">💀</div>
+            <h2 id="modalTitle" class="text-2xl font-bold text-gradient">游戏结束！</h2>
+            <p id="modalBody" class="text-sub-color">得分: 0</p>
+            <button id="btnModalAgain" class="btn btn-primary w-full py-2.5 font-bold">再玩一次</button>
+        </div>
+    </div>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 经典小游戏</p>
+        </div>
+    </footer>
+
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    updateThemeIcon(t);
+}
+function updateThemeIcon(t){
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    updateThemeIcon(n);
+    draw();
+};
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const nextCanvas = document.getElementById('nextCanvas');
+const nextCtx = nextCanvas.getContext('2d');
+
+const btnStart = document.getElementById('btnStart');
+const startTxt = document.getElementById('startTxt');
+const btnPause = document.getElementById('btnPause');
+const bgSel = document.getElementById('bgSel');
+const chkGrid = document.getElementById('chkGrid');
+const scoreTxt = document.getElementById('scoreTxt');
+const levelTxt = document.getElementById('levelTxt');
+const bestTxt = document.getElementById('bestTxt');
+const modal = document.getElementById('modal');
+const modalBody = document.getElementById('modalBody');
+const btnModalAgain = document.getElementById('btnModalAgain');
+
+const btnRotate = document.getElementById('btnRotate');
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+const btnDown = document.getElementById('btnDown');
+const btnDrop = document.getElementById('btnDrop');
+
+const COLS = 10, ROWS = 20, CELL = 20;
+
+const SHAPES = [
+    { matrix: [[1,1,1,1]], color: '#06b6d4' }, // I
+    { matrix: [[1,1],[1,1]], color: '#eab308' }, // O
+    { matrix: [[0,1,0],[1,1,1]], color: '#a855f7' }, // T
+    { matrix: [[1,0,0],[1,1,1]], color: '#3b82f6' }, // L
+    { matrix: [[0,0,1],[1,1,1]], color: '#f97316' }, // J
+    { matrix: [[0,1,1],[1,1,0]], color: '#22c55e' }, // S
+    { matrix: [[1,1,0],[0,1,1]], color: '#ef4444' }  // Z
+];
+
+let board = [];
+let currentPiece = null;
+let nextPiece = null;
+let score = 0;
+let level = 1;
+let linesTotal = 0;
+let best = Number(localStorage.getItem('tetrisBest') || 0);
+let timer = null;
+let isPaused = false;
+let isGameOver = false;
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type){
+    try {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const now = audioCtx.currentTime;
+        if(type === 'drop'){
+            osc.frequency.setValueAtTime(300, now);
+            gain.gain.setValueAtTime(0.04, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.04);
+        } else if(type === 'clear'){
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523, now);
+            osc.frequency.setValueAtTime(784, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.2);
+        }
+    } catch(e){}
+}
+
+function getRandomPiece(){
+    const idx = Math.floor(Math.random() * SHAPES.length);
+    const item = SHAPES[idx];
+    return {
+        matrix: item.matrix.map(r => [...r]),
+        color: item.color,
+        r: 0,
+        c: Math.floor((COLS - item.matrix[0].length) / 2)
+    };
+}
+
+function initGame(){
+    if(timer) clearInterval(timer);
+    board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+    score = 0;
+    level = 1;
+    linesTotal = 0;
+    isPaused = false;
+    isGameOver = false;
+    bestTxt.innerText = best;
+    scoreTxt.innerText = '0';
+    levelTxt.innerText = '1';
+    startTxt.innerText = '重新开始';
+    btnPause.innerText = '暂停';
+    modal.classList.add('hidden');
+
+    nextPiece = getRandomPiece();
+    spawnPiece();
+    drawNext();
+
+    timer = setInterval(tick, getInterval());
+}
+
+function getInterval(){
+    return Math.max(100, 500 - (level - 1) * 50);
+}
+
+function spawnPiece(){
+    currentPiece = nextPiece;
+    nextPiece = getRandomPiece();
+    drawNext();
+
+    if(collide(currentPiece)){
+        isGameOver = true;
+        clearInterval(timer);
+        modalBody.innerText = `最终得分: ${score}`;
+        modal.classList.remove('hidden'); modal.classList.add('flex');
+    }
+}
+
+function collide(p){
+    for(let r = 0; r < p.matrix.length; r++){
+        for(let c = 0; c < p.matrix[r].length; c++){
+            if(p.matrix[r][c] !== 0){
+                const nr = p.r + r;
+                const nc = p.c + c;
+                if(nc < 0 || nc >= COLS || nr >= ROWS){
+                    return true;
+                }
+                if(nr >= 0 && board[nr][nc] !== 0){
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+function mergePiece(){
+    for(let r=0; r<currentPiece.matrix.length; r++){
+        for(let c=0; c<currentPiece.matrix[r].length; c++){
+            if(currentPiece.matrix[r][c] !== 0){
+                board[currentPiece.r + r][currentPiece.c + c] = currentPiece.color;
+            }
+        }
+    }
+}
+
+function clearLines(){
+    let linesCleared = 0;
+    for(let r = ROWS - 1; r >= 0; r--){
+        if(board[r].every(val => val !== 0)){
+            board.splice(r, 1);
+            board.unshift(Array(COLS).fill(0));
+            linesCleared++;
+            r++;
+        }
+    }
+    if(linesCleared > 0){
+        linesTotal += linesCleared;
+        score += linesCleared * 100 * level;
+        level = Math.floor(linesTotal / 5) + 1;
+
+        scoreTxt.innerText = score;
+        levelTxt.innerText = level;
+
+        if(score > best){
+            best = score;
+            localStorage.setItem('tetrisBest', best);
+            bestTxt.innerText = best;
+        }
+        playSound('clear');
+
+        // 重置定时器速度
+        clearInterval(timer);
+        timer = setInterval(tick, getInterval());
+    }
+}
+
+function tick(){
+    if(isGameOver || isPaused) return;
+    currentPiece.r++;
+    if(collide(currentPiece)){
+        currentPiece.r--;
+        mergePiece();
+        playSound('drop');
+        clearLines();
+        spawnPiece();
+    }
+    draw();
+}
+
+function rotate(){
+    if(isGameOver || isPaused) return;
+    const prevMatrix = currentPiece.matrix;
+    const rotated = currentPiece.matrix[0].map((_, i) => currentPiece.matrix.map(row => row[i]).reverse());
+    currentPiece.matrix = rotated;
+    
+    if(collide(currentPiece)){
+        currentPiece.c--;
+        if(collide(currentPiece)){
+            currentPiece.c += 2;
+            if(collide(currentPiece)){
+                currentPiece.c--;
+                currentPiece.matrix = prevMatrix;
+            }
+        }
+    }
+    draw();
+}
+
+function moveLeft(){
+    if(isGameOver || isPaused) return;
+    currentPiece.c--;
+    if(collide(currentPiece)){
+        currentPiece.c++;
+    }
+    draw();
+}
+
+function moveRight(){
+    if(isGameOver || isPaused) return;
+    currentPiece.c++;
+    if(collide(currentPiece)){
+        currentPiece.c--;
+    }
+    draw();
+}
+
+function dropHard(){
+    if(isGameOver || isPaused) return;
+    while(!collide(currentPiece)){
+        currentPiece.r++;
+    }
+    currentPiece.r--;
+    mergePiece();
+    playSound('drop');
+    clearLines();
+    spawnPiece();
+    draw();
+}
+
+function draw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 绘制不同背景主题
+    const bgType = bgSel.value;
+    if(bgType === 'deep'){
+        ctx.fillStyle = '#090d16';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if(bgType === 'cyber'){
+        ctx.fillStyle = '#030712';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if(chkGrid.checked){
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.12)';
+            ctx.lineWidth = 1;
+            for(let i=0; i<=COLS; i++){
+                ctx.beginPath(); ctx.moveTo(i*CELL, 0); ctx.lineTo(i*CELL, canvas.height); ctx.stroke();
+            }
+            for(let j=0; j<=ROWS; j++){
+                ctx.beginPath(); ctx.moveTo(0, j*CELL); ctx.lineTo(canvas.width, j*CELL); ctx.stroke();
+            }
+        }
+    } else {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // 绘制常规网格线
+    if(bgType !== 'cyber' && chkGrid.checked){
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 1;
+        for(let i=0; i<=COLS; i++){
+            ctx.beginPath(); ctx.moveTo(i*CELL, 0); ctx.lineTo(i*CELL, canvas.height); ctx.stroke();
+        }
+        for(let j=0; j<=ROWS; j++){
+            ctx.beginPath(); ctx.moveTo(0, j*CELL); ctx.lineTo(canvas.width, j*CELL); ctx.stroke();
+        }
+    }
+
+    // 画已固定的方块
+    for(let r=0; r<ROWS; r++){
+        for(let c=0; c<COLS; c++){
+            if(board[r][c] !== 0){
+                ctx.fillStyle = board[r][c];
+                ctx.fillRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+            }
+        }
+    }
+
+    // 画当前活动方块
+    if(currentPiece){
+        ctx.fillStyle = currentPiece.color;
+        for(let r=0; r<currentPiece.matrix.length; r++){
+            for(let c=0; c<currentPiece.matrix[r].length; c++){
+                if(currentPiece.matrix[r][c] !== 0){
+                    ctx.fillRect((currentPiece.c + c) * CELL + 1, (currentPiece.r + r) * CELL + 1, CELL - 2, CELL - 2);
+                }
+            }
+        }
+    }
+}
+
+function drawNext(){
+    nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+    if(!nextPiece) return;
+    nextCtx.fillStyle = nextPiece.color;
+    const m = nextPiece.matrix;
+    const offsetLeft = (nextCanvas.width - m[0].length * 18) / 2;
+    const offsetTop = (nextCanvas.height - m.length * 18) / 2;
+
+    for(let r=0; r<m.length; r++){
+        for(let c=0; c<m[r].length; c++){
+            if(m[r][c] !== 0){
+                nextCtx.fillRect(offsetLeft + c * 18, offsetTop + r * 18, 16, 16);
+            }
+        }
+    }
+}
+
+// 事件监听
+document.addEventListener('keydown', e => {
+    if(e.key === 'ArrowLeft' || e.key === 'a') moveLeft();
+    else if(e.key === 'ArrowRight' || e.key === 'd') moveRight();
+    else if(e.key === 'ArrowUp' || e.key === 'w') rotate();
+    else if(e.key === 'ArrowDown' || e.key === 's') tick();
+    else if(e.key === ' ') dropHard();
+});
+
+btnRotate.onclick = rotate;
+btnLeft.onclick = moveLeft;
+btnRight.onclick = moveRight;
+btnDown.onclick = tick;
+btnDrop.onclick = dropHard;
+
+btnPause.onclick = () => {
+    if(isGameOver) return;
+    isPaused = !isPaused;
+    btnPause.innerText = isPaused ? '继续' : '暂停';
+    btnPause.className = isPaused ? 'btn btn-primary text-sm' : 'btn btn-outline text-sm';
+};
+
+bgSel.onchange = draw;
+chkGrid.onchange = draw;
+btnStart.onclick = initGame;
+btnModalAgain.onclick = initGame;
+
+initTheme();
+initGame();
+</script>
+</body>
+</html>

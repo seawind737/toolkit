@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favicon 图标生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: { colors: { primary: '#3b82f6' } }
+            }
+        }
+    </script>
+    <style>
+        .text-gradient { background-clip: text; -webkit-background-clip: text; color: transparent; background-image: linear-gradient(to right, #60a5fa, #22d3ee); }
+        .btn { padding: 0.5rem 0.85rem; border-radius: 0.5rem; transition: all 0.2s; font-size: 0.875rem; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.8); }
+        .btn-outline { border: 1px solid var(--border); background-color: var(--card); color: var(--text-main); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="bg-[var(--card)] border-b border-[var(--border)] sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline"><i class="fa-solid fa-arrow-left mr-2"></i>返回首页</a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-icons mr-2"></i>Favicon 图标生成器</h1>
+            <button id="themeToggle" class="btn btn-outline"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow space-y-6">
+        <div class="tool-card p-6 rounded-2xl space-y-6">
+            <div class="border-2 border-dashed border-[var(--border)] rounded-2xl p-8 text-center cursor-pointer hover:border-blue-500 transition-colors" id="dropZone">
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+                <i class="fa-solid fa-cloud-arrow-up text-4xl text-blue-500 mb-3"></i>
+                <p class="font-bold text-sm">点击或拖拽上传源图片 (推荐正方形 PNG/JPG)</p>
+                <p class="text-xs text-sub-color mt-1">支持一键生成多尺寸网站图标</p>
+            </div>
+
+            <div id="resultArea" class="hidden space-y-6">
+                <div class="flex flex-wrap gap-6 items-center bg-[var(--card-sub)] p-4 rounded-xl">
+                    <div class="text-center">
+                        <canvas id="previewCanvas" class="w-20 h-20 rounded-xl border border-[var(--border)] bg-white shadow-md mx-auto"></canvas>
+                        <span class="text-xs text-sub-color mt-1.5 block">实时预览</span>
+                    </div>
+                    <div class="space-y-2 flex-grow text-xs">
+                        <label class="flex justify-between text-sub-color">圆角半径 (Border Radius): <span id="vRadius">0%</span></label>
+                        <input id="inputRadius" type="range" min="0" max="50" value="0" class="w-full accent-blue-500">
+                        <button id="btnProcess" class="btn btn-primary w-full mt-2 font-bold"><i class="fa-solid fa-bolt mr-1.5"></i>生成所有尺寸图标</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs" id="sizesGrid">
+                    <!-- 动态尺寸卡片 -->
+                </div>
+
+                <div class="space-y-2">
+                    <span class="text-xs font-bold text-sub-color">HTML 引入代码：</span>
+                    <textarea id="htmlCode" rows="3" readonly class="w-full text-xs font-mono p-2.5 rounded bg-slate-900 border border-[var(--border)] text-cyan-400"></textarea>
+                    <button id="btnCopyCode" class="btn btn-primary w-full text-xs font-bold"><i class="fa-solid fa-copy mr-1"></i>复制 HTML 代码</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+<script>
+document.getElementById('themeToggle').onclick = () => {
+    const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('toolTheme', t);
+    document.getElementById('themeIcon').className = t === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+};
+const savedT = localStorage.getItem('toolTheme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedT);
+document.getElementById('themeIcon').className = savedT === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+
+let sourceImage = null;
+const fileInput = document.getElementById('fileInput');
+const dropZone = document.getElementById('dropZone');
+const resultArea = document.getElementById('resultArea');
+const previewCanvas = document.getElementById('previewCanvas');
+const inputRadius = document.getElementById('inputRadius');
+const vRadius = document.getElementById('vRadius');
+const sizesGrid = document.getElementById('sizesGrid');
+const htmlCode = document.getElementById('htmlCode');
+
+dropZone.onclick = () => fileInput.click();
+fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+function handleFile(file){
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        const img = new Image();
+        img.onload = () => {
+            sourceImage = img;
+            resultArea.classList.remove('hidden');
+            drawPreview();
+            generateFavicons();
+        };
+        img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function drawPreview(){
+    const ctx = previewCanvas.getContext('2d');
+    previewCanvas.width = 128; previewCanvas.height = 128;
+    ctx.clearRect(0, 128, 128, 128);
+    ctx.save();
+    const radius = (inputRadius.value / 50) * 64;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, 128, 128, radius);
+    ctx.clip();
+    ctx.drawImage(sourceImage, 0, 0, 128, 128);
+    ctx.restore();
+    vRadius.innerText = inputRadius.value * 2 + '%';
+}
+
+inputRadius.oninput = () => { drawPreview(); generateFavicons(); };
+
+const SIZES = [16, 32, 48, 64, 128, 180, 512];
+
+function generateFavicons(){
+    sizesGrid.innerHTML = '';
+    SIZES.forEach(sz => {
+        const c = document.createElement('canvas');
+        c.width = sz; c.height = sz;
+        const ctx = c.getContext('2d');
+        ctx.save();
+        const radius = (inputRadius.value / 50) * (sz / 2);
+        ctx.beginPath();
+        ctx.roundRect(0, 0, sz, sz, radius);
+        ctx.clip();
+        ctx.drawImage(sourceImage, 0, 0, sz, sz);
+        ctx.restore();
+
+        const dataUrl = c.toDataURL('image/png');
+        const card = document.createElement('div');
+        card.className = 'p-3 bg-[var(--card-sub)] rounded-xl flex items-center justify-between border border-[var(--border)]';
+        card.innerHTML = `
+            <div>
+                <div class="font-bold">${sz} x ${sz} px</div>
+                <div class="text-[10px] text-sub-color">${sz===180?'Apple Touch Icon':sz===32?'Standard Favicon':'PNG Icon'}</div>
+            </div>
+            <a href="${dataUrl}" download="favicon-${sz}x${sz}.png" class="btn btn-outline text-xs py-1"><i class="fa-solid fa-download mr-1"></i>下载</a>
+        `;
+        sizesGrid.appendChild(card);
+    });
+
+    htmlCode.value = `<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">\n<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">`;
+}
+
+document.getElementById('btnCopyCode').onclick = () => {
+    navigator.clipboard.writeText(htmlCode.value);
+    alert('HTML 代码已复制！');
+};
+</script>
+</body>
+</html>

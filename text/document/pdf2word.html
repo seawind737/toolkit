@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级 PDF & Word 双向互转与批量处理中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 依赖 CDN：PDF.js, docx.js, mammoth.js (完美解析Word), html2pdf.js, JSZip, FileSaver -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.2.4/build/docx.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], mono: ['Consolas', 'Monaco', 'monospace'] }
+                }
+            }
+        }
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+    </script>
+    <style>
+        .text-gradient { background-clip: text; -webkit-background-clip: text; color: transparent; background-image: linear-gradient(to right, #60a5fa, #22d3ee); }
+        .btn { padding: 0.45rem 0.9rem; border-radius: 0.5rem; transition: all 0.2s; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; white-space: nowrap; }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: rgba(59, 130, 246, 0.85); }
+        .btn-outline { border: 1px solid var(--border); background-color: var(--card); color: var(--text-main); }
+        .btn-outline:hover { background-color: var(--card-sub); }
+        
+        .tab-btn { padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; border-bottom: 2px solid transparent; color: var(--text-sub); cursor: pointer; transition: all 0.2s; }
+        .tab-btn.active { border-color: #3b82f6; color: #3b82f6; }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; --input-bg: #020617; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; --input-bg: #f1f5f9; }
+        body { background-color: var(--bg); color: var(--text-main); transition: background-color 0.35s ease, color 0.35s ease; min-height: 100vh; }
+        body::before { content: ""; position: fixed; inset: 0; z-index: -1; opacity: 0.45; pointer-events: none; background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 24px 24px; }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .drop-area { border: 2px dashed var(--border); border-radius: 0.75rem; padding: 2.5rem 1.5rem; text-align: center; transition: all 0.2s; background: var(--input-bg); cursor: pointer; }
+        .drop-area.active { border-color: #3b82f6; background-color: rgba(59,130,246,0.05); }
+        input, textarea, select { background-color: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); padding: 0.4rem 0.6rem; border-radius: 0.375rem; font-size: 0.8rem; }
+        input:focus, textarea:focus { outline: none; border-color: #3b82f6; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="index.html" class="btn btn-outline flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i><span>返回首页</span></a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-file-pdf mr-2"></i>PDF 与 Word 高级互转中心</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-6 max-w-6xl flex-grow space-y-5">
+        <div class="tool-card p-4 sm:p-6 rounded-2xl space-y-5">
+            
+            <!-- 模式切换 Tabs -->
+            <div class="flex border-b border-[var(--border)]">
+                <button class="tab-btn active" id="tabPdfToWord"><i class="fa-solid fa-file-pdf mr-1.5 text-rose-400"></i>PDF 转 Word (支持批量)</button>
+                <button class="tab-btn" id="tabWordToPdf"><i class="fa-solid fa-file-word mr-1.5 text-blue-400"></i>Word 转 PDF</button>
+            </div>
+            <!-- 模式一：PDF 转 Word -->
+            <div id="panelPdfToWord" class="space-y-4">
+                <div class="drop-area" id="pdfDropArea" onclick="document.getElementById('pdfFileInput').click()">
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-blue-400 mb-2"></i>
+                    <p class="text-sm font-semibold">点击选择或拖拽多个 PDF 文件到此处（支持批量）</p>
+                    <p class="text-xs text-[var(--text-sub)] mt-1">自动识别文字、保留段落，并支持打包为 ZIP 下载</p>
+                    <input type="file" id="pdfFileInput" accept=".pdf" multiple class="hidden">
+                </div>
+                <!-- 批量文件列表与状态 -->
+                <div id="pdfFileListContainer" class="hidden space-y-2">
+                    <div class="flex justify-between items-center text-xs text-[var(--text-sub)] font-semibold">
+                        <span>待处理 PDF 队列 (<span id="queueCount">0</span>)</span>
+                        <div class="flex gap-2">
+                            <button id="btnBatchDocx" class="btn btn-primary text-xs py-1"><i class="fa-solid fa-file-word mr-1"></i>批量导出 DOCX</button>
+                            <button id="btnBatchZip" class="btn btn-primary text-xs py-1 bg-emerald-600 hover:bg-emerald-500"><i class="fa-solid fa-file-zipper mr-1"></i>打包下载 ZIP</button>
+                            <button id="btnClearQueue" class="btn btn-outline text-xs py-1 text-red-400">清空队列</button>
+                        </div>
+                    </div>
+                    <div id="pdfQueueItems" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+            <!-- 模式二：Word 转 PDF -->
+            <div id="panelWordToPdf" class="hidden space-y-4">
+                <div class="drop-area" id="wordDropArea" onclick="document.getElementById('wordFileInput').click()">
+                    <i class="fa-solid fa-file-word text-4xl text-blue-400 mb-2"></i>
+                    <p class="text-sm font-semibold">点击选择或拖拽 Word (.docx) 文件到此处</p>
+                    <p class="text-xs text-[var(--text-sub)] mt-1">完美解析全文并实时在浏览器中渲染导出为 PDF 文件</p>
+                    <input type="file" id="wordFileInput" accept=".docx" class="hidden">
+                </div>
+                <div id="wordProcessBox" class="hidden space-y-3">
+                    <div class="flex justify-between items-center text-xs">
+                        <span>已选文件: <strong id="wordFileName" class="text-white">--</strong></span>
+                        <button id="btnWordToPdf" class="btn btn-primary text-xs"><i class="fa-solid fa-file-pdf mr-1"></i>生成并下载 PDF (全文)</button>
+                    </div>
+                    <!-- 转换渲染预览容器 -->
+                    <div id="wordRenderPreview" class="p-8 rounded-xl bg-white text-slate-900 font-sans max-h-96 overflow-y-auto border border-slate-300 hidden leading-relaxed space-y-3 shadow-inner"></div>
+                </div>
+            </div>
+            <div class="text-xs text-[var(--text-sub)] text-center border-t border-[var(--border)] pt-3">
+                💡 <b>专业提示</b>：纯前端本地处理，适合文字型 PDF 与 Word 互转。如导出报错，请检查网络加载CDN资源。
+            </div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-[var(--text-sub)] text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 开发者工具箱 | 文档格式转换中心</p>
+        </div>
+    </footer>
+<script>
+function initTheme(){
+    const t = localStorage.getItem("toolTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+document.getElementById("themeToggle").onclick = () => {
+    const c = document.documentElement.getAttribute("data-theme");
+    const n = c === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", n);
+    localStorage.setItem("toolTheme", n);
+    document.getElementById("themeIcon").className = n === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+};
+initTheme();
+
+// 标签页切换
+const tabPdfToWord = document.getElementById('tabPdfToWord');
+const tabWordToPdf = document.getElementById('tabWordToPdf');
+const panelPdfToWord = document.getElementById('panelPdfToWord');
+const panelWordToPdf = document.getElementById('panelWordToPdf');
+tabPdfToWord.onclick = () => {
+    tabPdfToWord.classList.add('active');
+    tabWordToPdf.classList.remove('active');
+    panelPdfToWord.classList.remove('hidden');
+    panelWordToPdf.classList.add('hidden');
+};
+tabWordToPdf.onclick = () => {
+    tabWordToPdf.classList.add('active');
+    tabPdfToWord.classList.remove('active');
+    panelWordToPdf.classList.remove('hidden');
+    panelPdfToWord.classList.add('hidden');
+};
+
+// ==================== PDF 转 Word 逻辑 (支持批量) ====================
+let pdfQueue = []; 
+const pdfFileInput = document.getElementById('pdfFileInput');
+const pdfFileListContainer = document.getElementById('pdfFileListContainer');
+const pdfQueueItems = document.getElementById('pdfQueueItems');
+const queueCount = document.getElementById('queueCount');
+
+// 获取docx库，做加载判断
+function getDocxLib(){
+    if(!window.docx){
+        throw new Error("docx库未加载完成！请检查网络，刷新页面重试");
+    }
+    return window.docx;
+}
+
+document.getElementById('pdfDropArea').ondragover = (e) => { e.preventDefault(); e.currentTarget.classList.add('active'); };
+document.getElementById('pdfDropArea').ondragleave = (e) => { e.currentTarget.classList.remove('active'); };
+document.getElementById('pdfDropArea').ondrop = async (e) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('active');
+    handlePdfFiles(e.dataTransfer.files);
+};
+pdfFileInput.onchange = (e) => handlePdfFiles(e.target.files);
+
+async function handlePdfFiles(files){
+    pdfFileListContainer.classList.remove('hidden');
+    for(let file of files){
+        if(!file.name.endsWith('.pdf')) continue;
+        const itemObj = { file, text: '', status: '解析中...', progress: 0 };
+        pdfQueue.push(itemObj);
+        renderQueue();
+        await parsePdfItem(itemObj);
+    }
+}
+
+async function parsePdfItem(item){
+    try {
+        const arrayBuf = await item.file.arrayBuffer();
+        const pdfDoc = await pdfjsLib.getDocument(arrayBuf).promise;
+        let extracted = '';
+        for(let i=1; i<=pdfDoc.numPages; i++){
+            const page = await pdfDoc.getPage(i);
+            const content = await page.getTextContent();
+            const pageTxt = content.items.map(it => it.str).join(' ');
+            extracted += `\n\n[第 ${i} 页]\n${pageTxt}`;
+            item.progress = Math.round((i / pdfDoc.numPages) * 100);
+            renderQueue();
+        }
+        item.text = extracted.trim();
+        item.status = '解析完成 ✅';
+    } catch(e){
+        item.status = '解析失败 ❌:'+e.message;
+    }
+    renderQueue();
+}
+
+function renderQueue(){
+    queueCount.innerText = pdfQueue.length;
+    pdfQueueItems.innerHTML = '';
+    pdfQueue.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-3 rounded-xl bg-[var(--card-sub)] border border-[var(--border)] text-xs';
+        div.innerHTML = `
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-file-pdf text-rose-400 text-lg"></i>
+                <div>
+                    <div class="font-bold">${item.file.name}</div>
+                    <div class="text-[11px] text-[var(--text-sub)]">状态: ${item.status} (${item.progress}%)</div>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn btn-outline text-[11px] py-1 download-single-btn" data-index="${index}" ${item.status.includes('完成')?'':'disabled'}>下载Word</button>
+                <button class="text-red-400 hover:text-red-300 p-1 remove-btn" data-index="${index}"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `;
+        pdfQueueItems.appendChild(div);
+    });
+    document.querySelectorAll('.download-single-btn').forEach(btn => {
+        btn.onclick = () => downloadSingleDocx(Number(btn.getAttribute('data-index')));
+    });
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.onclick = () => removePdfItem(Number(btn.getAttribute('data-index')));
+    });
+}
+
+function removePdfItem(index) {
+    pdfQueue.splice(index, 1);
+    if(pdfQueue.length === 0) pdfFileListContainer.classList.add('hidden');
+    renderQueue();
+}
+
+async function downloadSingleDocx(index) {
+    const item = pdfQueue[index];
+    if(!item || !item.text) return;
+    try {
+        const docxLib = getDocxLib();
+        const { Document, Packer, Paragraph, TextRun } = docxLib;
+        const paragraphs = item.text.split('\n').map(line => new Paragraph({ children: [new TextRun(line)] }));
+        const doc = new Document({ sections: [{ children: paragraphs }] });
+        const blob = await Packer.toBlob(doc);
+        saveAs(blob, item.file.name.replace(/\.pdf$/i, '.docx'));
+    } catch(err) {
+        alert("导出 Word 失败: " + err.message);
+    }
+}
+
+document.getElementById('btnClearQueue').onclick = () => {
+    pdfQueue = [];
+    pdfFileListContainer.classList.add('hidden');
+    pdfFileInput.value = '';
+};
+
+document.getElementById('btnBatchDocx').onclick = async () => {
+    for(let i=0; i<pdfQueue.length; i++){
+        if(pdfQueue[i].status.includes('完成')){
+            await downloadSingleDocx(i);
+        }
+    }
+};
+
+document.getElementById('btnBatchZip').onclick = async () => {
+    const zip = new JSZip();
+    const docxLib = getDocxLib();
+    const { Document, Packer, Paragraph, TextRun } = docxLib;
+    let hasCompleted = false;
+    for(let item of pdfQueue){
+        if(item.status.includes('完成')){
+            hasCompleted = true;
+            const paragraphs = item.text.split('\n').map(line => new Paragraph({ children: [new TextRun(line)] }));
+            const doc = new Document({ sections: [{ children: paragraphs }] });
+            const blob = await Packer.toBlob(doc);
+            zip.file(item.file.name.replace(/\.pdf$/i, '.docx'), blob);
+        }
+    }
+    if(!hasCompleted){
+        alert("当前没有解析完成的 PDF 文件可供打包！");
+        return;
+    }
+    const content = await zip.generateAsync({type:"blob"});
+    saveAs(content, `converted-word-files-${Date.now()}.zip`);
+};
+
+// ==================== Word 转 PDF 逻辑 (修复长文档截断问题) ====================
+let selectedWordFile = null;
+let parsedWordHtml = '';
+const wordFileInput = document.getElementById('wordFileInput');
+const wordProcessBox = document.getElementById('wordProcessBox');
+const wordFileName = document.getElementById('wordFileName');
+const wordRenderPreview = document.getElementById('wordRenderPreview');
+
+document.getElementById('wordDropArea').ondragover = (e) => { e.preventDefault(); e.currentTarget.classList.add('active'); };
+document.getElementById('wordDropArea').ondragleave = (e) => { e.currentTarget.classList.remove('active'); };
+document.getElementById('wordDropArea').ondrop = (e) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('active');
+    if(e.dataTransfer.files[0]) handleWordFile(e.dataTransfer.files[0]);
+};
+wordFileInput.onchange = (e) => {
+    if(e.target.files[0]) handleWordFile(e.target.files[0]);
+};
+
+async function handleWordFile(file){
+    if(!file.name.endsWith('.docx')){
+        alert("目前仅支持标准的 .docx 格式 Word 文件！");
+        return;
+    }
+    selectedWordFile = file;
+    wordFileName.innerText = file.name;
+    wordProcessBox.classList.remove('hidden');
+    wordRenderPreview.classList.remove('hidden');
+    wordRenderPreview.innerHTML = '<p class="text-blue-500 font-bold">正在使用 Mammoth 深度解析 Word 全文...</p>';
+    try {
+        const arrayBuf = await file.arrayBuffer();
+        const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuf });
+        
+        if(result.value){
+            parsedWordHtml = result.value;
+            wordRenderPreview.innerHTML = parsedWordHtml;
+        } else {
+            wordRenderPreview.innerHTML = '<p>未能从该 Word 文档中提取到有效正文。</p>';
+        }
+    } catch(err){
+        wordRenderPreview.innerHTML = `<p class="text-red-500">Word 全文解析异常: ${err.message}</p>`;
+    }
+}
+
+document.getElementById('btnWordToPdf').onclick = async () => {
+    if(!selectedWordFile || !parsedWordHtml) return;
+    if(!window.html2pdf){
+        alert("html2pdf库未加载完成！请检查网络，刷新页面重试");
+        return;
+    }
+    try {
+        // 修复：直接传入HTML字符串源，不再使用页面DOM临时节点，彻底解决长文档截断
+        const opt = {
+            margin:       12,
+            filename:     selectedWordFile.name.replace(/\.docx$/i, '.pdf'),
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { 
+                scale: 2, 
+                useCORS: true,
+                windowWidth: 794,
+                logging:false
+            },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        // 使用 html字符串作为源，不需要挂载到页面DOM，完整渲染全部内容
+        await html2pdf().set(opt).from(parsedWordHtml).save();
+        alert("✅ 全文 PDF 导出成功！");
+    } catch(err) {
+        alert("PDF 导出失败: " + err.message);
+    }
+};
+</script>
+</body>
+</html>

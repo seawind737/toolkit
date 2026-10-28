@@ -229,16 +229,23 @@
                         name: '网络工具',
                         icon:"fa-solid fa-globe",
                         children: [
-                            { name: 'Websocket', url: './network/ws.html', icon: 'fa-comments', desc:"WebSocket调试", homeRecommend:true }
+                            { name: 'Websocket', url: './dev/network/ws.html', icon: 'fa-comments', desc:"WebSocket调试", homeRecommend:true },
+                            { name: 'HTTP调试器', url: './dev/network/http-client.html', icon: 'fa-paper-plane', desc: "轻量级 API 请求调试器", homeRecommend: true }
                         ]
                     },
                     {
                         name: '开发辅助',
                         icon:"fa-wrench",
                         children: [
+                            { name: 'JSON转多语言数据结构生成器', url: './dev/helper/json-generator.html', icon: 'fa-file-code', desc:"JSON 自动生成对应语言的数据结构类型定义", homeRecommend:true },
                             { name: 'Cron表达式', url: './dev/helper/cron.html', icon: 'fa-clock', desc:"Cron解析、生成、预览", homeRecommend:true },
                             { name: 'ID生成器', url: './dev/helper/idgen.html', icon: 'fa-hashtag', desc:"UUID、雪花ID、随机ID", homeRecommend:true },
-                            { name: 'Unicode', url: './dev/helper/unicode.html', icon: 'fa-solid fa-u', desc:"unicode", homeRecommend:true }
+                            { name: 'Unicode', url: './dev/helper/unicode.html', icon: 'fa-solid fa-u', desc:"unicode", homeRecommend:true },
+                            { name: '进制转换', url: './dev/helper/base-convert.html', icon: 'fa-calculator', desc:"2/8/10/16进制互相转换，支持大整数", homeRecommend:true },
+                            { name: '正则可视化', url: './dev/helper/regex-vis.html', icon: 'fa-project-diagram', desc: "正则转可视化铁路线路图", homeRecommend: true },
+                            { name: 'CSS生成器', url: './dev/helper/css-generator.html', icon: 'fa-palette', desc: "可视化阴影与玻璃拟态", homeRecommend: true },
+                            { name: 'Git速查助手', url: './dev/helper/git-helper.html', icon: 'fa-code-branch', desc: "常用 Git 命令速查 CheatSheet", homeRecommend: true },
+                            { name: '取色器', url: './dev/helper/color.html', icon: 'fa-droplet', desc:"HEX/RGB颜色转换", homeRecommend:true },
                         ]
                     }
                 ]
@@ -255,12 +262,18 @@
                     { name: '随机密码', url: './text/pwd.html', icon: 'fa-wand-magic-sparkles', desc:"高强度密码批量生成", homeRecommend:true },
                     { name: "文本压缩", url:"./text/compress.html", icon:"fa-compress-arrows-alt", desc:"gzip/deflate文本压缩解压", homeRecommend:true },
                     { name: 'Markdown预览', url: './text/mdpreview.html', icon: 'fa-markdown', desc: 'MD实时预览、复制HTML', homeRecommend:true},
+                    // {
+                    //     name: '文档处理',
+                    //     icon: 'fa-document',
+                    //     children: [
+                    //         { name: 'word和pdf互转', url: './text/document/pdf2word.html', icon: 'fa-solid fa-file-pdf', desc:"word和pdf互转", homeRecommend:true },
+                    //     ]
+                    // },
                     {
                         name: '文本处理',
                         icon: 'fa-list',
                         children: [
                             { name: '去重统计', url: './text/unique.html', icon: 'fa-list-check', desc:"行去重、计数、排序", homeRecommend:true },
-                            { name: '正则测试', url: './text/regex.html', icon: 'fa-asterisk', desc:"正则匹配替换测试", homeRecommend:true },
                             { name: '文本Diff对比', url: './text/diff.html', icon: 'fa-code-compare', desc:"两段文本差异对比", homeRecommend:true },
                             { name: '文本统计', url: './text/countstat.html', icon: 'fa-file-lines', desc:"统计汉字、字符、单词、行数、空格", homeRecommend:true },
                         ]
@@ -276,9 +289,14 @@
                 bgColor:"bg-amber-400/15",
                 children: [
                     { name: '图片压缩', url: './media/image/compress.html', icon: 'fa-image', desc:"本地无损压缩图片", homeRecommend:true },
-                    { name: '取色器', url: './media/image/color.html', icon: 'fa-droplet', desc:"HEX/RGB颜色转换", homeRecommend:true },
                     { name: '图片格式转换', url: './media/image/imgconvert.html', icon: 'fa-exchange-alt', desc:"JPG/PNG/WebP互转", homeRecommend:true },
-                    { name: 'SVG编辑器', url: './media/image/svg.html', icon: 'fa-bezier-curve', desc:"SVG简单编辑预览", homeRecommend:true }
+                    { name: 'SVG编辑器', url: './media/image/svg.html', icon: 'fa-bezier-curve', desc:"SVG简单编辑预览", homeRecommend:true },
+                    { name: '图片去水印', url: './media/image/watermark.html', icon: 'fa-droplet-slash', desc:"本地涂抹修复水印，图片不上传服务器", homeRecommend:true },
+                    { name: '图片裁剪&改尺寸', url: './media/image/image-resize.html', icon: 'fa-crop-simple', desc: '自由框选裁剪、头像裁切、图片缩放，支持锁定比例', homeRecommend:true },
+                    { name: 'Favicon图标生成', url: './media/favicon-generator.html', icon: 'fa-icons', desc: "一键裁剪并生成全尺寸网站 Favicon 图标", homeRecommend: true },
+                    { name: 'GIF动图处理', url: './media/gif-tool.html', icon: 'fa-film', desc: "纯前端多图合成 GIF 动图与帧率预览", homeRecommend: true },
+                    { name: '屏幕录制截图', url: './media/media-recorder.html', icon: 'fa-video', desc: "网页端录制屏幕、摄像头与一键截图", homeRecommend: true },
+                    { name: '二维码', url: './media/qrcode.html', icon: 'fa-qrcode', desc:"文本链接生成二维码", homeRecommend:true },
                 ]
             },
             {
@@ -289,7 +307,6 @@
                 groupColor:"text-rose-400",
                 bgColor:"bg-rose-400/15",
                 children: [
-                    { name: '二维码', url: './other/qrcode.html', icon: 'fa-qrcode', desc:"文本链接生成二维码", homeRecommend:true },
                     {
                         name: '资源网站',
                         icon:"fa-solid fa-globe",
@@ -314,6 +331,12 @@
                     { name: '贪吃蛇', url: './game/snake.html', icon: 'fa-staff-snake', desc:"经典贪吃蛇，记录最高分", homeRecommend:true },
                     { name: '数独', url: './game/sudoku.html', icon: 'fa-table-cells', desc:"数独生成解题，提示校验", homeRecommend:true },
                     { name: '迷宫生成器', url: './game/maze.html', icon: 'fa-sitemap', desc:"随机迷宫生成，自动寻路求解", homeRecommend:true },
+                    { name: '2048', url: './game/2048.html', icon: 'fa-th-large', desc: "2048经典数字合体，极具挑战", homeRecommend: true },
+                    { name: '五子棋&井字棋', url: './game/gobang.html', icon: 'fa-chess-board', desc: "五子棋人机与双人同屏对弈", homeRecommend: true },
+                    { name: '打砖块', url: './game/brick.html', icon: 'fa-baseball', desc: "经典物理碰撞弹球小游戏", homeRecommend: true },
+                    { name: '汉诺塔', url: './game/hanoi.html', icon: 'fa-layer-group', desc: "逻辑益智，支持AI自动演示", homeRecommend: true },
+                    { name: '俄罗斯方块', url: './game/tetris.html', icon: 'fa-cubes', desc: "经典方块消除，急速下落", homeRecommend: true },
+                    { name: '华容道', url: './game/hrd.html', icon: 'fa-chess-rook', desc: "经典中华华容道，多难度解密挑战", homeRecommend: true }
 
                 ]
             }

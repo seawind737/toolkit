@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数独</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-3 py-2 rounded-lg transition-all duration-200 text-sm; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+            .cell{@apply w-10 h-10 border flex items-center justify-center text-lg select-none;}
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
+            --text-main: #e2e8f0;--text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --text-main: #111827;--text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+        }
+        body::before{
+            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+        .cell-fixed{background-color:var(--card-sub);font-weight:bold;}
+        .cell-wrong{color:#ef4444;}
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient">🧩 数独</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <div class="flex flex-wrap gap-3 mb-5 items-center">
+                <select id="lvSel" class="w-28">
+                    <option value="easy">简单</option>
+                    <option value="mid">中等</option>
+                    <option value="hard">困难</option>
+                </select>
+                <button id="btnNew" class="btn btn-primary"><i class="fa-solid fa-refresh"></i>新游戏</button>
+                <button id="btnHint" class="btn btn-outline"><i class="fa-solid fa-lightbulb"></i>提示</button>
+                <button id="btnCheck" class="btn btn-outline"><i class="fa-solid fa-check"></i>校验</button>
+            </div>
+            <div id="boardWrap" class="overflow-auto"></div>
+            <div class="flex gap-2 mt-4 flex-wrap">
+                <span class="text-sub-color">输入数字:</span>
+                <div id="numPad"></div>
+            </div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 小游戏</p>
+        </div>
+    </footer>
+    <script>
+        function initTheme(){
+            const t=localStorage.getItem("toolTheme")||"dark";
+            document.documentElement.setAttribute("data-theme",t);
+            updateThemeIcon(t);
+        }
+        function updateThemeIcon(t){
+            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick=()=>{
+            const c=document.documentElement.getAttribute("data-theme");
+            const n=c==="dark"?"light":"dark";
+            document.documentElement.setAttribute("data-theme",n);
+            localStorage.setItem("toolTheme",n);
+            updateThemeIcon(n);
+        }
+        const lvSel = document.getElementById('lvSel');
+        const btnNew = document.getElementById('btnNew');
+        const btnHint = document.getElementById('btnHint');
+        const btnCheck = document.getElementById('btnCheck');
+        const boardWrap = document.getElementById('boardWrap');
+        const numPad = document.getElementById('numPad');
+
+        let board = [];
+        let solution = [];
+        let fixed = [];
+        let selectR = -1, selectC = -1;
+
+        function isValid(b,r,c,val){
+            for(let i=0;i<9;i++){
+                if(b[r][i]===val) return false;
+                if(b[i][c]===val) return false;
+            }
+            const br = Math.floor(r/3)*3;
+            const bc = Math.floor(c/3)*3;
+            for(let dr=0;dr<3;dr++){
+                for(let dc=0;dc<3;dc++){
+                    if(b[br+dr][bc+dc]===val) return false;
+                }
+            }
+            return true;
+        }
+        function fillSudoku(b){
+            for(let r=0;r<9;r++){
+                for(let c=0;c<9;c++){
+                    if(b[r][c]===0){
+                        const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+                        for(let v of nums){
+                            if(isValid(b,r,c,v)){
+                                b[r][c]=v;
+                                if(fillSudoku(b)) return true;
+                                b[r][c]=0;
+                            }
+                        }
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+        function createPuzzle(level){
+            const sol = Array(9).fill().map(()=>Array(9).fill(0));
+            fillSudoku(sol);
+            let remove;
+            if(level==='easy') remove=35;
+            else if(level==='mid') remove=45;
+            else remove=55;
+            const puzzle = sol.map(r=>[...r]);
+            const pos = [];
+            for(let r=0;r<9;r++)for(let c=0;c<9;c++)pos.push([r,c]);
+            shuffle(pos);
+            for(let i=0;i<remove;i++){
+                const [r,c] = pos[i];
+                puzzle[r][c]=0;
+            }
+            return {puzzle,sol};
+        }
+        function initGame(){
+            const lv = lvSel.value;
+            const {puzzle,sol} = createPuzzle(lv);
+            solution = sol;
+            board = puzzle.map(r=>[...r]);
+            fixed = Array(9).fill().map(()=>Array(9).fill(false));
+            for(let r=0;r<9;r++)for(let c=0;c<9;c++) if(board[r][c]!==0) fixed[r][c]=true;
+            selectR=-1;selectC=-1;
+            render();
+        }
+        function render(){
+            let html = `<div class="inline-grid" style="grid-template-columns:repeat(9,2.5rem)">`;
+            for(let r=0;r<9;r++){
+                for(let c=0;c<9;c++){
+                    const v = board[r][c];
+                    let cls = "cell";
+                    if(fixed[r][c]) cls += " cell-fixed";
+                    if(selectR===r&&selectC===c) cls += " ring-2 ring-primary";
+                    html += `<div class="${cls}" data-r="${r}" data-c="${c}">${v||''}</div>`;
+                }
+            }
+            html += `</div>`;
+            boardWrap.innerHTML = html;
+            document.querySelectorAll('.cell').forEach(el=>{
+                el.onclick=()=>{
+                    selectR=Number(el.dataset.r);
+                    selectC=Number(el.dataset.c);
+                    render();
+                }
+            })
+            let numHtml = '';
+            for(let i=1;i<=9;i++){
+                numHtml += `<button class="btn btn-outline num-btn" data-v="${i}">${i}</button>`;
+            }
+            numHtml += `<button class="btn btn-outline num-btn" data-v="0">⌫</button>`;
+            numPad.innerHTML = numHtml;
+            document.querySelectorAll('.num-btn').forEach(el=>{
+                el.onclick=()=>{
+                    const v = Number(el.dataset.v);
+                    if(selectR>=0&&selectC>=0&&!fixed[selectR][selectC]){
+                        board[selectR][selectC] = v;
+                        render();
+                    }
+                }
+            })
+        }
+        btnHint.onclick = ()=>{
+            if(selectR<0||selectC<0||fixed[selectR][selectC]) return;
+            board[selectR][selectC] = solution[selectR][selectC];
+            render();
+        }
+        btnCheck.onclick = ()=>{
+            let ok=true;
+            for(let r=0;r<9;r++){
+                for(let c=0;c<9;c++){
+                    if(board[r][c]!==0&&board[r][c]!==solution[r][c]) ok=false;
+                }
+            }
+            alert(ok?"✅当前全部填写正确":"❌存在错误，请检查");
+        }
+        btnNew.onclick = initGame;
+        lvSel.onchange = initGame;
+        initGame();
+        initTheme();
+    </script>
+</body>
+</html>

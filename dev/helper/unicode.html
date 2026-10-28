@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unicode工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-3 py-2 rounded-lg transition-all duration-200 text-sm; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
+            --text-main: #e2e8f0;--text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --text-main: #111827;--text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+        }
+        body::before{
+            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .sub-panel-bg { background-color: var(--card-sub); }
+        .text-sub-color { color: var(--text-sub); }
+        textarea,input,select {
+            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
+            font-family: Consolas,Menlo,monospace;
+        }
+        textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
+        .char-item{@apply flex items-center gap-3 py-1.5 border-b border-[var(--border)];}
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-code mr-2"></i>Unicode工具</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <div class="flex flex-wrap gap-3 mb-5 items-end">
+                <div class="flex flex-col gap-2">
+                    <label class="text-sub-color">选择功能</label> 
+                    <select id="modeSelect" class="w-60">
+                        <option value="encode">🔤 字符串 → Unicode编码</option>
+                        <option value="decode">🔡 Unicode编码 → 字符串</option>
+                    </select>
+                </div>
+                <button id="btnClear" class="btn btn-outline"><i class="fa-solid fa-eraser"></i>清空</button>
+                <button id="btnSample" class="btn btn-outline"><i class="fa-solid fa-file-code"></i>填充示例</button>
+                <button id="btnRun" class="btn btn-primary"><i class="fa-solid fa-arrow-right"></i>执行转换</button>
+            </div>
+
+            <label id="inputLabel" class="text-sub-color">输入普通文本：中文、英文、emoji</label>
+            <textarea id="mainInput" class="w-full h-32 p-4 rounded-xl resize-y mt-2" placeholder="输入内容..."></textarea>
+
+            <!-- 编码模式输出区域 -->
+            <div id="encodeOutput" class="mt-6">
+                <div class="grid gap-4">
+                    <div class="sub-panel-bg p-4 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-medium">JS \uXXXX (UTF‑16代理对)</span>
+                            <button class="btn btn-outline copy-btn" data-target="outJs">复制</button>
+                        </div>
+                        <div id="outJs" class="font-mono text-sm break-all text-sub-color">等待转换</div>
+                    </div>
+                    <div class="sub-panel-bg p-4 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-medium">ES6 \u{XXXXX}</span>
+                            <button class="btn btn-outline copy-btn" data-target="outEs6">复制</button>
+                        </div>
+                        <div id="outEs6" class="font-mono text-sm break-all text-sub-color">等待转换</div>
+                    </div>
+                    <div class="sub-panel-bg p-4 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-medium">U+ 标准码点(空格分隔)</span>
+                            <button class="btn btn-outline copy-btn" data-target="outUplus">复制</button>
+                        </div>
+                        <div id="outUplus" class="font-mono text-sm break-all text-sub-color">等待转换</div>
+                    </div>
+                    <div class="sub-panel-bg p-4 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-medium">HTML十进制实体 &#N;</span>
+                            <button class="btn btn-outline copy-btn" data-target="outHtmlDec">复制</button>
+                        </div>
+                        <div id="outHtmlDec" class="font-mono text-sm break-all text-sub-color">等待转换</div>
+                    </div>
+                    <div class="sub-panel-bg p-4 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-medium">HTML十六进制实体 &#xN;</span>
+                            <button class="btn btn-outline copy-btn" data-target="outHtmlHex">复制</button>
+                        </div>
+                        <div id="outHtmlHex" class="font-mono text-sm break-all text-sub-color">等待转换</div>
+                    </div>
+                    <div class="sub-panel-bg p-4 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-medium">UTF‑8 十六进制字节</span>
+                            <button class="btn btn-outline copy-btn" data-target="outUtf8Hex">复制</button>
+                        </div>
+                        <div id="outUtf8Hex" class="font-mono text-sm break-all text-sub-color">等待转换</div>
+                    </div>
+                </div>
+                <h4 class="mt-4 font-medium">字符明细</h4>
+                <div id="charDetail" class="mt-2 sub-panel-bg p-4 rounded-lg max-h-64 overflow-auto text-sm font-mono text-sub-color">等待转换</div>
+            </div>
+
+            <!-- 解码模式输出区域 -->
+            <div id="decodeOutput" class="mt-6 hidden">
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium">解码结果</span>
+                        <button class="btn btn-outline copy-btn" data-target="decodeResult">复制</button>
+                    </div>
+                    <div id="decodeResult" class="font-mono text-sm break-all text-sub-color">等待解码</div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 文本工具</p>
+        </div>
+    </footer>
+    <script>
+        function initTheme(){
+            const t=localStorage.getItem("toolTheme")||"dark";
+            document.documentElement.setAttribute("data-theme",t);
+            updateThemeIcon(t);
+        }
+        function updateThemeIcon(t){
+            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick=()=>{
+            const c=document.documentElement.getAttribute("data-theme");
+            const n=c==="dark"?"light":"dark";
+            document.documentElement.setAttribute("data-theme",n);
+            localStorage.setItem("toolTheme",n);
+            updateThemeIcon(n);
+        }
+
+        const modeSelect = document.getElementById('modeSelect');
+        const mainInput = document.getElementById('mainInput');
+        const inputLabel = document.getElementById('inputLabel');
+        const btnRun = document.getElementById('btnRun');
+        const btnClear = document.getElementById('btnClear');
+        const btnSample = document.getElementById('btnSample');
+
+        const encodeOutput = document.getElementById('encodeOutput');
+        const decodeOutput = document.getElementById('decodeOutput');
+
+        const outJs = document.getElementById('outJs');
+        const outEs6 = document.getElementById('outEs6');
+        const outUplus = document.getElementById('outUplus');
+        const outHtmlDec = document.getElementById('outHtmlDec');
+        const outHtmlHex = document.getElementById('outHtmlHex');
+        const outUtf8Hex = document.getElementById('outUtf8Hex');
+        const charDetail = document.getElementById('charDetail');
+        const decodeResult = document.getElementById('decodeResult');
+
+        // utf8编码转字节hex数组
+        function toUtf8Bytes(str){
+            const enc = new TextEncoder();
+            const buf = enc.encode(str);
+            return Array.from(buf).map(b=>b.toString(16).padStart(2,'0').toUpperCase());
+        }
+
+        /**
+         * 解码unicode字符串
+         * 支持：&#123; / &#x123; / U+XXXX / \uXXXX / \u{XXXX}
+         */
+        function decodeUnicode(input){
+            let s = input
+                .replace(/&#(\d+);/g, (_,n)=>String.fromCodePoint(Number(n)))
+                .replace(/&#x([0-9a-fA-F]+);/g, (_,h)=>String.fromCodePoint(parseInt(h,16)))
+                .replace(/U\+([0-9a-fA-F]+)/g, (_,h)=>String.fromCodePoint(parseInt(h,16)))
+                .replace(/\\u\{([0-9a-fA-F]+)\}/g, (_,h)=>String.fromCodePoint(parseInt(h,16)))
+                .replace(/\\u([0-9a-fA-F]{4})/g, (_,h)=>String.fromCodePoint(parseInt(h,16)));
+            return s;
+        }
+
+        // 普通字符串 → 全部unicode编码输出
+        function encodeAll(text){
+            let jsArr=[];
+            let es6Arr=[];
+            let uplusArr=[];
+            let htmlDecArr=[];
+            let htmlHexArr=[];
+            let charInfos = [];
+
+            let idx=0;
+            while(idx < text.length){
+                const cp = text.codePointAt(idx);
+                const ch = String.fromCodePoint(cp);
+                const hex = cp.toString(16).toUpperCase();
+                const hex4 = hex.padStart(4,'0');
+
+                if(cp>0xFFFF){
+                    const hi = Math.floor((cp - 0x10000)/0x400)+0xD800;
+                    const lo = ((cp - 0x10000)%0x400)+0xDC00;
+                    jsArr.push(`\\u${hi.toString(16).padStart(4,'0').toUpperCase()}\\u${lo.toString(16).padStart(4,'0').toUpperCase()}`);
+                }else{
+                    jsArr.push(`\\u${hex4}`);
+                }
+                es6Arr.push(`\\u{${hex}}`);
+                uplusArr.push(`U+${hex4}`);
+                htmlDecArr.push(`&#${cp};`);
+                htmlHexArr.push(`&#x${hex};`);
+
+                charInfos.push({ch,cp,hex});
+                idx += ch.length;
+            }
+            const utf8HexArr = toUtf8Bytes(text);
+            return {
+                js: jsArr.join(''),
+                es6: es6Arr.join(''),
+                uplus: uplusArr.join(' '),
+                htmlDec: htmlDecArr.join(''),
+                htmlHex: htmlHexArr.join(''),
+                utf8Hex: utf8HexArr.join(' '),
+                charInfos
+            }
+        }
+
+        // 切换模式
+        function switchMode(){
+            const mode = modeSelect.value;
+            resetAll();
+            if(mode === 'encode'){
+                inputLabel.innerText = "输入普通文本：中文、英文、emoji";
+                encodeOutput.classList.remove('hidden');
+                decodeOutput.classList.add('hidden');
+            }else{
+                inputLabel.innerText = "输入Unicode编码：\\uXXXX / \\u{xxxxx} / U+XXXX / &#;";
+                encodeOutput.classList.add('hidden');
+                decodeOutput.classList.remove('hidden');
+            }
+        }
+
+        // 重置所有输出
+        function resetAll(){
+            mainInput.value = '';
+            outJs.innerText = "等待转换";
+            outEs6.innerText = "等待转换";
+            outUplus.innerText = "等待转换";
+            outHtmlDec.innerText = "等待转换";
+            outHtmlHex.innerText = "等待转换";
+            outUtf8Hex.innerText = "等待转换";
+            charDetail.innerHTML = "等待转换";
+            decodeResult.innerText = "等待解码";
+        }
+
+        // 执行转换
+        function runConvert(){
+            const mode = modeSelect.value;
+            const txt = mainInput.value;
+            if(mode === 'encode'){
+                const res = encodeAll(txt);
+                outJs.innerText = res.js || "(空)";
+                outEs6.innerText = res.es6 || "(空)";
+                outUplus.innerText = res.uplus || "(空)";
+                outHtmlDec.innerText = res.htmlDec || "(空)";
+                outHtmlHex.innerText = res.htmlHex || "(空)";
+                outUtf8Hex.innerText = res.utf8Hex || "(空)";
+
+                let chHtml = '';
+                res.charInfos.forEach(item=>{
+                    chHtml += `
+                    <div class="char-item">
+                        <span class="w-10 text-lg">${item.ch}</span>
+                        <span>cp:${item.cp}</span>
+                        <span>U+${item.hex.padStart(4,'0')}</span>
+                        <button class="btn btn-outline copy-char-btn" data-val="U+${item.hex.padStart(4,'0')}">复制U+</button>
+                    </div>
+                    `;
+                })
+                charDetail.innerHTML = chHtml || '<div class="p-3 text-sub-color">无字符</div>';
+            }else{
+                const result = decodeUnicode(txt);
+                decodeResult.innerText = result || "(空)";
+            }
+        }
+
+        //填充示例
+        function fillSample(){
+            const mode = modeSelect.value;
+            if(mode === 'encode'){
+                mainInput.value = "你好世界 Hello 😀🎉";
+            }else{
+                mainInput.value = "\\u4f60\\u597d\\u4e16\\u754c U+1F600";
+            }
+        }
+
+        //复制事件代理
+        document.querySelector('.tool-card').addEventListener('click',async (e)=>{
+            const target = e.target;
+            if(target.classList.contains('copy-btn')){
+                const tid = target.dataset.target;
+                const el = document.getElementById(tid);
+                try{
+                    await navigator.clipboard.writeText(el.innerText);
+                    target.innerText="已复制!";
+                    setTimeout(()=>target.innerText="复制",1200);
+                }catch(err){
+                    alert("复制失败，请手动选中复制");
+                }
+            }
+            if(target.classList.contains('copy-char-btn')){
+                const val = target.dataset.val;
+                try{
+                    await navigator.clipboard.writeText(val);
+                    target.innerText="已复制!";
+                    setTimeout(()=>target.innerText="复制U+",1200);
+                }catch(err){}
+            }
+        })
+
+        modeSelect.addEventListener('change', switchMode);
+        btnRun.onclick = runConvert;
+        btnClear.onclick = resetAll;
+        btnSample.onclick = fillSample;
+
+        initTheme();
+        switchMode();
+    </script>
+</body>
+</html>

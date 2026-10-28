@@ -59,7 +59,6 @@
             font-family: Consolas,Menlo,monospace;
         }
         textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
-
         /*扫雷数字颜色*/
         .n1{color:#2563eb;}
         .n2{color:#16a34a;}
@@ -89,7 +88,8 @@
             <div class="flex flex-wrap gap-3 mb-5 items-end">
                 <div class="flex flex-col gap-2">
                     <label class="text-sub-color">预设难度</label>
-                    <select id="levelSelect" class="w-32">
+                    <!-- 修改下拉框宽度 -->
+                    <select id="levelSelect" class="w-48">
                         <option value="easy">初级(9×9,10雷)</option>
                         <option value="mid">中级(16×16,40雷)</option>
                         <option value="hard">高级(16×30,99雷)</option>
@@ -114,7 +114,7 @@
                 </div>
             </div>
             <!--状态栏：剩余雷数，计时器 -->
-            <div class="flex gap-6 mb-4 text-lg">
+            <div class="flex gap-6 mb-4 text-lg flex-wrap">
                 <div>剩余地雷：<span id="mineLeft" class="font-bold text-red-400">10</span></div>
                 <div>用时：<span id="timer" class="font-bold">0</span> s</div>
                 <div>状态：<span id="gameStatus" class="font-bold">等待开始</span></div>
@@ -130,7 +130,6 @@
             <p class="mt-1">© 2026 工具集 | 小游戏</p>
         </div>
     </footer>
-
     <script>
         function initTheme(){
             const t=localStorage.getItem("toolTheme")||"dark";
@@ -147,7 +146,6 @@
             localStorage.setItem("toolTheme",n);
             updateThemeIcon(n);
         }
-
         const levelSelect = document.getElementById('levelSelect');
         const rowsEl = document.getElementById('rows');
         const colsEl = document.getElementById('cols');
@@ -162,13 +160,13 @@
         let ROWS = 9;
         let COLS =9;
         let MINE_NUM =10;
-
         let board = []; //每个格子 {isMine,count,opened,flag}
         let gameOver = false;
         let gameWin = false;
         let timerId = null;
         let timeSecond =0;
         let flagCount =0;
+        let firstClick = true; // 标记是否第一次点击，第一次点击后才生成地雷
 
         //预设难度
         levelSelect.onchange = ()=>{
@@ -183,25 +181,27 @@
             }
         }
 
-        //初始化棋盘数据
+        //初始化空白棋盘，地雷延迟到第一次点击生成
         function initBoard(){
             ROWS = Number(rowsEl.value);
             COLS = Number(colsEl.value);
             MINE_NUM = Number(mineCountEl.value);
             //边界校验
-            if(MINE_NUM >= ROWS*COLS) MINE_NUM = ROWS*COLS -1;
+            const maxMine = ROWS * COLS - 9; //至少保留9格安全区
+            if(MINE_NUM >= maxMine) MINE_NUM = maxMine;
             mineCountEl.value = MINE_NUM;
 
             gameOver = false;
             gameWin = false;
+            firstClick = true;
             flagCount =0;
             timeSecond=0;
             if(timerId) clearInterval(timerId);
             timerEl.innerText = "0";
             mineLeftEl.innerText = MINE_NUM - flagCount;
-            gameStatusEl.innerText = "游戏进行中";
+            gameStatusEl.innerText = "等待第一次点击";
 
-            //初始化格子
+            //初始化空白格子，不放置地雷
             board = [];
             for(let r=0;r<ROWS;r++){
                 board[r]=[];
@@ -209,12 +209,18 @@
                     board[r][c] = {isMine:false,count:0,opened:false,flag:false};
                 }
             }
-            //随机放地雷
+            renderBoard();
+        }
+
+        // 第一次点击：避开点击位置及其8邻域，生成地雷
+        function placeMines(safeR, safeC){
             let placed =0;
             while(placed < MINE_NUM){
                 const r = Math.floor(Math.random()*ROWS);
                 const c = Math.floor(Math.random()*COLS);
-                if(!board[r][c].isMine){
+                // 不能是点击的格子以及周围一圈
+                const isSafeZone = Math.abs(r-safeR) <=1 && Math.abs(c-safeC) <=1;
+                if(!board[r][c].isMine && !isSafeZone){
                     board[r][c].isMine = true;
                     placed++;
                 }
@@ -226,8 +232,6 @@
                     board[r][c].count = getAroundMine(r,c);
                 }
             }
-            renderBoard();
-            startTimer();
         }
 
         //获取8邻域地雷数量
@@ -268,7 +272,6 @@
             }
             html += "</div>";
             boardWrap.innerHTML = html;
-
             //绑定鼠标事件
             document.querySelectorAll(".cell").forEach(el=>{
                 el.addEventListener("click",(e)=>{
@@ -290,6 +293,15 @@
             if(gameOver || gameWin) return;
             const cell = board[r][c];
             if(cell.opened || cell.flag) return;
+
+            // 首次点击：生成地雷，启动计时器
+            if(firstClick){
+                placeMines(r,c);
+                firstClick = false;
+                startTimer();
+                gameStatusEl.innerText = "游戏进行中";
+            }
+
             if(cell.isMine){
                 //踩雷游戏结束
                 gameOver = true;
@@ -309,7 +321,7 @@
             renderBoard();
         }
 
-        //递归翻开空白格子
+        //递归翻开空白格子，0的区域自动扩散一大片
         function openCell(r,c){
             if(r<0||r>=ROWS||c<0||c>=COLS) return;
             const cell = board[r][c];
@@ -328,6 +340,8 @@
         //右键插旗
         function handleRightClick(r,c){
             if(gameOver || gameWin) return;
+            // 还没第一次左键点击，不允许插旗子
+            if(firstClick) return;
             const cell = board[r][c];
             if(cell.opened) return;
             cell.flag = !cell.flag;
@@ -373,9 +387,10 @@
             timerEl.innerText="0";
             mineLeftEl.innerText="0";
             gameStatusEl.innerText="等待开始";
-            gameOver=false;gameWin=false;
+            gameOver=false;
+            gameWin=false;
+            firstClick = true;
         }
-
         initTheme();
     </script>
 </body>

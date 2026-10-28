@@ -17,3 +17,62 @@
 - ✅ localStorage 保存主题，和首页主题互通
 - ✅ 纯前端，无后端，js‑jwt 轻量 cdn 实现
 - ✅ 底部保留统一版权文案
+
+
+生成一个独立静态HTML工具页面以及菜单，html页面和菜单分开生成，规范如下：
+1. 整体框架
+- 语言：zh-CN，data-theme="dark" 默认暗色主题
+- 引入：tailwindcss CDN + Font Awesome 6.4.0 CDN，按需引入第三方JS库（diff.js / marked等）
+- 返回链接：<a href="../../index.html"> 返回，固定层级
+- 页面布局：顶部导航栏（返回按钮 + 标题 + 主题切换按钮），主体卡片布局，最大宽度容器，移动端自适应 p-4 md:p-6
+2. 主题系统（必须两套，localStorage持久化）
+暗色（data-theme="dark"）变量：
+--bg: #0f172a
+--card: #1e293b
+--sub-bg: #334155
+--border: #475569
+--text-main: #e2e8f0
+--text-sub: #94a3b8
+浅色（data-theme="light"）变量：
+--bg: #f8fafc
+--card: #ffffff
+--sub-bg: #e2e8f0
+--border: #cbd5e1
+--text-main: #1e293b
+--text-sub: #64748b
+主题切换按钮：图标moon/sun，切换后写入 localStorage.setItem("toolTheme")，页面初始化读取toolTheme
+3. 通用工具类（@layer utilities）
+.btn：px-3 py-2 rounded-lg transition-all duration-200 text-sm
+.btn-primary：bg-primary 白色文字 hover透明度80%
+.btn-outline：边框var(--border)，hover背景var(--sub-bg)
+.text-gradient：渐变色标题文字，背景裁剪文字，无底色
+4. 组件样式规范
+- card：背景var(--card)，边框var(--border)，rounded-xl，padding
+- textarea/输入框：深色编辑器底色 #020617，文字#e5e7eb，等宽字体 Consolas,Monaco,monospace；focus只变色边框，无默认outline；resize按需开启
+- 预览/结果容器：滚动overflow-auto，内边距
+- 文字辅助类 .text-sub：var(--text-sub)
+5. 色彩规范
+- 每个工具单独定义 primary 主色，配套标题渐变，不要全局统一一个颜色
+  示例参考：图片转换#10b981、diff#f97316、md#22c55e
+6. JS规范
+- 纯前端离线实现，不上传后端
+- 复制逻辑兜底：clipboard失败时自动select()选中文本，提示手动Ctrl+C
+- 下载文件逻辑：Blob + a标签下载，释放URL
+- 示例按钮、清空按钮，按需提供
+7. 排版与细节
+- 字体：普通Inter系统无衬线；代码/输入框等宽字体
+- 间距统一，gap-4，卡片分隔清晰
+- 图标全部使用Font Awesome solid/brand图标，标题前带图标
+- 禁止引入额外自定义字体、额外css文件
+8. 页面结构顺序
+顶部导航栏 → 功能区（输入/配置控件）→ 结果预览区
+
+菜单模板如下:
+{
+    name: '工具名称',
+    url: './xxx/xxx.html',
+    icon: 'fa-xxx',
+    desc: '一句话描述',
+    homeRecommend: true
+}
+

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>记忆翻牌</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+            .card-item{@apply w-14 h-14 flex items-center justify-center text-2xl rounded-lg cursor-pointer select-none transition-all duration-300;}
+            .card-back{@apply bg-primary/20 border border-[var(--border)];}
+            .card-front{@apply bg-[var(--card-sub)];}
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
+            --text-main: #e2e8f0;--text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --text-main: #111827;--text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+        }
+        body::before{
+            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px 28px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient">🃏 记忆翻牌</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <div class="flex flex-wrap gap-3 mb-5 items-center">
+                <div class="flex flex-col gap-2">
+                    <label class="text-sub-color">难度</label>
+                    <select id="levelSel" class="w-32">
+                        <option value="easy">简单(4×3)</option>
+                        <option value="mid">中等(4×4)</option>
+                        <option value="hard">困难(6×4)</option>
+                    </select>
+                </div>
+                <button id="btnReset" class="btn btn-primary"><i class="fa-solid fa-refresh"></i>重新开始</button>
+                <div class="ml-4">步数：<span id="stepCnt" class="font-bold">0</span></div>
+            </div>
+            <div id="boardWrap"></div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 小游戏</p>
+        </div>
+    </footer>
+    <script>
+        function initTheme(){
+            const t=localStorage.getItem("toolTheme")||"dark";
+            document.documentElement.setAttribute("data-theme",t);
+            updateThemeIcon(t);
+        }
+        function updateThemeIcon(t){
+            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick=()=>{
+            const c=document.documentElement.getAttribute("data-theme");
+            const n=c==="dark"?"light":"dark";
+            document.documentElement.setAttribute("data-theme",n);
+            localStorage.setItem("toolTheme",n);
+            updateThemeIcon(n);
+        }
+        const emojis = ['🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍒','🥝','🍑'];
+        const levelSel = document.getElementById('levelSel');
+        const btnReset = document.getElementById('btnReset');
+        const stepCntEl = document.getElementById('stepCnt');
+        const boardWrap = document.getElementById('boardWrap');
+
+        let rows=4,cols=3;
+        let cards = [];
+        let openList = [];
+        let stepCnt=0;
+        let lock = false;
+        let matchCnt=0;
+
+        function shuffle(arr){
+            const a=[...arr];
+            for(let i=a.length-1;i>0;i--){
+                const j = Math.floor(Math.random()*(i+1));
+                [a[i],a[j]] = [a[j],a[i]];
+            }
+            return a;
+        }
+        function initGame(){
+            stepCnt=0;matchCnt=0;openList=[];lock=false;
+            stepCntEl.innerText = stepCnt;
+            const v = levelSel.value;
+            if(v==='easy'){rows=3;cols=4;}
+            else if(v==='mid'){rows=4;cols=4;}
+            else {rows=4;cols=6;}
+            const total = rows*cols;
+            const take = emojis.slice(0,total/2);
+            cards = shuffle([...take,...take]);
+            render();
+        }
+        function render(){
+            let html = `<div class="grid gap-2" style="grid-template-columns:repeat(${cols},3.5rem)">`;
+            cards.forEach((emoji,idx)=>{
+                const item = openList.find(x=>x.idx===idx);
+                const isOpen = !!item;
+                html += `
+                <div class="card-item ${isOpen?'card-front':'card-back'}" data-idx="${idx}" data-emoji="${emoji}">
+                    ${isOpen ? emoji : '?'}
+                </div>`;
+            })
+            html += `</div>`;
+            boardWrap.innerHTML = html;
+            document.querySelectorAll('.card-item').forEach(el=>{
+                el.onclick = ()=>clickCard(Number(el.dataset.idx));
+            })
+        }
+        function clickCard(idx){
+            if(lock) return;
+            if(openList.find(x=>x.idx===idx)) return;
+            openList.push({idx,emoji:cards[idx]});
+            stepCnt++;
+            stepCntEl.innerText = stepCnt;
+            render();
+            if(openList.length===2){
+                lock=true;
+                const [a,b] = openList;
+                if(a.emoji === b.emoji){
+                    matchCnt++;
+                    openList=[];
+                    lock=false;
+                    checkWin();
+                }else{
+                    setTimeout(()=>{
+                        openList=[];
+                        lock=false;
+                        render();
+                    },800)
+                }
+            }
+        }
+        function checkWin(){
+            if(matchCnt === cards.length/2){
+                setTimeout(()=>alert(`🎉恭喜通关！一共${stepCnt}步`),200);
+            }
+        }
+        levelSel.onchange = initGame;
+        btnReset.onclick = initGame;
+        initGame();
+        initTheme();
+    </script>
+</body>
+</html>

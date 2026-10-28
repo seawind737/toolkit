@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生命游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+            .btn-danger { @apply bg-red-500 text-white hover:bg-red-500/80; }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
+            --text-main: #e2e8f0;--text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --text-main: #111827;--text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+        }
+        body::before{
+            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+        canvas{border:1px solid var(--border);}
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient">🧬 生命游戏</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <div class="flex flex-wrap gap-3 mb-5 items-center">
+                <button id="btnStart" class="btn btn-primary"><i class="fa-solid fa-play"></i>开始</button>
+                <button id="btnPause" class="btn btn-outline"><i class="fa-solid fa-pause"></i>暂停</button>
+                <button id="btnRandom" class="btn btn-outline"><i class="fa-solid fa-shuffle"></i>随机生成</button>
+                <button id="btnClear" class="btn btn-danger"><i class="fa-solid fa-eraser"></i>清空</button>
+                <div class="flex items-center gap-2">
+                    <label class="text-sub-color">速度:</label>
+                    <input id="speed" type="range" min="50" max="500" value="150">
+                </div>
+            </div>
+            <div class="text-sub-color text-sm mb-3">提示：鼠标在画布上点击绘制/擦除细胞</div>
+            <div class="overflow-auto">
+                <canvas id="canvas"></canvas>
+            </div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 小游戏</p>
+        </div>
+    </footer>
+    <script>
+        function initTheme(){
+            const t=localStorage.getItem("toolTheme")||"dark";
+            document.documentElement.setAttribute("data-theme",t);
+            updateThemeIcon(t);
+        }
+        function updateThemeIcon(t){
+            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick=()=>{
+            const c=document.documentElement.getAttribute("data-theme");
+            const n=c==="dark"?"light":"dark";
+            document.documentElement.setAttribute("data-theme",n);
+            localStorage.setItem("toolTheme",n);
+            updateThemeIcon(n);
+        }
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const btnStart = document.getElementById('btnStart');
+        const btnPause = document.getElementById('btnPause');
+        const btnRandom = document.getElementById('btnRandom');
+        const btnClear = document.getElementById('btnClear');
+        const speedEl = document.getElementById('speed');
+
+        const CELL_SIZE =12;
+        const COLS =60;
+        const ROWS =40;
+        canvas.width = COLS * CELL_SIZE;
+        canvas.height = ROWS * CELL_SIZE;
+
+        let grid = [];
+        let running = false;
+        let timer = null;
+        let intervalMs = 150;
+        let isMouseDown = false;
+
+        function initGrid(){
+            grid = Array(ROWS).fill().map(()=>Array(COLS).fill(0));
+        }
+        function draw(){
+            const isDark = document.documentElement.dataset.theme === 'dark';
+            ctx.fillStyle = isDark ? '#0f172a' : '#ffffff';
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = isDark ? '#22d3ee' : '#2563eb';
+            for(let r=0;r<ROWS;r++){
+                for(let c=0;c<COLS;c++){
+                    if(grid[r][c]){
+                        ctx.fillRect(c*CELL_SIZE, r*CELL_SIZE, CELL_SIZE-1, CELL_SIZE-1);
+                    }
+                }
+            }
+        }
+        function countNeighbors(r,c){
+            let cnt=0;
+            for(let dr=-1;dr<=1;dr++){
+                for(let dc=-1;dc<=1;dc++){
+                    if(dr===0&&dc===0)continue;
+                    const nr=r+dr, nc=c+dc;
+                    if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS){
+                        cnt+=grid[nr][nc];
+                    }
+                }
+            }
+            return cnt;
+        }
+        function step(){
+            const next = Array(ROWS).fill().map(()=>Array(COLS).fill(0));
+            for(let r=0;r<ROWS;r++){
+                for(let c=0;c<COLS;c++){
+                    const n = countNeighbors(r,c);
+                    if(grid[r][c]){
+                        next[r][c] = (n===2||n===3) ?1:0;
+                    }else{
+                        next[r][c] = n===3?1:0;
+                    }
+                }
+            }
+            grid = next;
+            draw();
+        }
+        function startRun(){
+            if(running) return;
+            running=true;
+            timer = setInterval(step, intervalMs);
+        }
+        function pauseRun(){
+            running=false;
+            clearInterval(timer);
+        }
+        function randomFill(){
+            pauseRun();
+            for(let r=0;r<ROWS;r++){
+                for(let c=0;c<COLS;c++){
+                    grid[r][c] = Math.random()>0.7 ?1:0;
+                }
+            }
+            draw();
+        }
+        function clearAll(){
+            pauseRun();
+            initGrid();
+            draw();
+        }
+
+        canvas.addEventListener('mousedown',e=>{
+            isMouseDown=true;
+            handleDraw(e);
+        })
+        canvas.addEventListener('mousemove',e=>{
+            if(isMouseDown) handleDraw(e);
+        })
+        canvas.addEventListener('mouseup',()=>isMouseDown=false);
+        canvas.addEventListener('mouseleave',()=>isMouseDown=false);
+
+        function handleDraw(e){
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const c = Math.floor(x / CELL_SIZE);
+            const r = Math.floor(y / CELL_SIZE);
+            if(r>=0&&r<ROWS&&c>=0&&c<COLS){
+                grid[r][c] = grid[r][c] ?0:1;
+                draw();
+            }
+        }
+
+        speedEl.oninput = ()=>{
+            intervalMs = Number(speedEl.value);
+            if(running){
+                clearInterval(timer);
+                timer = setInterval(step, intervalMs);
+            }
+        }
+        btnStart.onclick = startRun;
+        btnPause.onclick = pauseRun;
+        btnRandom.onclick = randomFill;
+        btnClear.onclick = clearAll;
+
+        initGrid();
+        draw();
+        initTheme();
+    </script>
+</body>
+</html>

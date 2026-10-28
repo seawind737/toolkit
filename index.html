@@ -35,6 +35,9 @@
             .submenu-item {
                 @apply block px-4 py-2 whitespace-nowrap relative transition-all duration-200;
             }
+            .btn-toggle-view{
+                @apply nav-link text-lg;
+            }
             /* 菜单动画 */
             .fade-in {
                 animation: fadeIn 0.18s ease-out forwards;
@@ -75,7 +78,6 @@
             color: var(--text-main);
             transition: background-color 0.35s ease, color 0.35s ease;
             min-height: 100vh;
-            /* 背景纹理：暗色噪点 / 浅色网格 */
         }
         body::before{
             content:"";
@@ -155,8 +157,11 @@
             <!-- 桌面菜单【居中】 -->
             <div class="hidden md:flex items-center justify-center gap-2 absolute left-1/2 -translate-x-1/2" id="desktopMenu">
             </div>
-            <!-- 右侧：主题切换 + 移动端汉堡 -->
+            <!-- 右侧：视图切换 + 主题切换 + 移动端汉堡 -->
             <div class="flex items-center gap-3 ml-auto">
+                <button id="toggleViewBtn" class="btn-toggle-view" title="切换布局模式">
+                    <i class="fa-solid fa-layer-group"></i>
+                </button>
                 <button id="themeToggle" class="nav-link text-lg" title="切换深浅主题">
                     <i class="fa-solid fa-moon" id="themeIcon"></i>
                 </button>
@@ -185,7 +190,7 @@
             </div>
         </header>
         <!-- 工具容器（JS渲染） -->
-        <div id="toolContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="toolContainer" class="">
         </div>
     </main>
     <!-- 底部版权归属 -->
@@ -212,11 +217,11 @@
                         name: '编码解码',
                         icon: 'fa-lock',
                         children: [
-                            { name: 'Base64', url: './dev/code/base64.html', icon: 'fa-lock', desc:"文本Base64加密解密", homeRecommend:false },
-                            { name: 'MD5', url: './dev/code/md5.html', icon: 'fa-fingerprint', desc:"MD5哈希计算", homeRecommend:false },
-                            { name: 'SHA哈希', url: './dev/code/sha.html', icon: 'fa-shield-halved', desc:"SHA1/SHA256/SHA512哈希", homeRecommend:false },
-                            { name: 'JWT', url: './dev/code/jwt.html', icon: 'fa-key', desc:"JWT解析生成", homeRecommend:false },
-                            { name: 'URL编解码', url:'./dev/code/url.html', icon:'fa-link', desc:"URL编码解码", homeRecommend:false }
+                            { name: 'Base64', url: './dev/code/base64.html', icon: 'fa-lock', desc:"文本Base64加密解密", homeRecommend:true },
+                            { name: 'MD5', url: './dev/code/md5.html', icon: 'fa-fingerprint', desc:"MD5哈希计算", homeRecommend:true },
+                            { name: 'SHA哈希', url: './dev/code/sha.html', icon: 'fa-shield-halved', desc:"SHA1/SHA256/SHA512哈希", homeRecommend:true },
+                            { name: 'JWT', url: './dev/code/jwt.html', icon: 'fa-key', desc:"JWT解析生成", homeRecommend:true },
+                            { name: 'URL编解码', url:'./dev/code/url.html', icon:'fa-link', desc:"URL编码解码", homeRecommend:true }
                         ]
                     },
                     { name: '时间工具', url: './time/timestamp.html', icon: 'fa-clock', desc:"时间戳与日期互转", homeRecommend:true },
@@ -224,7 +229,7 @@
                         name: '网络工具',
                         icon:"fa-solid fa-globe",
                         children: [
-                            { name: 'Websocket', url: './network/ws.html', icon: 'fa-comments', desc:"WebSocket调试", homeRecommend:false }
+                            { name: 'Websocket', url: './network/ws.html', icon: 'fa-comments', desc:"WebSocket调试", homeRecommend:true }
                         ]
                     },
                     {
@@ -232,7 +237,8 @@
                         icon:"fa-wrench",
                         children: [
                             { name: 'Cron表达式', url: './dev/helper/cron.html', icon: 'fa-clock', desc:"Cron解析、生成、预览", homeRecommend:true },
-                            { name: 'ID生成器', url: './dev/helper/idgen.html', icon: 'fa-hashtag', desc:"UUID、雪花ID、随机ID", homeRecommend:true }
+                            { name: 'ID生成器', url: './dev/helper/idgen.html', icon: 'fa-hashtag', desc:"UUID、雪花ID、随机ID", homeRecommend:true },
+                            { name: 'Unicode', url: './dev/helper/unicode.html', icon: 'fa-solid fa-u', desc:"unicode", homeRecommend:true }
                         ]
                     }
                 ]
@@ -247,15 +253,16 @@
                 children: [
                     { name: '大小写转换', url: './text/case.html', icon: 'fa-font', desc:"大写、小写、首字母大写", homeRecommend:true },
                     { name: '随机密码', url: './text/pwd.html', icon: 'fa-wand-magic-sparkles', desc:"高强度密码批量生成", homeRecommend:true },
-                    { name: "文本压缩", url:"./text/compress.html", icon:"fa-compress-arrows-alt", desc:"gzip/deflate文本压缩解压", homeRecommend:false },
+                    { name: "文本压缩", url:"./text/compress.html", icon:"fa-compress-arrows-alt", desc:"gzip/deflate文本压缩解压", homeRecommend:true },
                     { name: 'Markdown预览', url: './text/mdpreview.html', icon: 'fa-markdown', desc: 'MD实时预览、复制HTML', homeRecommend:true},
                     {
                         name: '文本处理',
                         icon: 'fa-list',
                         children: [
-                            { name: '去重统计', url: './text/unique.html', icon: 'fa-list-check', desc:"行去重、计数、排序", homeRecommend:false },
-                            { name: '正则测试', url: './text/regex.html', icon: 'fa-asterisk', desc:"正则匹配替换测试", homeRecommend:false },
-                            { name: '文本Diff对比', url: './text/diff.html', icon: 'fa-code-compare', desc:"两段文本差异对比", homeRecommend:true }
+                            { name: '去重统计', url: './text/unique.html', icon: 'fa-list-check', desc:"行去重、计数、排序", homeRecommend:true },
+                            { name: '正则测试', url: './text/regex.html', icon: 'fa-asterisk', desc:"正则匹配替换测试", homeRecommend:true },
+                            { name: '文本Diff对比', url: './text/diff.html', icon: 'fa-code-compare', desc:"两段文本差异对比", homeRecommend:true },
+                            { name: '文本统计', url: './text/countstat.html', icon: 'fa-file-lines', desc:"统计汉字、字符、单词、行数、空格", homeRecommend:true },
                         ]
                     }
                 ]
@@ -283,6 +290,14 @@
                 bgColor:"bg-rose-400/15",
                 children: [
                     { name: '二维码', url: './other/qrcode.html', icon: 'fa-qrcode', desc:"文本链接生成二维码", homeRecommend:true },
+                    {
+                        name: '资源网站',
+                        icon:"fa-solid fa-globe",
+                        children: [
+                            { name: 'Fontawesome', url: 'https://fontawesome.com/start', icon: 'fa-font', desc:"fontawesome字体", homeRecommend:true },
+                            { name: 'tailwindcss', url: 'https://tailwindcss.com/docs/colors', icon: 'fa-solid fa-font-awesome', desc:"tailwindcss", homeRecommend:true }
+                        ]
+                    }
                 ]
             },
             {
@@ -290,24 +305,26 @@
                 icon: 'fa-gamepad',
                 groupName:"小游戏",
                 groupIcon:"fa-gamepad",
-                groupColor:"text-rose-400",
-                bgColor:"bg-rose-400/15",
+                groupColor:"text-purple-400",
+                bgColor:"bg-purple-400/15",
                 children: [
                     { name: '扫雷', url: './game/mine.html', icon: 'fa-bomb', desc:"扫雷小游戏", homeRecommend:true },
+                    { name: '生命游戏', url: './game/life.html', icon: 'fa-heart', desc:"细胞元胞自动机，自动演化", homeRecommend:true },
+                    { name: '记忆翻牌', url: './game/memory.html', icon: 'fa-clone', desc:"emoji记忆配对翻牌", homeRecommend:true },
+                    { name: '贪吃蛇', url: './game/snake.html', icon: 'fa-staff-snake', desc:"经典贪吃蛇，记录最高分", homeRecommend:true },
+                    { name: '数独', url: './game/sudoku.html', icon: 'fa-table-cells', desc:"数独生成解题，提示校验", homeRecommend:true },
+                    { name: '迷宫生成器', url: './game/maze.html', icon: 'fa-sitemap', desc:"随机迷宫生成，自动寻路求解", homeRecommend:true },
+
                 ]
             }
-
         ];
-
         // ========= 从appList提取菜单树（用于顶部导航PC/移动端渲染）直接复制结构 =========
         function buildMenuList(apps){
             return JSON.parse(JSON.stringify(apps));
         }
-
         // ========= 提取首页卡片工具列表，按group分组（递归遍历，收集homeRecommend=true） =========
         function buildToolList(apps) {
             const groupMap = {};
-
             /**
              * @param {Array} list 当前遍历列表
              * @param {Object|null} ancestorGroup 向上追溯到的最近有效分组信息
@@ -316,7 +333,6 @@
                 for (const item of list) {
                     if (item.children && item.children.length > 0) {
                         let nextAncestor = ancestorGroup;
-                        // 当前节点本身是分组节点：更新祖先分组为本节点信息
                         if (item.groupName) {
                             nextAncestor = {
                                 groupName: item.groupName,
@@ -325,10 +341,8 @@
                                 bgColor: item.bgColor
                             };
                         }
-                        // 二级节点没有groupName，nextAncestor保持上层一级菜单的分组，传给三级
                         walk(item.children, nextAncestor);
                     } else {
-                        // 叶子工具：必须有推荐标记 + 存在追溯到的祖先分组
                         if (item.homeRecommend === true && ancestorGroup?.groupName) {
                             const key = ancestorGroup.groupName;
                             if (!groupMap[key]) {
@@ -350,15 +364,15 @@
                     }
                 }
             }
-
             walk(apps, null);
             return Object.values(groupMap);
         }
-
-
         // 生成实际渲染用的两份数据
         const menuList = buildMenuList(appList);
         const toolList = buildToolList(appList);
+
+        // 布局模式：group=分组视图；flat=平铺视图，localStorage持久
+        let viewMode = localStorage.getItem("toolViewMode") || "group";
 
         // ========== 主题切换逻辑 localStorage持久 ==========
         function initTheme() {
@@ -380,6 +394,99 @@
                 updateThemeIcon(next);
             })
         }
+
+        // ========== 布局切换 ==========
+        function updateViewBtnIcon(){
+            const btn = document.getElementById("toggleViewBtn");
+            const i = btn.querySelector("i");
+            if(viewMode === "group"){
+                i.className = "fa-solid fa-layer-group";
+                btn.title = "切换为平铺网格模式";
+            }else{
+                i.className = "fa-solid fa-th-large";
+                btn.title = "切换为分组模式";
+            }
+        }
+        function bindViewToggle(){
+            const btn = document.getElementById("toggleViewBtn");
+            btn.onclick = ()=>{
+                viewMode = viewMode === "group" ? "flat" : "group";
+                localStorage.setItem("toolViewMode", viewMode);
+                renderCurrentView();
+                updateViewBtnIcon();
+            }
+        }
+        // 渲染当前激活视图
+        function renderCurrentView(){
+            if(viewMode === "group"){
+                renderGroupMode(toolList);
+            }else{
+                renderFlatMode(toolList);
+            }
+        }
+
+        // ========== 模式1：分组视图，分组标题 + 分组内部横向网格 ==========
+        function renderGroupMode(list) {
+            const container = document.getElementById('toolContainer');
+            let html = '';
+            list.forEach(group => {
+                html += `
+                    <div class="tool-group mb-8" data-group="${group.groupName}">
+                        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <i class="fa-solid ${group.groupIcon} ${group.groupColor}"></i>${group.groupName}
+                        </h2>
+                        <!-- 修复：分组内部开启响应式网格，卡片横向排列 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                `;
+                group.tools.forEach(tool => {
+                    html += `
+                        <a href="${tool.url}" class="tool-item block tool-card p-5 rounded-xl card-hover" data-name="${tool.name}">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg ${group.bgColor} flex items-center justify-center ${group.groupColor} shrink-0">
+                                    <i class="fa-solid ${tool.icon}"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="font-medium truncate">${tool.name}</h3>
+                                    <p class="text-sm text-sub-color truncate">${tool.desc}</p>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                })
+                html += `</div></div>`;
+            })
+            container.innerHTML = html;
+        }
+
+        // ========== 模式2：平铺全部卡片，右上角分组标签 ==========
+        function renderFlatMode(list) {
+            const container = document.getElementById('toolContainer');
+            let html = `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">`;
+            list.forEach(group => {
+                group.tools.forEach(tool => {
+                    html += `
+<a href="${tool.url}" class="tool-item block tool-card p-5 rounded-xl card-hover relative" data-name="${tool.name}">
+    <div class="absolute top-2 right-2 text-xs ${group.groupColor} flex items-center gap-1">
+        <span>&lt;/&gt;</span>
+        <span>${group.groupName}</span>
+    </div>
+    <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg ${group.bgColor} flex items-center justify-center ${group.groupColor} shrink-0">
+            <i class="fa-solid ${tool.icon}"></i>
+        </div>
+        <div class="min-w-0">
+            <h3 class="font-medium truncate">${tool.name}</h3>
+            <p class="text-sm text-sub-color truncate">${tool.desc}</p>
+        </div>
+    </div>
+</a>
+                    `;
+                })
+            })
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
         // ========== 递归渲染PC端一级菜单 ==========
         function renderDesktopMenu(items) {
             let html = '';
@@ -495,57 +602,28 @@
                 }
             })
         }
-        // ========== 渲染工具列表 ==========
-        function renderTools(list) {
-            const container = document.getElementById('toolContainer');
-            let html = '';
-            list.forEach(group => {
-                html += `
-                    <div class="tool-group" data-group="${group.groupName}">
-                        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                            <i class="fa-solid ${group.groupIcon} ${group.groupColor}"></i>${group.groupName}
-                        </h2>
-                        <div class="grid gap-4">
-                `;
-                group.tools.forEach(tool => {
-                    html += `
-                        <a href="${tool.url}" class="tool-item block tool-card p-5 rounded-xl card-hover" data-name="${tool.name}">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg ${group.bgColor} flex items-center justify-center ${group.groupColor}">
-                                    <i class="fa-solid ${tool.icon}"></i>
-                                </div>
-                                <div>
-                                    <h3 class="font-medium">${tool.name}</h3>
-                                    <p class="text-sm text-sub-color">${tool.desc}</p>
-                                </div>
-                            </div>
-                        </a>
-                    `;
-                })
-                html += `</div></div>`;
-            })
-            container.innerHTML = html;
-        }
-        // ========== 搜索过滤 ==========
+        // ========== 搜索过滤，同时兼容分组/平铺两种DOM ==========
         function bindSearch() {
             const searchInput = document.getElementById('searchInput');
             searchInput.addEventListener('input', function () {
                 const kw = this.value.trim().toLowerCase();
-                const allGroups = document.querySelectorAll('.tool-group');
-                allGroups.forEach(group => {
-                    let hasShow = false;
-                    const items = group.querySelectorAll('.tool-item');
-                    items.forEach(item => {
-                        const name = item.dataset.name.toLowerCase();
-                        if (name.includes(kw)) {
-                            item.classList.remove('hidden');
-                            hasShow = true;
-                        } else {
-                            item.classList.add('hidden');
-                        }
+                const items = document.querySelectorAll('.tool-item');
+                items.forEach(item => {
+                    const name = item.dataset.name.toLowerCase();
+                    if (name.includes(kw)) {
+                        item.classList.remove('hidden');
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+                // 分组模式时隐藏空分组
+                if(viewMode === "group"){
+                    const groups = document.querySelectorAll('.tool-group');
+                    groups.forEach(g=>{
+                        const showItems = g.querySelectorAll('.tool-item:not(.hidden)');
+                        g.classList.toggle('hidden', showItems.length === 0);
                     })
-                    group.classList.toggle('hidden', !hasShow);
-                })
+                }
             })
         }
         // ========== 移动端总菜单开关 ==========
@@ -562,8 +640,10 @@
         // 初始化
         initTheme();
         bindThemeToggle();
+        bindViewToggle();
+        updateViewBtnIcon();
         renderMenu();
-        renderTools(toolList);
+        renderCurrentView();
         bindSearch();
         bindMobileMenu();
     </script>

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本统计</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
+            --text-main: #e2e8f0;--text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --text-main: #111827;--text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+        }
+        body::before{
+            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .sub-panel-bg { background-color: var(--card-sub); }
+        .text-sub-color { color: var(--text-sub); }
+        textarea,input,select {
+            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
+            font-family: Consolas,Menlo,monospace;
+        }
+        textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-file-lines mr-2"></i>文本统计</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <div class="flex flex-wrap gap-3 mb-4">
+                <button id="btnClear" class="btn btn-outline"><i class="fa-solid fa-eraser"></i>清空</button>
+            </div>
+            <textarea id="inputText" class="w-full h-52 p-4 rounded-xl resize-y" placeholder="粘贴需要统计的文本，输入实时计算；鼠标拖动选中部分文本，可以查看选中区域统计..."></textarea>
+
+            <h3 class="mt-6 font-medium">📋 全文统计</h3>
+            <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">总字符(含空格)</div>
+                    <div id="statAll" class="text-2xl font-bold mt-1">0</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">总字符(不含空格)</div>
+                    <div id="statNoSpace" class="text-2xl font-bold mt-1">0</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">汉字数量</div>
+                    <div id="statHan" class="text-2xl font-bold mt-1">0</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">英文单词</div>
+                    <div id="statWord" class="text-2xl font-bold mt-1">0</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">总行数</div>
+                    <div id="statLine" class="text-2xl font-bold mt-1">0</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">空行数</div>
+                    <div id="statEmptyLine" class="text-2xl font-bold mt-1">0</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">空格数量</div>
+                    <div id="statSpace" class="text-2xl font-bold mt-1">0</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">非空行数</div>
+                    <div id="statNotEmptyLine" class="text-2xl font-bold mt-1">0</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">最长行长度(列数)</div>
+                    <div id="statMaxCol" class="text-2xl font-bold mt-1">0</div>
+                </div>
+            </div>
+
+            <h3 class="mt-8 font-medium">✏️ 选中文本统计（拖动鼠标选中文本生效）</h3>
+            <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">选中字符数</div>
+                    <div id="selAll" class="text-2xl font-bold mt-1">0</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">选中不含空格</div>
+                    <div id="selNoSpace" class="text-2xl font-bold mt-1">0</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">选中汉字</div>
+                    <div id="selHan" class="text-2xl font-bold mt-1">0</div>
+                </div>
+                <div class="sub-panel-bg p-4 rounded-lg">
+                    <div class="text-sub-color text-sm">选中单词</div>
+                    <div id="selWord" class="text-2xl font-bold mt-1">0</div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 文本工具</p>
+        </div>
+    </footer>
+    <script>
+        function initTheme(){
+            const t=localStorage.getItem("toolTheme")||"dark";
+            document.documentElement.setAttribute("data-theme",t);
+            updateThemeIcon(t);
+        }
+        function updateThemeIcon(t){
+            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick=()=>{
+            const c=document.documentElement.getAttribute("data-theme");
+            const n=c==="dark"?"light":"dark";
+            document.documentElement.setAttribute("data-theme",n);
+            localStorage.setItem("toolTheme",n);
+            updateThemeIcon(n);
+        }
+
+        const inputText = document.getElementById('inputText');
+        const btnClear = document.getElementById('btnClear');
+
+        // 全文统计dom
+        const statAll = document.getElementById('statAll');
+        const statNoSpace = document.getElementById('statNoSpace');
+        const statHan = document.getElementById('statHan');
+        const statWord = document.getElementById('statWord');
+        const statLine = document.getElementById('statLine');
+        const statEmptyLine = document.getElementById('statEmptyLine');
+        const statSpace = document.getElementById('statSpace');
+        const statNotEmptyLine = document.getElementById('statNotEmptyLine');
+        const statMaxCol = document.getElementById('statMaxCol');
+
+        // 选中文本dom
+        const selAll = document.getElementById('selAll');
+        const selNoSpace = document.getElementById('selNoSpace');
+        const selHan = document.getElementById('selHan');
+        const selWord = document.getElementById('selWord');
+
+        /** 通用统计函数，输入任意一段文本返回统计对象 */
+        function calcStats(text){
+            const allLen = text.length;
+            const spaceCount = (text.match(/ /g) || []).length;
+            const noSpaceLen = text.replace(/ /g,'').length;
+            const hanArr = text.match(/[\u4e00-\u9fa5]/g) || [];
+            const hanCount = hanArr.length;
+            const wordArr = text.match(/[a-zA-Z]+/g) || [];
+            const wordCount = wordArr.length;
+
+            const lines = text.split(/\r?\n/);
+            const totalLine = lines.length;
+            let emptyLine = 0;
+            let notEmptyLine =0;
+            let maxLineLen = 0;
+            lines.forEach(line=>{
+                const trim = line.trim();
+                if(trim==='') emptyLine++;
+                else notEmptyLine++;
+                if(line.length>maxLineLen) maxLineLen = line.length;
+            })
+
+            return {
+                allLen,
+                noSpaceLen,
+                hanCount,
+                wordCount,
+                totalLine,
+                emptyLine,
+                spaceCount,
+                notEmptyLine,
+                maxLineLen
+            }
+        }
+
+        // 渲染全文统计
+        function renderFull(){
+            const txt = inputText.value;
+            const s = calcStats(txt);
+            statAll.innerText = s.allLen;
+            statNoSpace.innerText = s.noSpaceLen;
+            statHan.innerText = s.hanCount;
+            statWord.innerText = s.wordCount;
+            statLine.innerText = s.totalLine;
+            statEmptyLine.innerText = s.emptyLine;
+            statSpace.innerText = s.spaceCount;
+            statNotEmptyLine.innerText = s.notEmptyLine;
+            statMaxCol.innerText = s.maxLineLen;
+        }
+
+        // 渲染选中区域统计
+        function renderSelect(){
+            const start = inputText.selectionStart;
+            const end = inputText.selectionEnd;
+            const selText = inputText.value.substring(start, end);
+            const s = calcStats(selText);
+            selAll.innerText = s.allLen;
+            selNoSpace.innerText = s.noSpaceLen;
+            selHan.innerText = s.hanCount;
+            selWord.innerText = s.wordCount;
+        }
+
+        inputText.addEventListener('input', renderFull);
+        // select事件：鼠标拖动选中文本触发
+        inputText.addEventListener('select', ()=>{
+            renderSelect();
+        });
+
+        btnClear.onclick = ()=>{
+            inputText.value = '';
+            renderFull();
+            renderSelect();
+        }
+
+        initTheme();
+        renderFull();
+        renderSelect();
+    </script>
+</body>
+</html>

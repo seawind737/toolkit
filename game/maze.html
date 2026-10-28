@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>迷宫生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+        }
+        html[data-theme="dark"] {
+            --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
+            --text-main: #e2e8f0;--text-sub: #94a3b8;
+        }
+        html[data-theme="light"] {
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --text-main: #111827;--text-sub: #64748b;
+        }
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.35s ease, color 0.35s ease; min-height:100vh;
+        }
+        body::before{
+            content:"";position:fixed;inset:0;z-index:-1;opacity:0.45;pointer-events:none;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size:24px 24px;
+        }
+        html[data-theme="light"] body::before{
+            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+            background-size:28px 28px;
+        }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition:0.35s; }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .text-sub-color { color: var(--text-sub); }
+        canvas{border:1px solid var(--border);}
+    </style>
+</head>
+<body class="flex flex-col">
+    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
+            </a>
+            <h1 class="text-xl font-bold text-gradient">🌀 迷宫生成器</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
+        <div class="tool-card p-6 rounded-xl">
+            <div class="flex flex-wrap gap-3 mb-5 items-end">
+                <div class="flex flex-col gap-2">
+                    <label class="text-sub-color">宽</label>
+                    <input id="wEl" type="number" min="5" max="40" value="25" class="w-20">
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="text-sub-color">高</label>
+                    <input id="hEl" type="number" min="5" max="40" value="20" class="w-20">
+                </div>
+                <button id="btnGen" class="btn btn-primary"><i class="fa-solid fa-refresh"></i>生成迷宫</button>
+                <button id="btnSolve" class="btn btn-outline"><i class="fa-solid fa-route"></i>自动求解</button>
+            </div>
+            <div class="overflow-auto">
+                <canvas id="canvas"></canvas>
+            </div>
+        </div>
+    </main>
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 工具集 | 小游戏</p>
+        </div>
+    </footer>
+    <script>
+        function initTheme(){
+            const t=localStorage.getItem("toolTheme")||"dark";
+            document.documentElement.setAttribute("data-theme",t);
+            updateThemeIcon(t);
+        }
+        function updateThemeIcon(t){
+            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+        }
+        document.getElementById("themeToggle").onclick=()=>{
+            const c=document.documentElement.getAttribute("data-theme");
+            const n=c==="dark"?"light":"dark";
+            document.documentElement.setAttribute("data-theme",n);
+            localStorage.setItem("toolTheme",n);
+            updateThemeIcon(n);
+        }
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const wEl = document.getElementById('wEl');
+        const hEl = document.getElementById('hEl');
+        const btnGen = document.getElementById('btnGen');
+        const btnSolve = document.getElementById('btnSolve');
+        const CELL=12;
+        let W=25,H=20;
+        let grid=[];
+        const DIRS = [[0,-2],[2,0],[0,2],[-2,0]];
+
+        function createMosaic(w,h){
+            W=Number(wEl.value); H=Number(hEl.value);
+            W = W%2===1?W:W+1;
+            H = H%2===1?H:H+1;
+            wEl.value=W; hEl.value=H;
+            canvas.width = W*CELL;
+            canvas.height = H*CELL;
+            grid = Array(H).fill().map(()=>Array(W).fill(1));
+            const stack = [[1,1]];
+            grid[1][1]=0;
+            while(stack.length>0){
+                const [x,y] = stack.pop();
+                const sh = [...DIRS].sort(()=>Math.random()-0.5);
+                for(const [dx,dy] of sh){
+                    const nx=x+dx, ny=y+dy;
+                    if(nx>0&&nx<W-1&&ny>0&&ny<H-1&&grid[ny][nx]===1){
+                        grid[y+dy/2][x+dx/2]=0;
+                        grid[ny][nx]=0;
+                        stack.push([nx,ny]);
+                    }
+                }
+            }
+            grid[1][0]=0;
+            grid[H-2][W-1]=0;
+            drawMaze(null);
+        }
+        function drawMaze(path){
+            const isDark = document.documentElement.dataset.theme==='dark';
+            const wall = isDark ? '#475569':'#334155';
+            const floor = isDark ? '#0f172a':'#ffffff';
+            const solveColor='#22d3ee';
+            ctx.fillStyle=wall;
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            for(let y=0;y<H;y++){
+                for(let x=0;x<W;x++){
+                    if(grid[y][x]===0){
+                        ctx.fillStyle = floor;
+                        ctx.fillRect(x*CELL,y*CELL,CELL,CELL);
+                    }
+                }
+            }
+            if(path){
+                ctx.fillStyle = solveColor;
+                for(const [px,py] of path){
+                    ctx.fillRect(px*CELL,py*CELL,CELL,CELL);
+                }
+            }
+        }
+        function solveMaze(){
+            const sx=0,sy=1;
+            const ex=W-1,ey=H-2;
+            const visited = Array(H).fill().map(()=>Array(W).fill(false));
+            const q = [[sx,sy,[[sx,sy]]]];
+            visited[sy][sx]=true;
+            const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+            while(q.length>0){
+                const [x,y,path] = q.shift();
+                if(x===ex&&y===ey){
+                    drawMaze(path);
+                    return;
+                }
+                for(const [dx,dy] of dirs){
+                    const nx=x+dx, ny=y+dy;
+                    if(nx>=0&&nx<W&&ny>=0&&ny<H&&grid[ny][nx]===0&&!visited[ny][nx]){
+                        visited[ny][nx]=true;
+                        q.push([nx,ny,[...path,[nx,ny]]]);
+                    }
+                }
+            }
+        }
+        btnGen.onclick = createMosaic;
+        btnSolve.onclick = solveMaze;
+        createMosaic();
+        initTheme();
+    </script>
+</body>
+</html>

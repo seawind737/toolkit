@@ -10,316 +10,301 @@
         tailwind.config = {
             darkMode: ['class', '[data-theme="dark"]'],
             theme: {
-                extend: {
-                    colors: {
-                        primary: '#3b82f6',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                }
+                extend: { colors: { primary: '#3b82f6' } }
             }
         }
     </script>
     <style type="text/tailwindcss">
         @layer utilities {
-            .card-hover {
-                @apply transition-all duration-300 hover:shadow-xl;
-            }
-            .text-gradient {
-                @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400;
-            }
-            .btn {
-                @apply px-4 py-2 rounded-lg transition-all duration-200;
-            }
-            .btn-primary {
-                @apply bg-primary text-white hover:bg-primary/80;
-            }
-            .btn-danger {
-                @apply bg-red-500 text-white hover:bg-red-500/80;
-            }
-            .btn-success {
-                @apply bg-emerald-500 text-white hover:bg-emerald-500/80;
-            }
-            .btn-purple {
-                @apply bg-purple-500 text-white hover:bg-purple-500/80;
-            }
-            .btn-gray {
-                @apply bg-gray-600 text-white hover:bg-gray-600/80;
-            }
-            .btn-outline {
-                @apply border border-[var(--border)] hover:bg-[var(--card-sub)];
-            }
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-3.5 py-2 rounded-lg transition-all duration-300 text-xs flex items-center justify-center gap-1.5 cursor-pointer font-medium active:scale-95; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80 shadow-lg shadow-blue-500/20; }
+            .btn-danger { @apply bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25; }
+            .btn-success { @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30; }
+            .btn-purple { @apply bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+            .tab-btn { @apply px-4 py-2 text-xs font-semibold rounded-lg transition-all duration-300 cursor-pointer border border-[var(--border)] bg-[var(--card)]; }
+            .tab-btn.active { @apply bg-primary text-white border-primary shadow-lg shadow-blue-500/20 scale-105; }
         }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; --input-bg: #020617; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; --input-bg: #f1f5f9; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; transition: background-color 0.35s ease, color 0.35s ease; }
+        body::before { content:""; position:fixed; inset:0; z-index:-1; opacity:0.45; pointer-events:none; background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size:24px 24px; }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: all 0.3s ease; }
+        textarea, input { background-color: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); font-family: Consolas, Menlo, monospace; transition: all 0.25s ease; }
+        textarea:focus, input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
 
-        html[data-theme="dark"] {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --card-sub: #334155;
-            --border: #475569;
-            --text-main: #e2e8f0;
-            --text-sub: #94a3b8;
-            --card-glow: rgba(59,130,246,0.08);
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        html[data-theme="light"] {
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --card-sub: #e2e8f0;
-            --border: #cbd5e1;
-            --text-main: #111827;
-            --text-sub: #64748b;
-            --card-glow: rgba(59,130,246,0.06);
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease;
-            min-height: 100vh;
-        }
-        body::before{
-            content:"";
-            position:fixed;
-            inset:0;
-            z-index:-1;
-            opacity:0.45;
-            pointer-events:none;
-            transition:background-image 0.35s ease;
-        }
-        html[data-theme="dark"] body::before{
-            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
-        }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
-        }
-
-        .nav-bar-bg {
-            background-color: var(--card);
-            border-color: var(--border);
-            transition: background-color 0.35s ease, border-color 0.35s ease;
-        }
-        .tool-card{
-            background-color: var(--card);
-            border:1px solid var(--border);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
-        }
-        .tool-card:hover{
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 0 14px var(--card-glow);
-        }
-        .sub-panel-bg {
-            background-color: var(--card-sub);
-        }
-        .text-sub-color {
-            color: var(--text-sub);
-        }
-        textarea,input,select{
-            background-color: var(--card);
-            border:1px solid var(--border);
-            color:var(--text-main);
-            font-family: Consolas,Menlo,monospace;
-        }
-        textarea:focus,input:focus,select:focus{
-            outline:none;
-            border-color:#3b82f6;
-        }
+        .fade-in { animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        /* 拖拽上传区域样式 */
+        .drop-zone { border: 2px dashed var(--border); transition: all 0.3s ease; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.05); }
     </style>
 </head>
 <body class="flex flex-col">
     <header class="nav-bar-bg sticky top-0 z-10 border-b">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
-                <i class="fa-solid fa-arrow-left"></i>
-                <span>返回首页</span>
-            </a>
-            <h1 class="text-xl font-bold text-gradient">Base64 编解码工具</h1>
-            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
-                <i class="fa-solid fa-moon" id="themeIcon"></i>
-            </button>
+            <a href="index.html" class="btn btn-outline flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i><span>返回首页</span></a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-code mr-2"></i>Base64 高级编解码</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <!-- 操作按钮 -->
-            <div class="flex flex-wrap gap-2 mb-5">
-                <button class="btn btn-purple" id="btnEncode"><i class="fa-solid fa-arrow-down mr-1"></i>标准Base64编码</button>
-                <button class="btn btn-primary" id="btnDecode"><i class="fa-solid fa-arrow-up mr-1"></i>标准Base64解码</button>
-                <button class="btn btn-success" id="btnEncodeUrlSafe"><i class="fa-solid fa-link mr-1"></i>URL‑Safe编码(JWT)</button>
-                <button class="btn btn-outline" id="btnDecodeUrlSafe"><i class="fa-solid fa-link-slash mr-1"></i>URL‑Safe解码(JWT)</button>
-                <button class="btn btn-gray" id="btnCopy"><i class="fa-solid fa-copy mr-1"></i>复制结果</button>
-                <button class="btn btn-danger" id="btnClear"><i class="fa-solid fa-eraser mr-1"></i>清空</button>
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow space-y-5">
+        <div class="tool-card p-6 rounded-2xl space-y-6 fade-in">
+            
+            <!-- 模式切换 Tabs -->
+            <div class="flex gap-3 border-b border-[var(--border)] pb-4">
+                <button class="tab-btn active" id="tabText"><i class="fa-solid fa-font mr-1.5"></i>文本与 URL-Safe 转换</button>
+                <button class="tab-btn" id="tabFile"><i class="fa-solid fa-file-arrow-up mr-1.5 text-blue-400"></i>文件/图片与 Base64 互转</button>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-5">
-                <div class="flex flex-col gap-2">
-                    <label class="text-sub-color">📥 输入文本</label>
-                    <textarea id="inputText" rows="20" placeholder="输入普通文本或者base64字符串"></textarea>
+            <!-- 模式一：文本模式面板 -->
+            <div id="textPanel" class="space-y-4 fade-in">
+                <!-- 操作按钮组 -->
+                <div class="flex flex-wrap gap-2">
+                    <button class="btn btn-purple" id="btnEncode"><i class="fa-solid fa-arrow-down mr-1"></i>标准 Base64 编码</button>
+                    <button class="btn btn-primary" id="btnDecode"><i class="fa-solid fa-arrow-up mr-1"></i>标准 Base64 解码</button>
+                    <button class="btn btn-success" id="btnEncodeUrlSafe"><i class="fa-solid fa-link mr-1"></i>URL-Safe 编码 (JWT)</button>
+                    <button class="btn btn-outline" id="btnDecodeUrlSafe"><i class="fa-solid fa-link-slash mr-1"></i>URL-Safe 解码 (JWT)</button>
+                    <button class="btn btn-outline text-emerald-400 copyBtn" data-target="outputText"><i class="fa-solid fa-copy mr-1"></i>复制结果</button>
+                    <button class="btn btn-danger" id="btnClearText"><i class="fa-solid fa-eraser mr-1"></i>清空</button>
                 </div>
-                <div class="flex flex-col gap-2">
-                    <label class="text-sub-color">📤 输出结果</label>
-                    <textarea id="outputText" readonly rows="20" class="bg-[var(--card-sub)]"></textarea>
+
+                <div class="grid md:grid-cols-2 gap-5">
+                    <div class="flex flex-col space-y-2">
+                        <label class="text-xs font-bold text-[var(--text-sub)]">📥 输入文本 / Base64 字符串</label>
+                        <textarea id="inputText" rows="14" class="p-3 rounded-xl text-xs resize-y" placeholder="在此输入需要编码的文本，或粘贴 Base64 字符串进行解码..."></textarea>
+                    </div>
+                    <div class="flex flex-col space-y-2">
+                        <label class="text-xs font-bold text-[var(--text-sub)]">📤 输出结果</label>
+                        <textarea id="outputText" readonly rows="14" class="p-3 rounded-xl text-xs resize-none bg-[var(--card-sub)] text-cyan-300"></textarea>
+                    </div>
                 </div>
             </div>
 
-            <!-- 提示信息 -->
-            <div class="mt-4">
-                <label class="block mb-1 text-sub-color">状态信息</label>
-                <div id="msgBox" class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color"></div>
+            <!-- 模式二：文件/图片模式面板 -->
+            <div id="filePanel" class="hidden space-y-5 fade-in">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- 左侧：文件上传转 Base64 -->
+                    <div class="space-y-3">
+                        <label class="text-xs font-bold text-[var(--text-sub)]"><i class="fa-solid fa-upload text-primary mr-1"></i>本地文件转 Base64</label>
+                        <div id="dropZone" class="drop-zone p-8 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer bg-[var(--input-bg)]">
+                            <i class="fa-solid fa-cloud-arrow-up text-4xl text-blue-400 mb-3 animate-bounce"></i>
+                            <p class="text-xs font-bold mb-1">点击选择文件 或 将文件拖拽到此处</p>
+                            <p class="text-[10px] text-[var(--text-sub)]">支持任意类型文件（图片、文档、音频等）</p>
+                            <input id="fileInput" type="file" class="hidden">
+                        </div>
+                        <div id="fileInfoBox" class="hidden p-3 rounded-xl bg-[var(--card-sub)] text-xs space-y-1 border border-[var(--border)]">
+                            <div><b>文件名:</b> <span id="fileName">-</span></div>
+                            <div><b>大小:</b> <span id="fileSize">-</span> | <b>类型:</b> <span id="fileType">-</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：Base64 转文件/图片下载 -->
+                    <div class="flex flex-col space-y-3">
+                        <label class="text-xs font-bold text-[var(--text-sub)]"><i class="fa-solid fa-download text-emerald-400 mr-1"></i>Base64 解析为文件/预览</label>
+                        <textarea id="inputBase64File" rows="5" class="p-3 rounded-xl text-xs resize-y" placeholder="在此粘贴完整的 Base64 Data URL (如 data:image/png;base64,iVBORw0KGgo...) 或纯 Base64..."></textarea>
+                        
+                        <div class="flex gap-2">
+                            <button id="btnPreviewFile" class="btn btn-primary flex-1"><i class="fa-solid fa-eye mr-1"></i>预览与生成下载</button>
+                            <button id="btnClearFile" class="btn btn-danger text-xs"><i class="fa-solid fa-eraser"></i>清空</button>
+                        </div>
+
+                        <!-- 预览与下载区 -->
+                        <div id="previewContainer" class="hidden p-4 rounded-xl bg-[var(--card-sub)] border border-[var(--border)] flex flex-col items-center justify-center space-y-3 text-center">
+                            <div id="mediaPreviewArea" class="max-h-32 overflow-hidden rounded flex items-center justify-center"></div>
+                            <a id="downloadLink" class="btn btn-success text-xs hidden" download="decoded_file"><i class="fa-solid fa-download mr-1"></i>点击下载文件</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-[var(--text-sub)]">生成的 Data URL / Base64 结果</span>
+                        <button class="btn btn-outline text-[11px] py-1 px-2.5 copyBtn" data-target="outputFileBase64"><i class="fa-solid fa-copy text-emerald-400 mr-1"></i>复制结果</button>
+                    </div>
+                    <textarea id="outputFileBase64" readonly rows="5" class="w-full p-3 rounded-xl text-xs text-emerald-300 resize-none font-mono"></textarea>
+                </div>
+            </div>
+
+            <!-- 状态信息提示框 -->
+            <div id="msgBox" class="p-3 rounded-xl bg-[var(--card-sub)] text-xs text-[var(--text-sub)] border border-[var(--border)] transition-all">
+                💡 <b>提示</b>：支持标准 Base64、JWT URL-Safe 编解码以及本地文件的 Base64 转换与预览。
             </div>
         </div>
     </main>
 
     <footer class="nav-bar-bg border-t py-6 mt-10">
-        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+        <div class="container mx-auto px-4 text-center text-[var(--text-sub)] text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 静态本地网页，不上传用户数据</p>
+            <p class="mt-1">© 2026 开发者工具箱 | 编解码中心</p>
         </div>
     </footer>
 
     <script>
-        // ==========主题==========
-        function initTheme() {
-            const saveTheme = localStorage.getItem("toolTheme") || "dark";
-            document.documentElement.setAttribute("data-theme", saveTheme);
-            updateThemeIcon(saveTheme);
+        function initTheme(){
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function updateThemeIcon(theme) {
-            const icon = document.getElementById("themeIcon");
-            icon.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        document.getElementById("themeToggle").onclick = () => {
+            const c = document.documentElement.getAttribute("data-theme");
+            const n = c === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", n);
+            localStorage.setItem("toolTheme", n);
+            document.getElementById("themeIcon").className = n === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function bindThemeToggle() {
-            const btn = document.getElementById("themeToggle");
-            btn.addEventListener("click", ()=>{
-                const current = document.documentElement.getAttribute("data-theme");
-                const next = current === "dark" ? "light" : "dark";
-                document.documentElement.setAttribute("data-theme", next);
-                localStorage.setItem("toolTheme", next);
-                updateThemeIcon(next);
-            })
-        }
+        initTheme();
 
-        const inputDom = document.getElementById('inputText');
-        const outputDom = document.getElementById('outputText');
+        const tabText = document.getElementById('tabText');
+        const tabFile = document.getElementById('tabFile');
+        const textPanel = document.getElementById('textPanel');
+        const filePanel = document.getElementById('filePanel');
         const msgBox = document.getElementById('msgBox');
 
-        function setMsg(text, isError = false) {
-            msgBox.innerText = text;
-            msgBox.style.color = isError ? '#f87171' : 'var(--text-sub)';
+        tabText.onclick = () => {
+            tabText.classList.add('active');
+            tabFile.classList.remove('active');
+            textPanel.classList.remove('hidden');
+            filePanel.classList.add('hidden');
+        };
+        tabFile.onclick = () => {
+            tabFile.classList.add('active');
+            tabText.classList.remove('active');
+            filePanel.classList.remove('hidden');
+            textPanel.classList.add('hidden');
+        };
+
+        function setMsg(txt, err=false){
+            msgBox.innerHTML = err ? `<span class="text-red-400">${txt}</span>` : `<span class="text-emerald-400">${txt}</span>`;
         }
 
-        // 标准 base64 编码 UTF‑8
-        function base64Encode(str) {
-            return btoa(unescape(encodeURIComponent(str)));
-        }
-        // 标准 base64 解码 UTF‑8
-        function base64Decode(b64) {
-            return decodeURIComponent(escape(atob(b64)));
-        }
+        // 文本编解码逻辑
+        const inputText = document.getElementById('inputText');
+        const outputText = document.getElementById('outputText');
 
-        // URL‑Safe Base64 （JWT使用：- _ 替换 + /，去掉=）
-        function base64UrlEncode(str) {
-            let b64 = base64Encode(str);
-            b64 = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-            return b64;
-        }
+        function base64Encode(str) { return btoa(unescape(encodeURIComponent(str))); }
+        function base64Decode(b64) { return decodeURIComponent(escape(atob(b64))); }
+        function base64UrlEncode(str) { return base64Encode(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''); }
         function base64UrlDecode(b64url) {
             let s = b64url.replace(/-/g, '+').replace(/_/g, '/');
             while (s.length % 4 !== 0) s += '=';
             return base64Decode(s);
         }
 
-        function handleEncode(){
-            const raw = inputDom.value;
-            if(!raw){
-                setMsg("请输入待编码文本",true);
-                return;
-            }
-            try{
-                outputDom.value = base64Encode(raw);
-                setMsg("✅ 标准Base64编码完成");
-            }catch(e){
-                setMsg(`❌ 编码异常：${e.message}`,true);
-            }
+        document.getElementById('btnEncode').onclick = () => {
+            try { outputText.value = base64Encode(inputText.value); setMsg("✅ 标准 Base64 编码完成"); }
+            catch(e) { setMsg("❌ 编码异常: " + e.message, true); }
+        };
+        document.getElementById('btnDecode').onclick = () => {
+            try { outputText.value = base64Decode(inputText.value.trim()); setMsg("✅ 标准 Base64 解码完成"); }
+            catch(e) { setMsg("❌ 解码异常: " + e.message, true); }
+        };
+        document.getElementById('btnEncodeUrlSafe').onclick = () => {
+            try { outputText.value = base64UrlEncode(inputText.value); setMsg("✅ URL-Safe 编码完成 (JWT)"); }
+            catch(e) { setMsg("❌ 编码异常: " + e.message, true); }
+        };
+        document.getElementById('btnDecodeUrlSafe').onclick = () => {
+            try { outputText.value = base64UrlDecode(inputText.value.trim()); setMsg("✅ URL-Safe 解码完成 (JWT)"); }
+            catch(e) { setMsg("❌ 解码异常: " + e.message, true); }
+        };
+        document.getElementById('btnClearText').onclick = () => { inputText.value = ""; outputText.value = ""; setMsg("已清空文本"); };
+
+        // 文件上传转 Base64 逻辑
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfoBox = document.getElementById('fileInfoBox');
+        const outputFileBase64 = document.getElementById('outputFileBase64');
+
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        };
+        fileInput.onchange = (e) => { if(e.target.files.length) handleFile(e.target.files[0]); };
+
+        function handleFile(file){
+            document.getElementById('fileName').innerText = file.name;
+            document.getElementById('fileSize').innerText = (file.size / 1024).toFixed(2) + " KB";
+            document.getElementById('fileType').innerText = file.type || "未知类型";
+            fileInfoBox.classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                outputFileBase64.value = e.target.result;
+                setMsg(`✅ 文件 [${file.name}] 成功转为 Base64 Data URL`);
+            };
+            reader.onerror = () => setMsg("❌ 文件读取失败", true);
+            reader.readAsDataURL(file);
         }
 
-        function handleDecode(){
-            const raw = inputDom.value.trim();
-            if(!raw){
-                setMsg("请输入待解码Base64字符串",true);
-                return;
-            }
-            try{
-                outputDom.value = base64Decode(raw);
-                setMsg("✅ 标准Base64解码完成");
-            }catch(e){
-                setMsg(`❌ Base64解码失败：${e.message}`,true);
-            }
-        }
+        // Base64 转文件预览与下载
+        const inputBase64File = document.getElementById('inputBase64File');
+        const previewContainer = document.getElementById('previewContainer');
+        const mediaPreviewArea = document.getElementById('mediaPreviewArea');
+        const downloadLink = document.getElementById('downloadLink');
 
-        function handleEncodeUrlSafe(){
-            const raw = inputDom.value;
-            if(!raw){
-                setMsg("请输入待编码文本",true);
-                return;
-            }
-            try{
-                outputDom.value = base64UrlEncode(raw);
-                setMsg("✅ URL‑Safe Base64编码完成（JWT）");
-            }catch(e){
-                setMsg(`❌ 编码异常：${e.message}`,true);
-            }
-        }
+        document.getElementById('btnPreviewFile').onclick = () => {
+            const val = inputBase64File.value.trim();
+            if(!val){ setMsg("⚠️ 请输入有效的 Base64 字符串！", true); return; }
+            try {
+                let dataUrl = val;
+                if(!val.startsWith('data:')){
+                    dataUrl = 'data:application/octet-stream;base64,' + val;
+                }
+                
+                mediaPreviewArea.innerHTML = "";
+                if(dataUrl.startsWith('data:image/')){
+                    mediaPreviewArea.innerHTML = `<img src="${dataUrl}" class="max-h-28 rounded shadow">`;
+                } else if(dataUrl.startsWith('data:video/')){
+                    mediaPreviewArea.innerHTML = `<video src="${dataUrl}" controls class="max-h-28 rounded shadow"></video>`;
+                } else {
+                    mediaPreviewArea.innerHTML = `<span class="text-xs text-[var(--text-sub)]"><i class="fa-solid fa-file-arrow-down mr-1"></i>通用二进制文件流</span>`;
+                }
 
-        function handleDecodeUrlSafe(){
-            const raw = inputDom.value.trim();
-            if(!raw){
-                setMsg("请输入待解码URL‑Safe字符串",true);
-                return;
+                downloadLink.href = dataUrl;
+                downloadLink.classList.remove('hidden');
+                previewContainer.classList.remove('hidden');
+                setMsg("✅ Base64 解析成功，可直接预览或下载");
+            } catch(e){
+                setMsg("❌ 解析失败: " + e.message, true);
             }
-            try{
-                outputDom.value = base64UrlDecode(raw);
-                setMsg("✅ URL‑Safe Base64解码完成（JWT）");
-            }catch(e){
-                setMsg(`❌ URL‑Safe解码失败：${e.message}`,true);
-            }
-        }
+        };
 
-        async function copyResult(){
-            const val = outputDom.value;
-            if(!val){
-                setMsg("输出框为空",true);
-                return;
-            }
-            try{
-                await navigator.clipboard.writeText(val);
-                setMsg("✅ 已复制到剪贴板");
-            }catch(err){
-                setMsg("❌ 复制失败，请手动复制",true);
-            }
-        }
+        document.getElementById('btnClearFile').onclick = () => {
+            inputBase64File.value = "";
+            outputFileBase64.value = "";
+            fileInfoBox.classList.add('hidden');
+            previewContainer.classList.add('hidden');
+            setMsg("已清空文件面板");
+        };
 
-        function clearAll(){
-            inputDom.value = "";
-            outputDom.value = "";
-            setMsg("");
-        }
-
-        function bindEvents(){
-            document.getElementById('btnEncode').onclick = handleEncode;
-            document.getElementById('btnDecode').onclick = handleDecode;
-            document.getElementById('btnEncodeUrlSafe').onclick = handleEncodeUrlSafe;
-            document.getElementById('btnDecodeUrlSafe').onclick = handleDecodeUrlSafe;
-            document.getElementById('btnCopy').onclick = copyResult;
-            document.getElementById('btnClear').onclick = clearAll;
-        }
-
-        initTheme();
-        bindThemeToggle();
-        bindEvents();
+        // 通用复制按钮绑定
+        document.querySelectorAll('.copyBtn').forEach(btn => {
+            btn.onclick = async () => {
+                const targetId = btn.getAttribute('data-target');
+                const val = document.getElementById(targetId).value;
+                if(!val){ setMsg("⚠️ 暂无内容可复制！", true); return; }
+                try {
+                    await navigator.clipboard.writeText(val);
+                    const oldHTML = btn.innerHTML;
+                    btn.innerHTML = '<i class="fa-solid fa-check text-emerald-400 mr-1"></i>已复制';
+                    setTimeout(() => btn.innerHTML = oldHTML, 1500);
+                    setMsg("✅ 内容已成功复制到剪贴板！");
+                } catch(e){
+                    setMsg("❌ 复制失败", true);
+                }
+            };
+        });
     </script>
 </body>
 </html>

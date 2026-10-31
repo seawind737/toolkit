@@ -3,310 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>URL 编解码工具</title>
+    <title>高级 URL 编解码与文件转换中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
             darkMode: ['class', '[data-theme="dark"]'],
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#3b82f6',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                }
-            }
+            theme: { extend: { colors: { primary: '#3b82f6' } } }
         }
     </script>
     <style type="text/tailwindcss">
         @layer utilities {
-            .card-hover {
-                @apply transition-all duration-300 hover:shadow-xl;
-            }
-            .text-gradient {
-                @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400;
-            }
-            .btn {
-                @apply px-4 py-2 rounded-lg transition-all duration-200;
-            }
-            .btn-primary {
-                @apply bg-primary text-white hover:bg-primary/80;
-            }
-            .btn-danger {
-                @apply bg-red-500 text-white hover:bg-red-500/80;
-            }
-            .btn-success {
-                @apply bg-emerald-500 text-white hover:bg-emerald-500/80;
-            }
-            .btn-purple {
-                @apply bg-purple-500 text-white hover:bg-purple-500/80;
-            }
-            .btn-gray {
-                @apply bg-gray-600 text-white hover:bg-gray-600/80;
-            }
-            .btn-outline {
-                @apply border border-[var(--border)] hover:bg-[var(--card-sub)];
-            }
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-3.5 py-2 rounded-xl transition-all duration-300 text-xs flex items-center justify-center gap-1.5 cursor-pointer font-medium active:scale-95; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80 shadow-lg shadow-blue-500/20; }
+            .btn-danger { @apply bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25; }
+            .btn-success { @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30; }
+            .btn-purple { @apply bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
         }
-
-        html[data-theme="dark"] {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --card-sub: #334155;
-            --border: #475569;
-            --text-main: #e2e8f0;
-            --text-sub: #94a3b8;
-            --card-glow: rgba(59,130,246,0.08);
-        }
-        html[data-theme="light"] {
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --card-sub: #e2e8f0;
-            --border: #cbd5e1;
-            --text-main: #111827;
-            --text-sub: #64748b;
-            --card-glow: rgba(59,130,246,0.06);
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease;
-            min-height: 100vh;
-        }
-        body::before{
-            content:"";
-            position:fixed;
-            inset:0;
-            z-index:-1;
-            opacity:0.45;
-            pointer-events:none;
-            transition:background-image 0.35s ease;
-        }
-        html[data-theme="dark"] body::before{
-            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
-        }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
-        }
-
-        .nav-bar-bg {
-            background-color: var(--card);
-            border-color: var(--border);
-            transition: background-color 0.35s ease, border-color 0.35s ease;
-        }
-        .tool-card{
-            background-color: var(--card);
-            border:1px solid var(--border);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
-        }
-        .tool-card:hover{
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 0 14px var(--card-glow);
-        }
-        .sub-panel-bg {
-            background-color: var(--card-sub);
-        }
-        .text-sub-color {
-            color: var(--text-sub);
-        }
-        textarea,input,select{
-            background-color: var(--card);
-            border:1px solid var(--border);
-            color:var(--text-main);
-            font-family: Consolas,Menlo,monospace;
-        }
-        textarea:focus,input:focus,select:focus{
-            outline:none;
-            border-color:#3b82f6;
-        }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; --input-bg: #020617; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; --input-bg: #f1f5f9; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; transition: background-color 0.35s ease; }
+        body::before { content:""; position:fixed; inset:0; z-index:-1; opacity:0.45; pointer-events:none; background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size:24px 24px; }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: all 0.3s ease; }
+        textarea, input { background-color: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); font-family: Consolas, Menlo, monospace; transition: all 0.25s ease; }
+        textarea:focus, input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+        .drop-zone { border: 2px dashed var(--border); transition: all 0.3s ease; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.05); transform: scale(1.01); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
 </head>
 <body class="flex flex-col">
     <header class="nav-bar-bg sticky top-0 z-10 border-b">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
-                <i class="fa-solid fa-arrow-left"></i>
-                <span>返回首页</span>
-            </a>
-            <h1 class="text-xl font-bold text-gradient">URL 编解码工具</h1>
-            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
-                <i class="fa-solid fa-moon" id="themeIcon"></i>
-            </button>
+            <a href="index.html" class="btn btn-outline flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i><span>返回首页</span></a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-globe mr-2"></i>高级 URL 编解码与文件中心</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <!-- 操作按钮 -->
-            <div class="flex flex-wrap gap-2 mb-5">
-                <button class="btn btn-purple" id="btnUrlEncode"><i class="fa-solid fa-link mr-1"></i>URL编码 encodeURI</button>
-                <button class="btn btn-primary" id="btnUrlDecode"><i class="fa-solid fa-link-slash mr-1"></i>URL解码 decodeURI</button>
-                <button class="btn btn-success" id="btnFormEncode"><i class="fa-solid fa-file-lines mr-1"></i>表单编码 encodeURIComponent</button>
-                <button class="btn btn-outline" id="btnFormDecode"><i class="fa-solid fa-file-lines mr-1"></i>表单解码 decodeURIComponent</button>
-                <button class="btn btn-gray" id="btnCopy"><i class="fa-solid fa-copy mr-1"></i>复制结果</button>
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow space-y-6">
+        <div class="tool-card p-6 rounded-2xl space-y-6 fade-in">
+            
+            <!-- 操作按钮组 -->
+            <div class="flex flex-wrap gap-2">
+                <button class="btn btn-purple" id="btnUrlEncode"><i class="fa-solid fa-link mr-1"></i>URL 编码 encodeURI</button>
+                <button class="btn btn-primary" id="btnUrlDecode"><i class="fa-solid fa-link-slash mr-1"></i>URL 解码 decodeURI</button>
+                <button class="btn btn-success" id="btnFormEncode"><i class="fa-solid fa-file-lines mr-1"></i>表单参数编码</button>
+                <button class="btn btn-outline" id="btnFormDecode"><i class="fa-solid fa-file-lines mr-1"></i>表单参数解码</button>
+                <button class="btn btn-outline text-emerald-400 copyBtn" data-target="outputText"><i class="fa-solid fa-copy mr-1"></i>复制结果</button>
                 <button class="btn btn-danger" id="btnClear"><i class="fa-solid fa-eraser mr-1"></i>清空</button>
             </div>
 
+            <!-- 核心输入输出双栏 -->
             <div class="grid md:grid-cols-2 gap-5">
-                <div class="flex flex-col gap-2">
-                    <label class="text-sub-color">📥 输入文本</label>
-                    <textarea id="inputText" rows="20" placeholder="原始文本 / 已经编码的url字符串"></textarea>
+                <div class="flex flex-col space-y-2">
+                    <label class="text-xs font-bold text-[var(--text-sub)]">📥 输入文本 / URL 字符串</label>
+                    <textarea id="inputText" rows="12" class="p-3 rounded-xl text-xs resize-y" placeholder="在此输入需要编解码的 URL 文本..."></textarea>
                 </div>
-                <div class="flex flex-col gap-2">
-                    <label class="text-sub-color">📤 输出结果</label>
-                    <textarea id="outputText" readonly rows="20" class="bg-[var(--card-sub)]"></textarea>
+                <div class="flex flex-col space-y-2">
+                    <label class="text-xs font-bold text-[var(--text-sub)]">📤 输出结果</label>
+                    <textarea id="outputText" readonly rows="12" class="p-3 rounded-xl text-xs resize-none bg-[var(--card-sub)] text-cyan-300"></textarea>
                 </div>
             </div>
 
-            <!-- 提示信息 -->
-            <div class="mt-4">
-                <label class="block mb-1 text-sub-color">状态信息</label>
-                <div id="msgBox" class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color"></div>
+            <!-- 独立增强：文件拖拽上传转 URL Data 编码 -->
+            <div class="space-y-3 pt-4 border-t border-[var(--border)]">
+                <label class="text-xs font-bold text-[var(--text-sub)]"><i class="fa-solid fa-cloud-arrow-up text-blue-400 mr-1"></i>本地文件拖拽上传转 Data URL</label>
+                <div id="dropZone" class="drop-zone p-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer bg-[var(--input-bg)]">
+                    <i class="fa-solid fa-file-arrow-up text-3xl text-blue-400 mb-2 animate-bounce"></i>
+                    <p class="text-xs font-bold mb-1">点击选择本地文件 或 将文件拖拽到此处</p>
+                    <p class="text-[10px] text-[var(--text-sub)]">自动转换为对应的 Data URL 编码并填入输入框</p>
+                    <input id="fileInput" type="file" class="hidden">
+                </div>
             </div>
 
-            <div class="mt-3 text-sub-color text-sm">
-                <div>• 中文、空格、`[]`、`<>`、`"`、`{}`、`\`、`|`、` `等**不属于 URL 语法的字符**</div>
-                <div>• encodeURI：完整URL编码，不转义 <code>:/?#&=</code>，用于完整url地址</div>
-                <div>• encodeURIComponent：表单参数编码，转义全部特殊字符，用于query参数值</div>
+            <div id="msgBox" class="p-3 rounded-xl bg-[var(--card-sub)] text-xs text-[var(--text-sub)] border border-[var(--border)]">
+                💡 <b>提示</b>：支持完整 URL 编码 (`encodeURI`)、表单参数编码 (`encodeURIComponent`) 及本地文件 Data URL 转换。
             </div>
         </div>
     </main>
 
     <footer class="nav-bar-bg border-t py-6 mt-10">
-        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+        <div class="container mx-auto px-4 text-center text-[var(--text-sub)] text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 静态本地网页，不上传用户数据</p>
+            <p class="mt-1">© 2026 开发者工具箱 | URL 编解码中心</p>
         </div>
     </footer>
 
     <script>
-        // ==========主题==========
-        function initTheme() {
-            const saveTheme = localStorage.getItem("toolTheme") || "dark";
-            document.documentElement.setAttribute("data-theme", saveTheme);
-            updateThemeIcon(saveTheme);
+        function initTheme(){
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function updateThemeIcon(theme) {
-            const icon = document.getElementById("themeIcon");
-            icon.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        document.getElementById("themeToggle").onclick = () => {
+            const c = document.documentElement.getAttribute("data-theme");
+            const n = c === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", n);
+            localStorage.setItem("toolTheme", n);
+            document.getElementById("themeIcon").className = n === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function bindThemeToggle() {
-            const btn = document.getElementById("themeToggle");
-            btn.addEventListener("click", ()=>{
-                const current = document.documentElement.getAttribute("data-theme");
-                const next = current === "dark" ? "light" : "dark";
-                document.documentElement.setAttribute("data-theme", next);
-                localStorage.setItem("toolTheme", next);
-                updateThemeIcon(next);
-            })
-        }
+        initTheme();
 
         const inputDom = document.getElementById('inputText');
         const outputDom = document.getElementById('outputText');
         const msgBox = document.getElementById('msgBox');
 
-        function setMsg(text, isError = false) {
-            msgBox.innerText = text;
-            msgBox.style.color = isError ? '#f87171' : 'var(--text-sub)';
+        function setMsg(txt, err=false){
+            msgBox.innerHTML = err ? `<span class="text-red-400">${txt}</span>` : `<span class="text-emerald-400">${txt}</span>`;
         }
 
-        // encodeURI 完整url编码
-        function handleUrlEncode(){
-            const raw = inputDom.value;
-            if(!raw){
-                setMsg("请输入待编码文本",true);
-                return;
-            }
-            try{
-                outputDom.value = encodeURI(raw);
-                setMsg("✅ URL编码完成 encodeURI");
-            }catch(e){
-                setMsg(`❌ 编码异常：${e.message}`,true);
-            }
-        }
-        // decodeURI 完整url解码
-        function handleUrlDecode(){
-            const raw = inputDom.value.trim();
-            if(!raw){
-                setMsg("请输入待解码字符串",true);
-                return;
-            }
-            try{
-                outputDom.value = decodeURI(raw);
-                setMsg("✅ URL解码完成 decodeURI");
-            }catch(e){
-                setMsg(`❌ 解码失败：${e.message}`,true);
-            }
+        document.getElementById('btnUrlEncode').onclick = () => {
+            if(!inputDom.value){ setMsg("⚠️ 请输入待编码文本！", true); return; }
+            try { outputDom.value = encodeURI(inputDom.value); setMsg("✅ URL 编码完成 (encodeURI)"); }
+            catch(e){ setMsg("❌ 编码异常: " + e.message, true); }
+        };
+
+        document.getElementById('btnUrlDecode').onclick = () => {
+            if(!inputDom.value){ setMsg("⚠️ 请输入待解码文本！", true); return; }
+            try { outputDom.value = decodeURI(inputDom.value.trim()); setMsg("✅ URL 解码完成 (decodeURI)"); }
+            catch(e){ setMsg("❌ 解码异常: " + e.message, true); }
+        };
+
+        document.getElementById('btnFormEncode').onclick = () => {
+            if(!inputDom.value){ setMsg("⚠️ 请输入待编码文本！", true); return; }
+            try { outputDom.value = encodeURIComponent(inputDom.value); setMsg("✅ 表单参数编码完成 (encodeURIComponent)"); }
+            catch(e){ setMsg("❌ 编码异常: " + e.message, true); }
+        };
+
+        document.getElementById('btnFormDecode').onclick = () => {
+            if(!inputDom.value){ setMsg("⚠️ 请输入待解码文本！", true); return; }
+            try { outputDom.value = decodeURIComponent(inputDom.value.trim()); setMsg("✅ 表单参数解码完成 (decodeURIComponent)"); }
+            catch(e){ setMsg("❌ 解码异常: " + e.message, true); }
+        };
+
+        // 独立文件拖拽上传转 Data URL
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        };
+        fileInput.onchange = (e) => { if(e.target.files.length) handleFile(e.target.files[0]); };
+
+        function handleFile(file){
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                inputDom.value = e.target.result;
+                setMsg(`✅ 文件 [${file.name}] 已成功转换为 Data URL 填入输入框`);
+            };
+            reader.readAsDataURL(file);
         }
 
-        // encodeURIComponent 表单参数编码
-        function handleFormEncode(){
-            const raw = inputDom.value;
-            if(!raw){
-                setMsg("请输入待编码文本",true);
-                return;
-            }
-            try{
-                outputDom.value = encodeURIComponent(raw);
-                setMsg("✅ 表单参数编码完成 encodeURIComponent");
-            }catch(e){
-                setMsg(`❌ 编码异常：${e.message}`,true);
-            }
-        }
-        // decodeURIComponent 表单参数解码
-        function handleFormDecode(){
-            const raw = inputDom.value.trim();
-            if(!raw){
-                setMsg("请输入待解码字符串",true);
-                return;
-            }
-            try{
-                outputDom.value = decodeURIComponent(raw);
-                setMsg("✅ 表单参数解码完成 decodeURIComponent");
-            }catch(e){
-                setMsg(`❌ 解码失败：${e.message}`,true);
-            }
-        }
-
-        async function copyResult(){
-            const val = outputDom.value;
-            if(!val){
-                setMsg("输出框为空",true);
-                return;
-            }
-            try{
-                await navigator.clipboard.writeText(val);
-                setMsg("✅ 已复制到剪贴板");
-            }catch(err){
-                setMsg("❌ 复制失败，请手动复制",true);
-            }
-        }
-
-        function clearAll(){
+        document.getElementById('btnClear').onclick = () => {
             inputDom.value = "";
             outputDom.value = "";
-            setMsg("");
-        }
+            setMsg("已清空");
+        };
 
-        function bindEvents(){
-            document.getElementById('btnUrlEncode').onclick = handleUrlEncode;
-            document.getElementById('btnUrlDecode').onclick = handleUrlDecode;
-            document.getElementById('btnFormEncode').onclick = handleFormEncode;
-            document.getElementById('btnFormDecode').onclick = handleFormDecode;
-            document.getElementById('btnCopy').onclick = copyResult;
-            document.getElementById('btnClear').onclick = clearAll;
-        }
-
-        initTheme();
-        bindThemeToggle();
-        bindEvents();
+        document.querySelectorAll('.copyBtn').forEach(btn => {
+            btn.onclick = async () => {
+                const targetId = btn.getAttribute('data-target');
+                const val = document.getElementById(targetId).value;
+                if(!val){ setMsg("⚠️ 暂无内容可复制！", true); return; }
+                try {
+                    await navigator.clipboard.writeText(val);
+                    const oldHTML = btn.innerHTML;
+                    btn.innerHTML = '<i class="fa-solid fa-check text-emerald-400 mr-1"></i>已复制';
+                    setTimeout(() => btn.innerHTML = oldHTML, 1500);
+                    setMsg("✅ 内容已成功复制到剪贴板！");
+                } catch(e){
+                    setMsg("❌ 复制失败", true);
+                }
+            };
+        });
     </script>
 </body>
 </html>

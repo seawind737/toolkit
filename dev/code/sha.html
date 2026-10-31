@@ -3,308 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHA 哈希工具</title>
+    <title>高级 SHA 哈希与文件安全中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: ['class', '[data-theme="dark"]'],
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#3b82f6',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                }
-            }
+            theme: { extend: { colors: { primary: '#3b82f6' } } }
         }
     </script>
     <style type="text/tailwindcss">
         @layer utilities {
-            .card-hover {
-                @apply transition-all duration-300 hover:shadow-xl;
-            }
-            .text-gradient {
-                @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400;
-            }
-            .btn {
-                @apply px-4 py-2 rounded-lg transition-all duration-200;
-            }
-            .btn-primary {
-                @apply bg-primary text-white hover:bg-primary/80;
-            }
-            .btn-danger {
-                @apply bg-red-500 text-white hover:bg-red-500/80;
-            }
-            .btn-success {
-                @apply bg-emerald-500 text-white hover:bg-emerald-500/80;
-            }
-            .btn-purple {
-                @apply bg-purple-500 text-white hover:bg-purple-500/80;
-            }
-            .btn-gray {
-                @apply bg-gray-600 text-white hover:bg-gray-600/80;
-            }
-            .btn-outline {
-                @apply border border-[var(--border)] hover:bg-[var(--card-sub)];
-            }
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
+            .btn { @apply px-3.5 py-2 rounded-xl transition-all duration-300 text-xs flex items-center justify-center gap-1.5 cursor-pointer font-medium active:scale-95; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80 shadow-lg shadow-blue-500/20; }
+            .btn-danger { @apply bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
         }
-
-        html[data-theme="dark"] {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --card-sub: #334155;
-            --border: #475569;
-            --text-main: #e2e8f0;
-            --text-sub: #94a3b8;
-            --card-glow: rgba(59,130,246,0.08);
-        }
-        html[data-theme="light"] {
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --card-sub: #e2e8f0;
-            --border: #cbd5e1;
-            --text-main: #111827;
-            --text-sub: #64748b;
-            --card-glow: rgba(59,130,246,0.06);
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease;
-            min-height: 100vh;
-        }
-        body::before{
-            content:"";
-            position:fixed;
-            inset:0;
-            z-index:-1;
-            opacity:0.45;
-            pointer-events:none;
-            transition:background-image 0.35s ease;
-        }
-        html[data-theme="dark"] body::before{
-            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
-        }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
-        }
-
-        .nav-bar-bg {
-            background-color: var(--card);
-            border-color: var(--border);
-            transition: background-color 0.35s ease, border-color 0.35s ease;
-        }
-        .tool-card{
-            background-color: var(--card);
-            border:1px solid var(--border);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
-        }
-        .tool-card:hover{
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 0 14px var(--card-glow);
-        }
-        .sub-panel-bg {
-            background-color: var(--card-sub);
-        }
-        .text-sub-color {
-            color: var(--text-sub);
-        }
-        textarea,input,select{
-            background-color: var(--card);
-            border:1px solid var(--border);
-            color:var(--text-main);
-            font-family: Consolas,Menlo,monospace;
-        }
-        textarea:focus,input:focus,select:focus{
-            outline:none;
-            border-color:#3b82f6;
-        }
-        .copy-btn-inline{
-            cursor:pointer;
-            opacity:0.65;
-            margin-left:8px;
-        }
-        .copy-btn-inline:hover{
-            opacity:1;
-        }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; --input-bg: #020617; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; --input-bg: #f1f5f9; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; transition: background-color 0.35s ease; }
+        body::before { content:""; position:fixed; inset:0; z-index:-1; opacity:0.45; pointer-events:none; background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size:24px 24px; }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: all 0.3s ease; }
+        textarea, input { background-color: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); font-family: Consolas, Menlo, monospace; transition: all 0.25s ease; }
+        textarea:focus, input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+        .drop-zone { border: 2px dashed var(--border); transition: all 0.3s ease; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.05); transform: scale(1.01); }
+        .copy-btn-inline { cursor: pointer; opacity: 0.65; transition: all 0.2s; }
+        .copy-btn-inline:hover { opacity: 1; color: #3b82f6; transform: scale(1.15); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
 </head>
 <body class="flex flex-col">
     <header class="nav-bar-bg sticky top-0 z-10 border-b">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
-                <i class="fa-solid fa-arrow-left"></i>
-                <span>返回首页</span>
-            </a>
-            <h1 class="text-xl font-bold text-gradient">SHA 哈希工具</h1>
-            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
-                <i class="fa-solid fa-moon" id="themeIcon"></i>
-            </button>
+            <a href="index.html" class="btn btn-outline flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i><span>返回首页</span></a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-shield-halved mr-2"></i>SHA 哈希与文件安全校验中心</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <div class="flex flex-wrap gap-2 mb-5">
-                <button class="btn btn-primary" id="btnCalc"><i class="fa-solid fa-calculator mr-1"></i>计算哈希</button>
-                <button class="btn btn-danger" id="btnClear"><i class="fa-solid fa-eraser mr-1"></i>清空</button>
-            </div>
-
-            <div class="flex flex-col gap-3 mb-5">
-                <label class="text-sub-color">📥 输入原始文本</label>
-                <textarea id="inputText" rows="6" placeholder="在这里输入需要计算SHA哈希的文本"></textarea>
-            </div>
-
-            <div>
-                <label class="block mb-2 text-sub-color">转换结果（点击📋复制该行）</label>
-                <div id="detailPanel" class="sub-panel-bg p-4 rounded-xl text-sm space-y-2">
-                    <div>SHA1：<span id="sha1">-</span>
-                        <i class="fa-solid fa-copy copy-btn-inline" data-val="" title="复制"></i>
-                    </div>
-                    <div>SHA256：<span id="sha256">-</span>
-                        <i class="fa-solid fa-copy copy-btn-inline" data-val="" title="复制"></i>
-                    </div>
-                    <div>SHA512：<span id="sha512">-</span>
-                        <i class="fa-solid fa-copy copy-btn-inline" data-val="" title="复制"></i>
-                    </div>
+    <main class="container mx-auto px-4 py-8 max-w-5xl flex-grow space-y-6">
+        <div class="tool-card p-6 rounded-2xl space-y-6 fade-in">
+            
+            <!-- 模块一：文本计算区 -->
+            <div class="space-y-3">
+                <label class="text-xs font-bold text-[var(--text-sub)]"><i class="fa-solid fa-font text-primary mr-1"></i>输入原始文本计算 SHA</label>
+                <textarea id="inputText" rows="4" class="w-full p-3 rounded-xl text-xs resize-y" placeholder="在这里输入需要计算 SHA 哈希的文本内容..."></textarea>
+                <div class="flex gap-2">
+                    <button class="btn btn-primary" id="btnCalc"><i class="fa-solid fa-calculator mr-1"></i>计算文本 SHA</button>
+                    <button class="btn btn-danger" id="btnClear"><i class="fa-solid fa-eraser mr-1"></i>清空</button>
                 </div>
             </div>
 
-            <!-- 提示信息 -->
-            <div class="mt-4">
-                <label class="block mb-1 text-sub-color">状态信息</label>
-                <div id="msgBox" class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color"></div>
-            </div>
-            <div class="mt-4">
-                <label class="block mb-1 text-sub-color">工具说明</label>
-                <div class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color">
-                    <p>SHA（Secure Hash Algorithm，安全哈希算法），是 NIST 标准化的**单向哈希散列函数家族**，典型：SHA-1、SHA-256、SHA-512（SHA2 系列）。
-特点：**单向不可逆**、固定输出长度、雪崩效应（原文改 1bit，摘要完全大变）, SHA-1 已被攻破，不推荐用于安全场景。</p>
-                    <p>SHA-11 60bit（40 位十六进制）, SHA-256 256bit（64 位十六进制）, SHA-512 512bit（128 位十六进制）</p>
+            <!-- 模块二：独立增强文件上传计算 SHA 区 -->
+            <div class="space-y-3 pt-4 border-t border-[var(--border)]">
+                <label class="text-xs font-bold text-[var(--text-sub)]"><i class="fa-solid fa-cloud-arrow-up text-blue-400 mr-1"></i>本地文件拖拽上传计算 SHA</label>
+                <div id="dropZone" class="drop-zone p-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer bg-[var(--input-bg)]">
+                    <i class="fa-solid fa-file-arrow-up text-3xl text-blue-400 mb-2 animate-bounce"></i>
+                    <p class="text-xs font-bold mb-1">点击选择文件 或 将文件拖拽到此处</p>
+                    <p class="text-[10px] text-[var(--text-sub)]">支持任意本地文件，即时计算 SHA-1 / SHA-256 / SHA-512</p>
+                    <input id="fileInput" type="file" class="hidden">
                 </div>
+            </div>
+
+            <!-- 结果展示面板 -->
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-[var(--text-sub)]">📋 SHA 转换结果（点击图标一键复制）</label>
+                <div class="bg-[var(--card-sub)] p-4 rounded-xl text-xs space-y-2.5 border border-[var(--border)] font-mono">
+                    <div class="flex justify-between items-center"><span class="text-[var(--text-sub)]">SHA-1：</span><span id="sha1" class="text-teal-300 truncate max-w-[320px]">-</span><i class="fa-solid fa-copy copy-btn-inline" data-target="sha1" title="复制"></i></div>
+                    <div class="flex justify-between items-center"><span class="text-[var(--text-sub)]">SHA-256：</span><span id="sha256" class="text-blue-300 truncate max-w-[320px]">-</span><i class="fa-solid fa-copy copy-btn-inline" data-target="sha256" title="复制"></i></div>
+                    <div class="flex justify-between items-center"><span class="text-[var(--text-sub)]">SHA-512：</span><span id="sha512" class="text-purple-300 truncate max-w-[320px]">-</span><i class="fa-solid fa-copy copy-btn-inline" data-target="sha512" title="复制"></i></div>
+                </div>
+            </div>
+
+            <div id="msgBox" class="p-3 rounded-xl bg-[var(--card-sub)] text-xs text-[var(--text-sub)] border border-[var(--border)]">
+                💡 <b>提示</b>：支持文本或拖拽本地文件安全计算 SHA-1、SHA-256、SHA-512 校验指纹。
             </div>
         </div>
     </main>
 
     <footer class="nav-bar-bg border-t py-6 mt-10">
-        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+        <div class="container mx-auto px-4 text-center text-[var(--text-sub)] text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 静态本地网页，不上传用户数据</p>
+            <p class="mt-1">© 2026 开发者工具箱 | SHA 哈希中心</p>
         </div>
     </footer>
 
     <script>
-        // ==========主题==========
-        function initTheme() {
-            const saveTheme = localStorage.getItem("toolTheme") || "dark";
-            document.documentElement.setAttribute("data-theme", saveTheme);
-            updateThemeIcon(saveTheme);
+        function initTheme(){
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function updateThemeIcon(theme) {
-            const icon = document.getElementById("themeIcon");
-            icon.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        document.getElementById("themeToggle").onclick = () => {
+            const c = document.documentElement.getAttribute("data-theme");
+            const n = c === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", n);
+            localStorage.setItem("toolTheme", n);
+            document.getElementById("themeIcon").className = n === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function bindThemeToggle() {
-            const btn = document.getElementById("themeToggle");
-            btn.addEventListener("click", ()=>{
-                const current = document.documentElement.getAttribute("data-theme");
-                const next = current === "dark" ? "light" : "dark";
-                document.documentElement.setAttribute("data-theme", next);
-                localStorage.setItem("toolTheme", next);
-                updateThemeIcon(next);
-            })
-        }
+        initTheme();
 
         const inputDom = document.getElementById('inputText');
         const msgBox = document.getElementById('msgBox');
         const elSha1 = document.getElementById('sha1');
         const elSha256 = document.getElementById('sha256');
         const elSha512 = document.getElementById('sha512');
-        const copyBtns = document.querySelectorAll(".copy-btn-inline");
 
-        let valSha1 = "";
-        let valSha256 = "";
-        let valSha512 = "";
-
-        function setMsg(text, isError = false) {
-            msgBox.innerText = text;
-            msgBox.style.color = isError ? '#f87171' : 'var(--text-sub)';
+        function setMsg(txt, err=false){
+            msgBox.innerHTML = err ? `<span class="text-red-400">${txt}</span>` : `<span class="text-emerald-400">${txt}</span>`;
         }
 
-        function resetDetail(){
+        document.getElementById('btnCalc').onclick = () => {
+            const raw = inputDom.value;
+            if(!raw){ setMsg("⚠️ 请输入待计算的文本！", true); return; }
+            elSha1.innerText = CryptoJS.SHA1(raw).toString();
+            elSha256.innerText = CryptoJS.SHA256(raw).toString();
+            elSha512.innerText = CryptoJS.SHA512(raw).toString();
+            setMsg("✅ 文本 SHA 哈希计算完成");
+        };
+
+        // 独立文件拖拽上传计算 SHA
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        };
+        fileInput.onchange = (e) => { if(e.target.files.length) handleFile(e.target.files[0]); };
+
+        function handleFile(file){
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const buffer = e.target.result;
+                const wordArray = CryptoJS.lib.WordArray.create(buffer);
+                elSha1.innerText = CryptoJS.SHA1(wordArray).toString();
+                elSha256.innerText = CryptoJS.SHA256(wordArray).toString();
+                elSha512.innerText = CryptoJS.SHA512(wordArray).toString();
+                setMsg(`✅ 文件 [${file.name}] SHA 哈希计算完成`);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        document.getElementById('btnClear').onclick = () => {
+            inputDom.value = "";
             elSha1.innerText = "-";
             elSha256.innerText = "-";
             elSha512.innerText = "-";
-            valSha1 = "";
-            valSha256 = "";
-            valSha512 = "";
-            syncCopyBtnData();
-        }
+            setMsg("已清空");
+        };
 
-        function syncCopyBtnData(){
-            const arr = [valSha1, valSha256, valSha512];
-            copyBtns.forEach((btn,idx)=>{
-                btn.setAttribute("data-val", arr[idx] || "");
-            })
-        }
-
-        copyBtns.forEach(btn=>{
-            btn.onclick = async function(){
-                const val = this.getAttribute("data-val");
-                if(!val){
-                    setMsg("暂无内容可复制",true);
-                    return;
-                }
-                try{
+        document.querySelectorAll('.copy-btn-inline').forEach(btn => {
+            btn.onclick = async () => {
+                const targetId = btn.getAttribute('data-target');
+                const val = document.getElementById(targetId).innerText;
+                if(!val || val === "-"){ setMsg("⚠️ 暂无内容可复制！", true); return; }
+                try {
                     await navigator.clipboard.writeText(val);
-                    setMsg(`✅ 已复制：${val}`);
-                }catch(e){
-                    setMsg("❌ 复制失败，请手动复制",true);
+                    setMsg(`✅ 已复制: ${val}`);
+                } catch(e){
+                    setMsg("❌ 复制失败", true);
                 }
-            }
-        })
-
-        function calcSha(){
-            resetDetail();
-            const raw = inputDom.value;
-            if(raw === ""){
-                setMsg("请输入文本",true);
-                return;
-            }
-            valSha1 = CryptoJS.SHA1(raw).toString();
-            valSha256 = CryptoJS.SHA256(raw).toString();
-            valSha512 = CryptoJS.SHA512(raw).toString();
-
-            elSha1.innerText = valSha1;
-            elSha256.innerText = valSha256;
-            elSha512.innerText = valSha512;
-
-            syncCopyBtnData();
-            setMsg("✅ SHA哈希计算完成");
-        }
-
-        function clearAll(){
-            inputDom.value = "";
-            resetDetail();
-            setMsg("");
-        }
-
-        function bindEvents(){
-            document.getElementById('btnCalc').onclick = calcSha;
-            document.getElementById('btnClear').onclick = clearAll;
-        }
-
-        initTheme();
-        bindThemeToggle();
-        bindEvents();
+            };
+        });
     </script>
 </body>
 </html>

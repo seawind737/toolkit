@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cron表达式</title>
+    <title>Cron 表达式生成与解析中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/croner@10.0.1/dist/croner.umd.min.js"></script>
@@ -11,365 +11,487 @@
         tailwind.config = {
             darkMode: ['class', '[data-theme="dark"]'],
             theme: {
-                extend: {
-                    colors: { primary: '#3b82f6' },
-                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
-                }
+                extend: { colors: { primary: '#3b82f6' } }
             }
         }
     </script>
     <style type="text/tailwindcss">
         @layer utilities {
-            .text-gradient {
-                background-clip: text;
-                -webkit-background-clip: text;
-                color: transparent;
-                background-image: linear-gradient(90deg, #60a5fa, #22d3ee);
-            }
-            .btn { @apply px-3 py-2 rounded-lg transition-all duration-200 text-sm; }
-            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
-            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--sub-bg)]; }
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-teal-400 to-cyan-400; }
+            .btn { @apply px-3.5 py-2 rounded-xl transition-all duration-300 text-xs flex items-center justify-center gap-1.5 cursor-pointer font-medium active:scale-95; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80 shadow-lg shadow-blue-500/20; }
+            .btn-danger { @apply bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25; }
+            .btn-success { @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
+            .tab-btn { @apply px-4 py-2 text-xs font-semibold rounded-xl transition-all duration-300 cursor-pointer border border-[var(--border)] bg-[var(--card)]; }
+            .tab-btn.active { @apply bg-primary text-white border-primary shadow-lg shadow-blue-500/20 scale-105; }
         }
-        html[data-theme="dark"] {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --sub-bg: #334155;
-            --border: #475569;
-            --text-main: #e2e8f0;
-            --text-sub: #94a3b8;
-        }
-        html[data-theme="light"] {
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --sub-bg: #e2e8f0;
-            --border: #cbd5e1;
-            --text-main: #1e293b;
-            --text-sub: #64748b;
-        }
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            min-height: 100vh;
-        }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; --input-bg: #020617; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; --input-bg: #f1f5f9; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; transition: background-color 0.35s ease, color 0.35s ease; }
+        body::before { content:""; position:fixed; inset:0; z-index:-1; opacity:0.45; pointer-events:none; background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size:24px 24px; }
         .nav-bar-bg { background-color: var(--card); border-color: var(--border); }
-        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 8px 24px rgba(0,0,0,0.08); }
-        .text-sub-color { color: var(--text-sub); }
-        input,textarea,select {
-            background-color: var(--card);
-            border:1px solid var(--border);
-            color: var(--text-main);
-        }
-        input:focus,textarea:focus,select:focus { outline:none; border-color:#3b82f6; }
-        .tab-active { @apply bg-primary text-white; }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: all 0.3s ease; }
+        textarea, input, select { background-color: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); font-family: Consolas, Menlo, monospace; transition: all 0.25s ease; }
+        textarea:focus, input:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .field-card { background-color: var(--card-sub); border: 1px solid var(--border); transition: all 0.25s ease; }
+        .field-card:hover { border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1); }
     </style>
 </head>
 <body class="flex flex-col">
     <header class="nav-bar-bg sticky top-0 z-10 border-b">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
-                <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
-            </a>
-            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-calendar-clock mr-2"></i>Cron表达式 生成&解析</h1>
-            <button id="themeToggle" class="btn btn-outline" title="切换主题">
-                <i class="fa-solid fa-moon"></i>
-            </button>
+            <a href="index.html" class="btn btn-outline flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i><span>返回首页</span></a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-calendar-check mr-2"></i>Cron 表达式生成与解析中心</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换主题"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
         </div>
     </header>
-    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <!-- Tab切换 -->
-            <div class="flex gap-2 mb-5">
-                <button class="btn tab-btn tab-active" data-tab="build">可视化生成</button>
-                <button class="btn tab-btn btn-outline" data-tab="parse">手动解析</button>
+
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow space-y-6">
+        <div class="tool-card p-6 rounded-2xl space-y-6 fade-in">
+            
+            <!-- 模式 Tabs 切换 -->
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
+                <div class="flex gap-2">
+                    <button class="tab-btn active" id="tabBuild"><i class="fa-solid fa-sliders mr-1.5"></i>可视化配置生成</button>
+                    <button class="tab-btn" id="tabParse"><i class="fa-solid fa-code mr-1.5"></i>手动表达式解析</button>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-[var(--text-sub)]">
+                    <span class="px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-mono">Quartz 格式: 秒 分 时 日 月 周</span>
+                </div>
             </div>
 
-            <!-- 可视化生成面板（支持间隔模式） -->
-            <div id="panel-build">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <!-- 秒 -->
-                    <div>
-                        <label class="block mb-2 font-medium">秒 (0-59)</label>
-                        <div class="flex gap-2 items-center mb-1">
-                            <select class="w-1/2 p-2 rounded cron-mode" data-target="second">
-                                <option value="fixed">指定值</option>
-                                <option value="step">每N秒</option>
+            <!-- 可视化配置生成面板 -->
+            <div id="panelBuild" class="space-y-6 fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    
+                    <!-- 秒 配置 -->
+                    <div class="field-card p-4 rounded-xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-cyan-400"><i class="fa-solid fa-stopwatch mr-1"></i>秒 (Second) [0-59]</span>
+                            <select class="cron-type text-[11px] p-1 rounded bg-[var(--card)]" data-field="second">
+                                <option value="every">每秒 (*)</option>
+                                <option value="step">每隔 N 秒 (*/N)</option>
+                                <option value="fixed" selected>指定值</option>
+                                <option value="range">周期区间 (A-B)</option>
                             </select>
-                            <select id="selSecond" class="w-1/2 p-2 rounded cron-val"></select>
                         </div>
-                        <input type="number" id="stepSecond" class="w-full p-2 rounded hidden cron-step" min="1" max="59" value="30" placeholder="间隔秒数">
+                        <div class="config-box" id="box-second">
+                            <!-- JS 动态填入配置项 -->
+                        </div>
                     </div>
-                    <!-- 分 -->
-                    <div>
-                        <label class="block mb-2 font-medium">分 (0-59)</label>
-                        <div class="flex gap-2 items-center mb-1">
-                            <select class="w-1/2 p-2 rounded cron-mode" data-target="minute">
-                                <option value="fixed">指定值</option>
-                                <option value="step">每N分钟</option>
+
+                    <!-- 分 配置 -->
+                    <div class="field-card p-4 rounded-xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-blue-400"><i class="fa-solid fa-clock-minute mr-1"></i>分 (Minute) [0-59]</span>
+                            <select class="cron-type text-[11px] p-1 rounded bg-[var(--card)]" data-field="minute">
+                                <option value="every">每分 (*)</option>
+                                <option value="step">每隔 N 分 (*/N)</option>
+                                <option value="fixed" selected>指定值</option>
+                                <option value="range">周期区间 (A-B)</option>
                             </select>
-                            <select id="selMinute" class="w-1/2 p-2 rounded cron-val"></select>
                         </div>
-                        <input type="number" id="stepMinute" class="w-full p-2 rounded hidden cron-step" min="1" max="59" value="10" placeholder="间隔分钟">
+                        <div class="config-box" id="box-minute"></div>
                     </div>
-                    <!-- 时 -->
-                    <div>
-                        <label class="block mb-2 font-medium">时 (0-23)</label>
-                        <div class="flex gap-2 items-center mb-1">
-                            <select class="w-1/2 p-2 rounded cron-mode" data-target="hour">
-                                <option value="fixed">指定值</option>
-                                <option value="step">每N小时</option>
+
+                    <!-- 时 配置 -->
+                    <div class="field-card p-4 rounded-xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-indigo-400"><i class="fa-solid fa-clock mr-1"></i>时 (Hour) [0-23]</span>
+                            <select class="cron-type text-[11px] p-1 rounded bg-[var(--card)]" data-field="hour">
+                                <option value="every">每小时 (*)</option>
+                                <option value="step">每隔 N 小时 (*/N)</option>
+                                <option value="fixed" selected>指定值</option>
+                                <option value="range">周期区间 (A-B)</option>
                             </select>
-                            <select id="selHour" class="w-1/2 p-2 rounded cron-val"></select>
                         </div>
-                        <input type="number" id="stepHour" class="w-full p-2 rounded hidden cron-step" min="1" max="23" value="1" placeholder="间隔小时">
+                        <div class="config-box" id="box-hour"></div>
                     </div>
-                    <!-- 日 -->
-                    <div>
-                        <label class="block mb-2 font-medium">日 (1-31)</label>
-                        <select id="selDay" class="w-full p-2 rounded"></select>
+
+                    <!-- 日 配置 -->
+                    <div class="field-card p-4 rounded-xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-emerald-400"><i class="fa-solid fa-calendar-day mr-1"></i>日 (Day of Month) [1-31]</span>
+                            <select class="cron-type text-[11px] p-1 rounded bg-[var(--card)]" data-field="day">
+                                <option value="every">每日 (*)</option>
+                                <option value="unset" selected>不指定 (?)</option>
+                                <option value="step">每隔 N 天 (*/N)</option>
+                                <option value="fixed">指定日</option>
+                            </select>
+                        </div>
+                        <div class="config-box" id="box-day"></div>
                     </div>
-                    <!-- 月 -->
-                    <div>
-                        <label class="block mb-2 font-medium">月 (1-12)</label>
-                        <select id="selMonth" class="w-full p-2 rounded"></select>
+
+                    <!-- 月 配置 -->
+                    <div class="field-card p-4 rounded-xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-amber-400"><i class="fa-solid fa-calendar-months mr-1"></i>月 (Month) [1-12]</span>
+                            <select class="cron-type text-[11px] p-1 rounded bg-[var(--card)]" data-field="month">
+                                <option value="every" selected>每月 (*)</option>
+                                <option value="fixed">指定月</option>
+                                <option value="range">周期区间 (A-B)</option>
+                            </select>
+                        </div>
+                        <div class="config-box" id="box-month"></div>
                     </div>
-                    <!-- 星期 -->
-                    <div>
-                        <label class="block mb-2 font-medium">星期 (1=周日，2=周一…7=周六)</label>
-                        <select id="selWeek" class="w-full p-2 rounded"></select>
+
+                    <!-- 周 配置 -->
+                    <div class="field-card p-4 rounded-xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-purple-400"><i class="fa-solid fa-calendar-week mr-1"></i>周 (Day of Week) [1-7]</span>
+                            <select class="cron-type text-[11px] p-1 rounded bg-[var(--card)]" data-field="week">
+                                <option value="every" selected>每周 (* / ?)</option>
+                                <option value="fixed">指定星期</option>
+                            </select>
+                        </div>
+                        <div class="config-box" id="box-week"></div>
                     </div>
-                </div>
-                <div class="flex gap-2 my-4">
-                    <button id="btnBuild" class="btn btn-primary"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>生成表达式</button>
-                    <button id="btnCopyCron" class="btn btn-outline"><i class="fa-solid fa-copy mr-1"></i>复制表达式</button>
                 </div>
             </div>
 
             <!-- 手动解析面板 -->
-            <div id="panel-parse" class="hidden">
-                <label class="block mb-2 font-medium">输入 Quartz Cron（秒 分 时 日 月 周）</label>
-                <div class="flex gap-2">
-                    <input id="cronInput" class="flex-1 p-2 rounded-lg" placeholder="0 0 9 * * ?" value="0 0 9 * * ?">
-                    <button id="parseBtn" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass mr-1"></i>解析</button>
+            <div id="panelParse" class="hidden space-y-4 fade-in">
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-[var(--text-sub)]">输入 Quartz 6位/标准 5位 Cron 表达式</label>
+                    <div class="flex gap-2">
+                        <input id="cronInput" type="text" class="flex-1 p-3 rounded-xl text-sm font-mono" placeholder="例如: 0 0/10 9-18 * * ?" value="0 0 9 * * ?">
+                        <button id="btnParseExecute" class="btn btn-primary px-6"><i class="fa-solid fa-magnifying-glass mr-1"></i>解析</button>
+                    </div>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
-                    <button class="btn btn-outline preset" data-cron="0 0 9 * * ?">每天09:00</button>
-                    <button class="btn btn-outline preset" data-cron="0 0/10 * * * ?">每10分钟</button>
-                    <button class="btn btn-outline preset" data-cron="0 */30 * * * ?">每30秒</button>
-                    <button class="btn btn-outline preset" data-cron="0 0 */1 * * ?">每1小时</button>
+
+                <!-- 常用业务预设按钮 -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-[var(--text-sub)]">常用场景快速预设</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="btn btn-outline preset-btn" data-cron="*/5 * * * * ?">每 5 秒</button>
+                        <button class="btn btn-outline preset-btn" data-cron="0 */1 * * * ?">每 1 分钟</button>
+                        <button class="btn btn-outline preset-btn" data-cron="0 0/30 * * * ?">每 30 分钟</button>
+                        <button class="btn btn-outline preset-btn" data-cron="0 0 9 * * ?">每天上午 09:00</button>
+                        <button class="btn btn-outline preset-btn" data-cron="0 0 12 ? * 2-6">每周一至周五 12:00</button>
+                        <button class="btn btn-outline preset-btn" data-cron="0 0 0 1 * ?">每月 1 号凌晨 00:00</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- 结果区域（共用） -->
-            <div class="mt-5">
-                <div class="mb-3">
-                    <div class="font-medium mb-1">Cron表达式</div>
-                    <input id="resultExpr" readonly class="w-full p-2 rounded bg-[var(--sub-bg)]">
+            <!-- 表达式结果与多维分析渲染区 (公共) -->
+            <div class="bg-[var(--card-sub)] p-5 rounded-2xl border border-[var(--border)] space-y-4 font-mono">
+                <!-- 生成的表达式结果栏 -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
+                    <div class="space-y-1 w-full sm:w-auto">
+                        <span class="text-[11px] text-[var(--text-sub)] block">生成的 Standard Quartz Cron 表达式</span>
+                        <input id="resultExpr" readonly type="text" class="w-full sm:w-[420px] p-2.5 rounded-xl text-base font-bold text-cyan-300 bg-[var(--input-bg)] border border-[var(--border)]" value="0 0 9 * * ?">
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button id="btnCopyExpr" class="btn btn-success flex-1 sm:flex-none"><i class="fa-solid fa-copy mr-1"></i>复制表达式</button>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <div class="font-medium mb-1">释义</div>
-                    <div id="descBox" class="p-2 rounded-lg bg-[var(--sub-bg)] min-h-[48px] text-sub-color">等待生成/解析</div>
+
+                <!-- 自然语言解读 -->
+                <div class="space-y-1">
+                    <span class="text-[11px] text-[var(--text-sub)]">人类自然语言释义 (Human Readable)</span>
+                    <div id="humanDesc" class="p-3 rounded-xl bg-[var(--input-bg)] text-xs text-emerald-400 border border-[var(--border)] font-sans">
+                        每天在 09:00:00 执行一次
+                    </div>
                 </div>
-                <div>
-                    <div class="font-medium mb-1">未来5次执行时间</div>
-                    <div id="nextList" class="p-2 rounded-lg bg-[var(--sub-bg)] whitespace-pre-line text-sub-color">等待生成/解析</div>
+
+                <!-- 未来 5 次运行预测 -->
+                <div class="space-y-1">
+                    <span class="text-[11px] text-[var(--text-sub)]">未来 5 次预计执行时间点 (基于当前时区)</span>
+                    <div id="nextRunsList" class="p-3 rounded-xl bg-[var(--input-bg)] text-xs text-slate-300 border border-[var(--border)] space-y-1">
+                        <div class="text-[var(--text-sub)]">等待计算中...</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="text-sub-color text-sm mt-4 border-t border-[var(--border)] pt-4">
-                💡 Quartz 6位格式：<b>秒 分 时 日 月 周</b>；日 和 星期 互斥，一个填 * 另一个必须填 ?
+            <!-- 页脚提示 -->
+            <div id="msgBox" class="p-3 rounded-xl bg-[var(--card-sub)] text-xs text-[var(--text-sub)] border border-[var(--border)]">
+                💡 <b>Quartz 规范说明</b>：6 位表达式顺序为 <code>秒 分 时 日 月 周</code>；“日”与“周”互斥，设定其中一方时另一方需设为 <code>?</code>。
             </div>
         </div>
     </main>
-    <footer class="nav-bar-bg border-t py-5 mt-10">
-        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
-            <p>© 2026 Toolkit | Cron工具</p>
+
+    <footer class="nav-bar-bg border-t py-6 mt-10">
+        <div class="container mx-auto px-4 text-center text-[var(--text-sub)] text-sm">
+            <p>悟已往之不谏，知来者之可追</p>
+            <p class="mt-1">© 2026 开发者工具箱 | Cron 调度表达式中心</p>
         </div>
     </footer>
+
     <script>
-        // 主题
+        // 主题设置
         function initTheme(){
             const t = localStorage.getItem("toolTheme") || "dark";
             document.documentElement.setAttribute("data-theme", t);
-            updateThemeIcon(t);
+            document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function updateThemeIcon(theme){
-            const i = document.querySelector("#themeToggle i");
-            i.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
-        }
-        document.getElementById("themeToggle").onclick = ()=>{
-            const curr = document.documentElement.getAttribute("data-theme");
-            const next = curr === "dark" ? "light" : "dark";
-            document.documentElement.setAttribute("data-theme", next);
-            localStorage.setItem("toolTheme", next);
-            updateThemeIcon(next);
+        document.getElementById("themeToggle").onclick = () => {
+            const c = document.documentElement.getAttribute("data-theme");
+            const n = c === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", n);
+            localStorage.setItem("toolTheme", n);
+            document.getElementById("themeIcon").className = n === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
         initTheme();
 
-        // 生成下拉选项
-        function fillSelect(selector, min, max, extra = []) {
-            const el = document.querySelector(selector);
+        // 视图 Mode 切换
+        const tabBuild = document.getElementById('tabBuild');
+        const tabParse = document.getElementById('tabParse');
+        const panelBuild = document.getElementById('panelBuild');
+        const panelParse = document.getElementById('panelParse');
+
+        tabBuild.onclick = () => {
+            tabBuild.classList.add('active');
+            tabParse.classList.remove('active');
+            panelBuild.classList.remove('hidden');
+            panelParse.classList.add('hidden');
+        };
+        tabParse.onclick = () => {
+            tabParse.classList.add('active');
+            tabBuild.classList.remove('active');
+            panelParse.classList.remove('hidden');
+            panelBuild.classList.add('hidden');
+        };
+
+        // 渲染配置子组件选项
+        const fieldConfig = {
+            second: { min: 0, max: 59, def: 0 },
+            minute: { min: 0, max: 59, def: 0 },
+            hour: { min: 0, max: 23, def: 9 },
+            day: { min: 1, max: 31, def: 1 },
+            month: { min: 1, max: 12, def: 1 },
+            week: { min: 1, max: 7, def: 1, names: ['周日(1)','周一(2)','周二(3)','周三(4)','周四(5)','周五(6)','周六(7)'] }
+        };
+
+        function renderFieldBox(field, type) {
+            const container = document.getElementById(`box-${field}`);
+            const cfg = fieldConfig[field];
             let html = "";
-            extra.forEach(item=>{
-                html += `<option value="${item.val}">${item.label}</option>`;
-            })
-            for(let i=min;i<=max;i++){
-                html += `<option value="${i}">${i}</option>`;
-            }
-            el.innerHTML = html;
-        }
-        fillSelect("#selSecond",0,59,[{val:"*",label:"* 每一秒"}]);
-        fillSelect("#selMinute",0,59,[{val:"*",label:"* 每一分钟"}]);
-        fillSelect("#selHour",0,23,[{val:"*",label:"* 每一小时"}]);
-        fillSelect("#selDay",1,31,[{val:"*",label:"* 每日"},{val:"?",label:"? 不指定(配合星期)"}]);
-        fillSelect("#selMonth",1,12,[{val:"*",label:"* 每月"}]);
-        fillSelect("#selWeek",1,7,[{val:"*",label:"* 每周"},{val:"?",label:"? 不指定(配合日期)"}]);
 
-        // 切换【指定值 / 间隔】，切换输入框显示
-        document.querySelectorAll(".cron-mode").forEach(sel=>{
-            sel.onchange = ()=>{
-                const target = sel.dataset.target;
-                const valSel = document.getElementById("sel"+target.charAt(0).toUpperCase()+target.slice(1));
-                const stepInp = document.getElementById("step"+target.charAt(0).toUpperCase()+target.slice(1));
-                if(sel.value === "step"){
-                    valSel.classList.add("hidden");
-                    stepInp.classList.remove("hidden");
-                }else{
-                    valSel.classList.remove("hidden");
-                    stepInp.classList.add("hidden");
+            if (type === 'every') {
+                html = `<div class="text-[11px] text-[var(--text-sub)] py-1">每 ${getFieldLabel(field)} 触发 (* ${field === 'day' || field === 'week' ? '/ ?' : ''})</div>`;
+            } else if (type === 'unset') {
+                html = `<div class="text-[11px] text-[var(--text-sub)] py-1">不指定具体值 (?)</div>`;
+            } else if (type === 'fixed') {
+                html = `<select class="w-full text-xs p-1.5 rounded cron-val-input" data-field="${field}">`;
+                for (let i = cfg.min; i <= cfg.max; i++) {
+                    const label = cfg.names ? cfg.names[i - cfg.min] : `${i}${getFieldUnit(field)}`;
+                    const selected = i === cfg.def ? 'selected' : '';
+                    html += `<option value="${i}" ${selected}>${label}</option>`;
                 }
+                html += `</select>`;
+            } else if (type === 'step') {
+                html = `<div class="flex items-center gap-1.5 text-xs">
+                    <span>每隔</span>
+                    <input type="number" min="1" max="${cfg.max}" value="${field === 'second' || field === 'minute' ? 10 : 1}" class="w-16 p-1 rounded text-center cron-step-input" data-field="${field}">
+                    <span>${getFieldUnit(field)}</span>
+                </div>`;
+            } else if (type === 'range') {
+                html = `<div class="flex items-center gap-1.5 text-xs">
+                    <input type="number" min="${cfg.min}" max="${cfg.max}" value="${cfg.min}" class="w-14 p-1 rounded text-center cron-range-min" data-field="${field}">
+                    <span>至</span>
+                    <input type="number" min="${cfg.min}" max="${cfg.max}" value="${cfg.max}" class="w-14 p-1 rounded text-center cron-range-max" data-field="${field}">
+                    <span>${getFieldUnit(field)}</span>
+                </div>`;
             }
-        })
 
-        // Tab切换
-        const tabBtns = document.querySelectorAll(".tab-btn");
-        tabBtns.forEach(btn=>{
-            btn.onclick = ()=>{
-                tabBtns.forEach(b=>{
-                    b.classList.remove("tab-active");
-                    b.classList.add("btn-outline");
-                });
-                btn.classList.add("tab-active");
-                btn.classList.remove("btn-outline");
-                const tab = btn.dataset.tab;
-                document.getElementById("panel-build").classList.toggle("hidden", tab !== "build");
-                document.getElementById("panel-parse").classList.toggle("hidden", tab !== "parse");
+            container.innerHTML = html;
+            bindInputEvents();
+            buildCronFromUI();
+        }
+
+        function getFieldLabel(f) {
+            const map = { second: '秒', minute: '分', hour: '小时', day: '天', month: '月', week: '周' };
+            return map[f] || '';
+        }
+
+        function getFieldUnit(f) {
+            const map = { second: '秒', minute: '分', hour: '点', day: '号', month: '月', week: '' };
+            return map[f] || '';
+        }
+
+        // 绑定字段 Mode 改变
+        document.querySelectorAll('.cron-type').forEach(select => {
+            select.onchange = (e) => {
+                const field = e.target.dataset.field;
+                const type = e.target.value;
+                
+                // 自动处理 Quartz 日/周 互斥
+                if (field === 'day' && type !== 'unset') {
+                    const weekType = document.querySelector('.cron-type[data-field="week"]');
+                    weekType.value = 'every';
+                    renderFieldBox('week', 'every');
+                } else if (field === 'week' && type !== 'every') {
+                    const dayType = document.querySelector('.cron-type[data-field="day"]');
+                    dayType.value = 'unset';
+                    renderFieldBox('day', 'unset');
+                }
+
+                renderFieldBox(field, type);
+            };
+        });
+
+        function bindInputEvents() {
+            document.querySelectorAll('.cron-val-input, .cron-step-input, .cron-range-min, .cron-range-max').forEach(input => {
+                input.oninput = buildCronFromUI;
+                input.onchange = buildCronFromUI;
+            });
+        }
+
+        // 根据 UI 收集构建 Cron 字符串
+        function buildCronFromUI() {
+            const fields = ['second', 'minute', 'hour', 'day', 'month', 'week'];
+            const res = [];
+
+            fields.forEach(f => {
+                const type = document.querySelector(`.cron-type[data-field="${f}"]`).value;
+                const box = document.getElementById(`box-${f}`);
+
+                if (type === 'every') res.push(f === 'week' ? '?' : '*');
+                else if (type === 'unset') res.push('?');
+                else if (type === 'fixed') {
+                    const val = box.querySelector('.cron-val-input')?.value || '0';
+                    res.push(val);
+                } else if (type === 'step') {
+                    const step = box.querySelector('.cron-step-input')?.value || '1';
+                    res.push(`*/${step}`);
+                } else if (type === 'range') {
+                    const min = box.querySelector('.cron-range-min')?.value || '0';
+                    const max = box.querySelector('.cron-range-max')?.value || '1';
+                    res.push(`${min}-${max}`);
+                }
+            });
+
+            const expr = res.join(' ');
+            document.getElementById('resultExpr').value = expr;
+            parseAndAnalyzeCron(expr);
+        }
+
+        // 初始化组件
+        ['second', 'minute', 'hour', 'day', 'month', 'week'].forEach(f => {
+            const type = document.querySelector(`.cron-type[data-field="${f}"]`).value;
+            renderFieldBox(f, type);
+        });
+
+        // Quartz 星期映射：quartz 1=周日 → croner 0
+        function quartzToCroner(expr) {
+            const parts = expr.trim().split(/\s+/);
+            if (parts.length < 5) return expr;
+
+            // 5位标准 -> 补齐 6位
+            if (parts.length === 5) {
+                parts.unshift("0");
             }
-        })
 
-        const selSecond = document.getElementById("selSecond");
-        const selMinute = document.getElementById("selMinute");
-        const selHour = document.getElementById("selHour");
-        const selDay = document.getElementById("selDay");
-        const selMonth = document.getElementById("selMonth");
-        const selWeek = document.getElementById("selWeek");
-
-        const modeSecond = document.querySelector('.cron-mode[data-target="second"]');
-        const modeMinute = document.querySelector('.cron-mode[data-target="minute"]');
-        const modeHour = document.querySelector('.cron-mode[data-target="hour"]');
-        const stepSecond = document.getElementById("stepSecond");
-        const stepMinute = document.getElementById("stepMinute");
-        const stepHour = document.getElementById("stepHour");
-
-        const cronInput = document.getElementById("cronInput");
-        const resultExpr = document.getElementById("resultExpr");
-        const descBox = document.getElementById("descBox");
-        const nextList = document.getElementById("nextList");
-
-        // Quartz星期映射：quartz 1=周日 → croner 0
-        function quartzToCroner(expr){
-            const parts = expr.split(" ");
             let w = parts[5];
-            if(w !== "*" && w !== "?"){
-                let num = Number(w);
-                parts[5] = String(num - 1);
+            if (w !== "*" && w !== "?") {
+                if (/^\d+$/.test(w)) {
+                    let num = Number(w);
+                    parts[5] = String(num - 1 < 0 ? 6 : num - 1);
+                }
             }
             return parts.join(" ");
         }
-        function getExplain(expr){
-            const p = expr.split(" ");
-            return `秒:${p[0]}, 分:${p[1]}, 时:${p[2]}, 日:${p[3]}, 月:${p[4]}, 星期:${p[5]}`;
-        }
-        function parseAndRender(expr){
-            resultExpr.value = expr;
-            if(typeof Cron === "undefined"){
-                descBox.innerText = "❌ croner 库加载失败，请刷新重试";
-                nextList.innerText = "";
+
+        // 解析与未来预测渲染
+        function parseAndAnalyzeCron(exprStr) {
+            const humanDesc = document.getElementById('humanDesc');
+            const nextRunsList = document.getElementById('nextRunsList');
+
+            if (!exprStr.trim()) {
+                humanDesc.innerText = "请输入有效的 Cron 表达式";
+                nextRunsList.innerHTML = `<div class="text-[var(--text-sub)]">暂无数据</div>`;
                 return;
             }
-            try{
-                const cronExpr = quartzToCroner(expr);
-                const job = new Cron(cronExpr, {timezone: Intl.DateTimeFormat().resolvedOptions().timeZone});
-                descBox.innerText = "✅ 表达式合法 | "+getExplain(expr);
-                const nextArr = [];
-                const next5 = job.nextRuns(5);
-                next5.forEach((d,idx)=>{
-                    nextArr.push(`${idx+1}. ${d.toLocaleString()}`);
-                })
-                nextList.innerText = nextArr.join("\n");
-            }catch(e){
-                descBox.innerText = "❌ 无效：" + e.message;
-                nextList.innerText = "";
+
+            try {
+                const cronerExpr = quartzToCroner(exprStr);
+                const job = new Cron(cronerExpr, { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+
+                humanDesc.innerText = generateHumanText(exprStr);
+
+                const nextRuns = job.nextRuns(5);
+                if (nextRuns.length === 0) {
+                    nextRunsList.innerHTML = `<div class="text-amber-400">⚠️ 表达式合法，但在未来无触发时间点</div>`;
+                    return;
+                }
+
+                let html = "";
+                nextRuns.forEach((d, idx) => {
+                    const localTime = d.toLocaleString('zh-CN', { hour12: false });
+                    html += `<div class="flex items-center gap-2"><span class="text-blue-400 font-bold">第 ${idx + 1} 次:</span><span>${localTime}</span></div>`;
+                });
+                nextRunsList.innerHTML = html;
+
+            } catch (e) {
+                humanDesc.innerText = "❌ 表达式语法错误: " + e.message;
+                nextRunsList.innerHTML = `<div class="text-red-400">无法计算未来时间，请检查表达式格式</div>`;
             }
         }
 
-        // 可视化构建，读取模式生成 */N
-        document.getElementById("btnBuild").onclick = ()=>{
-            let s, m, h;
-            if(modeSecond.value === "step"){
-                s = "*/"+stepSecond.value;
-            }else{
-                s = selSecond.value;
-            }
-            if(modeMinute.value === "step"){
-                m = "*/"+stepMinute.value;
-            }else{
-                m = selMinute.value;
-            }
-            if(modeHour.value === "step"){
-                h = "*/"+stepHour.value;
-            }else{
-                h = selHour.value;
-            }
-            const d = selDay.value;
-            const mon = selMonth.value;
-            const w = selWeek.value;
-            const expr = `${s} ${m} ${h} ${d} ${mon} ${w}`;
-            parseAndRender(expr);
+        // 生成简易自然语言解释
+        function generateHumanText(expr) {
+            const parts = expr.trim().split(/\s+/);
+            if (parts.length < 5) return "标准 Cron 表达式";
+            
+            const [s, m, h, d, mon, w] = parts.length === 6 ? parts : ['0', ...parts];
+            let desc = "";
+
+            if (mon !== '*') desc += `每年 ${mon} 月 `;
+            if (d !== '*' && d !== '?') desc += `每月 ${d} 号 `;
+            if (w !== '*' && w !== '?') desc += `每周 (${w}) `;
+            if (h.includes('*/')) desc += `每隔 ${h.replace('*/','')} 小时 `;
+            else if (h !== '*') desc += `在 ${h} 点 `;
+
+            if (m.includes('*/')) desc += `每 ${m.replace('*/','')} 分钟 `;
+            else if (m !== '*') desc += `${m} 分 `;
+
+            if (s.includes('*/')) desc += `每 ${s.replace('*/','')} 秒 `;
+            else if (s !== '*') desc += `${s} 秒 `;
+
+            return desc ? `规则释义： ${desc}触发` : "规则释义：自定义 Cron 周期";
         }
 
-        // 复制cron
-        document.getElementById("btnCopyCron").onclick = async ()=>{
-            if(!resultExpr.value) return;
-            await navigator.clipboard.writeText(resultExpr.value);
-            alert("已复制Cron表达式");
-        }
+        // 手动解析执行
+        document.getElementById('btnParseExecute').onclick = () => {
+            const val = document.getElementById('cronInput').value.trim();
+            document.getElementById('resultExpr').value = val;
+            parseAndAnalyzeCron(val);
+        };
+        document.getElementById('cronInput').onkeydown = (e) => {
+            if (e.key === 'Enter') document.getElementById('btnParseExecute').click();
+        };
 
-        // 手动解析
-        document.getElementById("parseBtn").onclick = ()=>{
-            const expr = cronInput.value.trim();
-            parseAndRender(expr);
-        }
-        cronInput.onkeydown = e=>{if(e.key==='Enter') parseAndRender()};
+        // 预设点击
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.onclick = () => {
+                const cron = btn.dataset.cron;
+                document.getElementById('cronInput').value = cron;
+                document.getElementById('resultExpr').value = cron;
+                parseAndAnalyzeCron(cron);
+            };
+        });
 
-        // 预设按钮
-        document.querySelectorAll(".preset").forEach(btn=>{
-            btn.onclick = ()=>{
-                cronInput.value = btn.dataset.cron;
-                parseAndRender(btn.dataset.cron);
+        // 复制表达式
+        document.getElementById('btnCopyExpr').onclick = async () => {
+            const expr = document.getElementById('resultExpr').value;
+            if (!expr) return;
+            try {
+                await navigator.clipboard.writeText(expr);
+                const btn = document.getElementById('btnCopyExpr');
+                const oldText = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400 mr-1"></i>已复制`;
+                setTimeout(() => btn.innerHTML = oldText, 1500);
+            } catch (e) {
+                alert("复制失败");
             }
-        })
+        };
 
-        // 默认：指定值 0 0 9 * * ?
-        modeSecond.value="fixed";
-        modeMinute.value="fixed";
-        modeHour.value="fixed";
-        selSecond.value="0";
-        selMinute.value="0";
-        selHour.value="9";
-        selDay.value="*";
-        selMonth.value="*";
-        selWeek.value="?";
-        parseAndRender("0 0 9 * * ?");
+        // 初始首次解析
+        buildCronFromUI();
     </script>
 </body>
 </html>

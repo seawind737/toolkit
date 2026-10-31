@@ -3,156 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>时间戳转换工具</title>
+    <title>高级时间戳转换与文件时间中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
             darkMode: ['class', '[data-theme="dark"]'],
             theme: {
-                extend: {
-                    colors: {
-                        primary: '#3b82f6',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                }
+                extend: { colors: { primary: '#3b82f6' } }
             }
         }
     </script>
     <style type="text/tailwindcss">
         @layer utilities {
-            .card-hover {
-                @apply transition-all duration-300 hover:shadow-xl;
-            }
-            .text-gradient {
-                @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400;
-            }
-            .btn {
-                @apply px-4 py-2 rounded-lg transition-all duration-200;
-            }
-            .btn-primary {
-                @apply bg-primary text-white hover:bg-primary/80;
-            }
-            .btn-danger {
-                @apply bg-red-500 text-white hover:bg-red-500/80;
-            }
-            .btn-success {
-                @apply bg-emerald-500 text-white hover:bg-emerald-500/80;
-            }
-            .btn-purple {
-                @apply bg-purple-500 text-white hover:bg-purple-500/80;
-            }
-            .btn-gray {
-                @apply bg-gray-600 text-white hover:bg-gray-600/80;
-            }
-            .btn-outline {
-                @apply border border-[var(--border)] hover:bg-[var(--card-sub)];
-            }
+            .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-teal-400 to-cyan-400; }
+            .btn { @apply px-3.5 py-2 rounded-xl transition-all duration-300 text-xs flex items-center justify-center gap-1.5 cursor-pointer font-medium active:scale-95; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80 shadow-lg shadow-blue-500/20; }
+            .btn-danger { @apply bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25; }
+            .btn-success { @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30; }
+            .btn-purple { @apply bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30; }
+            .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
         }
+        html[data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --card-sub: #334155; --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8; --input-bg: #020617; }
+        html[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --card-sub: #e2e8f0; --border: #cbd5e1; --text-main: #111827; --text-sub: #64748b; --input-bg: #f1f5f9; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; transition: background-color 0.35s ease, color 0.35s ease; }
+        body::before { content:""; position:fixed; inset:0; z-index:-1; opacity:0.45; pointer-events:none; background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size:24px 24px; }
+        .nav-bar-bg { background-color: var(--card); border-color: var(--border); }
+        .tool-card { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: all 0.3s ease; }
+        textarea, input, select { background-color: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); font-family: Consolas, Menlo, monospace; transition: all 0.25s ease; }
+        textarea:focus, input:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
 
-        html[data-theme="dark"] {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --card-sub: #334155;
-            --border: #475569;
-            --text-main: #e2e8f0;
-            --text-sub: #94a3b8;
-            --card-glow: rgba(59,130,246,0.08);
-        }
-        html[data-theme="light"] {
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --card-sub: #e2e8f0;
-            --border: #cbd5e1;
-            --text-main: #111827;
-            --text-sub: #64748b;
-            --card-glow: rgba(59,130,246,0.06);
-        }
+        /* 拖拽上传区域精细动效 */
+        .drop-zone { border: 2px dashed var(--border); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.06); transform: scale(1.008); box-shadow: 0 0 20px rgba(59, 130, 246, 0.15); }
+        .copy-btn-inline { cursor: pointer; opacity: 0.65; transition: all 0.2s; }
+        .copy-btn-inline:hover { opacity: 1; color: #3b82f6; transform: scale(1.15); }
 
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            transition: background-color 0.35s ease, color 0.35s ease;
-            min-height: 100vh;
-        }
-        body::before{
-            content:"";
-            position:fixed;
-            inset:0;
-            z-index:-1;
-            opacity:0.45;
-            pointer-events:none;
-            transition:background-image 0.35s ease;
-        }
-        html[data-theme="dark"] body::before{
-            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size:24px 24px;
-        }
-        html[data-theme="light"] body::before{
-            background-image: linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
-            background-size:28px 28px;
-        }
-
-        .nav-bar-bg {
-            background-color: var(--card);
-            border-color: var(--border);
-            transition: background-color 0.35s ease, border-color 0.35s ease;
-        }
-        .tool-card{
-            background-color: var(--card);
-            border:1px solid var(--border);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
-        }
-        .tool-card:hover{
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 0 14px var(--card-glow);
-        }
-        .sub-panel-bg {
-            background-color: var(--card-sub);
-        }
-        .text-sub-color {
-            color: var(--text-sub);
-        }
-        textarea,input,select{
-            background-color: var(--card);
-            border:1px solid var(--border);
-            color:var(--text-main);
-            font-family: Consolas,Menlo,monospace;
-        }
-        textarea:focus,input:focus,select:focus{
-            outline:none;
-            border-color:#3b82f6;
-        }
-        .copy-btn-inline{
-            cursor:pointer;
-            opacity:0.65;
-            margin-left:8px;
-        }
-        .copy-btn-inline:hover{
-            opacity:1;
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
 </head>
 <body class="flex flex-col">
     <header class="nav-bar-bg sticky top-0 z-10 border-b">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
-                <i class="fa-solid fa-arrow-left"></i>
-                <span>返回首页</span>
-            </a>
-            <h1 class="text-xl font-bold text-gradient">时间戳转换工具</h1>
-            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
-                <i class="fa-solid fa-moon" id="themeIcon"></i>
-            </button>
+            <a href="index.html" class="btn btn-outline flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i><span>返回首页</span></a>
+            <h1 class="text-xl font-bold text-gradient"><i class="fa-solid fa-clock mr-2"></i>高级时间戳转换与文件时间中心</h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <div class="flex flex-wrap gap-2 mb-5">
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow space-y-6">
+        <div class="tool-card p-6 rounded-2xl space-y-6 fade-in">
+            
+            <!-- 操作按钮组 -->
+            <div class="flex flex-wrap gap-2">
                 <button class="btn btn-purple" id="btnNowTs"><i class="fa-solid fa-clock mr-1"></i>获取当前时间戳</button>
                 <button class="btn btn-purple" id="btnNowStr"><i class="fa-solid fa-calendar-days mr-1"></i>获取当前时间字符串</button>
                 <button class="btn btn-primary" id="btnTsToTime"><i class="fa-solid fa-arrow-right mr-1"></i>时间戳 → 时间</button>
@@ -160,85 +64,85 @@
                 <button class="btn btn-danger" id="btnClear"><i class="fa-solid fa-eraser mr-1"></i>清空</button>
             </div>
 
+            <!-- 输入与时区选择双栏 -->
             <div class="grid md:grid-cols-2 gap-5">
-                <div class="flex flex-col gap-3">
-                    <label class="text-sub-color">📥 输入（时间戳 / 时间字符串）</label>
-                    <input id="inputVal" placeholder="10位秒 /13位毫秒 或 yyyy‑MM‑dd HH:mm:ss" />
-                    <div class="text-sub-color text-sm">示例：1720000000 | 1720000000000 | 2026‑10‑26 12:00:00</div>
+                <div class="flex flex-col space-y-2">
+                    <label class="text-xs font-bold text-[var(--text-sub)]">📥 输入（时间戳 / 时间字符串）</label>
+                    <input id="inputVal" class="p-2.5 rounded-xl text-xs" placeholder="10位秒 / 13位毫秒 或 yyyy-MM-dd HH:mm:ss" />
+                    <span class="text-[11px] text-[var(--text-sub)]">示例：1777000000 | 2026-10-31 21:22:00</span>
                 </div>
-                <div class="flex flex-col gap-3">
-                    <label class="text-sub-color">🌍 目标时区</label>
-                    <select id="timezoneSelect">
+                <div class="flex flex-col space-y-2">
+                    <label class="text-xs font-bold text-[var(--text-sub)]">🌍 目标时区</label>
+                    <select id="timezoneSelect" class="p-2.5 rounded-xl text-xs">
                         <option value="Asia/Shanghai">Asia/Shanghai (上海 UTC+8)</option>
                         <option value="UTC">UTC (零时区)</option>
-                        <option value="America/New_York">America/New_York (纽约 UTC‑4/‑5)</option>
+                        <option value="America/New_York">America/New_York (纽约 UTC-4/-5)</option>
                         <option value="Europe/London">Europe/London (伦敦 UTC+0/+1)</option>
                         <option value="Asia/Tokyo">Asia/Tokyo (东京 UTC+9)</option>
                         <option value="Asia/Singapore">Asia/Singapore (新加坡 UTC+8)</option>
                         <option value="Europe/Paris">Europe/Paris (巴黎 UTC+1/+2)</option>
-                        <option value="America/Los_Angeles">America/Los_Angeles (洛杉矶 UTC‑7/‑8)</option>
+                        <option value="America/Los_Angeles">America/Los_Angeles (洛杉矶 UTC-7/-8)</option>
                     </select>
-                    <div class="text-sub-color text-sm">切换时区后，请重新点击转换按钮</div>
+                    <span class="text-[11px] text-[var(--text-sub)]">切换时区后可重新点击转换按钮刷新</span>
                 </div>
             </div>
 
-            <div class="mt-5">
-                <label class="block mb-2 text-sub-color">转换结果详情（点击📋复制该行）</label>
-                <div id="detailPanel" class="sub-panel-bg p-4 rounded-xl text-sm space-y-2">
-                    <div>秒级时间戳：<span id="secTs">-</span>
-                        <i class="fa-solid fa-copy copy-btn-inline" data-val="" title="复制"></i>
-                    </div>
-                    <div>毫秒级时间戳：<span id="msTs">-</span>
-                        <i class="fa-solid fa-copy copy-btn-inline" data-val="" title="复制"></i>
-                    </div>
-                    <div>本地系统时间：<span id="localTime">-</span>
-                        <i class="fa-solid fa-copy copy-btn-inline" data-val="" title="复制"></i>
-                    </div>
-                    <div>UTC时间：<span id="utcTime">-</span>
-                        <i class="fa-solid fa-copy copy-btn-inline" data-val="" title="复制"></i>
-                    </div>
-                    <div>目标时区时间：<span id="tzTime">-</span>
-                        <i class="fa-solid fa-copy copy-btn-inline" data-val="" title="复制"></i>
-                    </div>
+            <!-- 独立增强：文件拖拽上传获取文件修改时间戳 -->
+            <div class="space-y-3 pt-2">
+                <label class="text-xs font-bold text-[var(--text-sub)] flex items-center gap-1.5">
+                    <i class="fa-solid fa-cloud-arrow-up text-blue-400"></i>本地文件拖拽上传（自动提取修改时间戳）
+                </label>
+                <div id="dropZone" class="drop-zone p-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer bg-[var(--input-bg)]">
+                    <i class="fa-solid fa-file-circle-check text-3xl text-blue-400 mb-2 animate-bounce"></i>
+                    <p class="text-xs font-bold mb-1">点击选择本地文件 或 将文件拖拽到此处</p>
+                    <p class="text-[10px] text-[var(--text-sub)]">自动读取文件最后修改时间 (Last Modified) 并换算为时间戳</p>
+                    <input id="fileInput" type="file" class="hidden">
                 </div>
             </div>
 
-            <!-- 提示信息 -->
-            <div class="mt-4">
-                <label class="block mb-1 text-sub-color">状态信息</label>
-                <div id="msgBox" class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color"></div>
+            <!-- 转换结果详情面板 -->
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <label class="text-xs font-bold text-[var(--text-sub)]">📋 转换结果详情（点击图标一键复制）</label>
+                    <button id="btnExportJson" class="btn btn-outline text-[10px] py-1 px-2.5 hidden"><i class="fa-solid fa-file-export mr-1"></i>导出报告 JSON</button>
+                </div>
+                <div class="bg-[var(--card-sub)] p-4 rounded-xl text-xs space-y-2.5 border border-[var(--border)] font-mono">
+                    <div class="flex justify-between items-center"><span class="text-[var(--text-sub)]">秒级时间戳 (Seconds)：</span><span id="secTs" class="text-cyan-300">-</span><i class="fa-solid fa-copy copy-btn-inline" data-target="secTs" title="复制"></i></div>
+                    <div class="flex justify-between items-center"><span class="text-[var(--text-sub)]">毫秒级时间戳 (Milliseconds)：</span><span id="msTs" class="text-cyan-300">-</span><i class="fa-solid fa-copy copy-btn-inline" data-target="msTs" title="复制"></i></div>
+                    <div class="flex justify-between items-center"><span class="text-[var(--text-sub)]">本地系统时间 (Local)：</span><span id="localTime" class="text-emerald-300">-</span><i class="fa-solid fa-copy copy-btn-inline" data-target="localTime" title="复制"></i></div>
+                    <div class="flex justify-between items-center"><span class="text-[var(--text-sub)]">UTC 世界协调时：</span><span id="utcTime" class="text-amber-300">-</span><i class="fa-solid fa-copy copy-btn-inline" data-target="utcTime" title="复制"></i></div>
+                    <div class="flex justify-between items-center"><span class="text-[var(--text-sub)]">目标时区时间 (Timezone)：</span><span id="tzTime" class="text-purple-300">-</span><i class="fa-solid fa-copy copy-btn-inline" data-target="tzTime" title="复制"></i></div>
+                </div>
+            </div>
+
+            <!-- 状态信息提示框 -->
+            <div id="msgBox" class="p-3 rounded-xl bg-[var(--card-sub)] text-xs text-[var(--text-sub)] border border-[var(--border)]">
+                💡 <b>提示</b>：支持时间戳互转、全球多时区适配及本地文件拖拽上传获取修改时间戳。
             </div>
         </div>
     </main>
 
     <footer class="nav-bar-bg border-t py-6 mt-10">
-        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+        <div class="container mx-auto px-4 text-center text-[var(--text-sub)] text-sm">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 静态本地网页，不上传用户数据</p>
+            <p class="mt-1">© 2026 开发者工具箱 | 时间戳转换中心</p>
         </div>
     </footer>
 
     <script>
-        // ==========主题==========
-        function initTheme() {
-            const saveTheme = localStorage.getItem("toolTheme") || "dark";
-            document.documentElement.setAttribute("data-theme", saveTheme);
-            updateThemeIcon(saveTheme);
+        function initTheme(){
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function updateThemeIcon(theme) {
-            const icon = document.getElementById("themeIcon");
-            icon.className = theme === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+        document.getElementById("themeToggle").onclick = () => {
+            const c = document.documentElement.getAttribute("data-theme");
+            const n = c === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", n);
+            localStorage.setItem("toolTheme", n);
+            document.getElementById("themeIcon").className = n === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        function bindThemeToggle() {
-            const btn = document.getElementById("themeToggle");
-            btn.addEventListener("click", ()=>{
-                const current = document.documentElement.getAttribute("data-theme");
-                const next = current === "dark" ? "light" : "dark";
-                document.documentElement.setAttribute("data-theme", next);
-                localStorage.setItem("toolTheme", next);
-                updateThemeIcon(next);
-            })
-        }
+        initTheme();
 
         const inputDom = document.getElementById('inputVal');
         const msgBox = document.getElementById('msgBox');
@@ -248,56 +152,13 @@
         const utcTimeEl = document.getElementById('utcTime');
         const tzTimeEl = document.getElementById('tzTime');
         const timezoneSelect = document.getElementById('timezoneSelect');
-        const copyBtns = document.querySelectorAll(".copy-btn-inline");
+        const btnExportJson = document.getElementById('btnExportJson');
 
-        let lastSecTs = "";
-        let lastMsTs = "";
-        let lastLocal = "";
-        let lastUtc = "";
-        let lastTz = "";
+        let lastResultData = null;
 
-        function setMsg(text, isError = false) {
-            msgBox.innerText = text;
-            msgBox.style.color = isError ? '#f87171' : 'var(--text-sub)';
+        function setMsg(txt, err=false){
+            msgBox.innerHTML = err ? `<span class="text-red-400">${txt}</span>` : `<span class="text-emerald-400">${txt}</span>`;
         }
-
-        function resetDetail(){
-            secTsEl.innerText = "-";
-            msTsEl.innerText = "-";
-            localTimeEl.innerText = "-";
-            utcTimeEl.innerText = "-";
-            tzTimeEl.innerText = "-";
-            lastSecTs = "";
-            lastMsTs = "";
-            lastLocal = "";
-            lastUtc = "";
-            lastTz = "";
-            syncCopyBtnData();
-        }
-
-        function syncCopyBtnData(){
-            const arr = [lastSecTs, lastMsTs, lastLocal, lastUtc, lastTz];
-            copyBtns.forEach((btn,idx)=>{
-                btn.setAttribute("data-val", arr[idx] || "");
-            })
-        }
-
-        // 复制行按钮
-        copyBtns.forEach(btn=>{
-            btn.onclick = async function(){
-                const val = this.getAttribute("data-val");
-                if(!val){
-                    setMsg("暂无内容可复制",true);
-                    return;
-                }
-                try{
-                    await navigator.clipboard.writeText(val);
-                    setMsg(`✅ 已复制：${val}`);
-                }catch(e){
-                    setMsg("❌ 复制失败，请手动复制",true);
-                }
-            }
-        })
 
         function formatDate(d){
             const year = d.getFullYear();
@@ -319,130 +180,135 @@
             return `${year}-${mon}-${day} ${h}:${m}:${s} UTC`;
         }
 
-        //【修复】每次调用重新创建Intl实例，读取当前下拉的时区
         function formatTimezoneDate(timestampMs, tzName){
             const opt = {
                 timeZone: tzName,
-                year:'numeric',month:'2-digit',day:'2-digit',
-                hour:'2-digit',minute:'2-digit',second:'2-digit',
+                year:'numeric', month:'2-digit', day:'2-digit',
+                hour:'2-digit', minute:'2-digit', second:'2-digit',
                 hour12:false
             };
-            return new Intl.DateTimeFormat('zh‑CN', opt).format(new Date(timestampMs));
+            return new Intl.DateTimeFormat('zh-CN', opt).format(new Date(timestampMs));
         }
 
-        // 获取当前时间戳（仅填入秒级时间戳）
-        function getNowTs(){
-            const now = Date.now();
-            const sec = Math.floor(now / 1000);
-            inputDom.value = String(sec);
-            resetDetail();
-            setMsg("✅ 已填入当前时间戳");
-        }
-        // 获取当前时间字符串（仅填入本地时间字符串）
-        function getNowStr(){
-            const d = new Date();
-            inputDom.value = formatDate(d);
-            resetDetail();
-            setMsg("✅ 已填入当前时间字符串");
-        }
-
-        // 时间戳转时间（自动识别10位秒 /13位毫秒）
-        function tsToTime(){
-            resetDetail();
-            const raw = inputDom.value.trim();
-            if(!raw){
-                setMsg("请输入时间戳",true);
-                return;
-            }
-            const numStr = raw.split("|")[0].trim();
-            let num = Number(numStr);
-            if(isNaN(num)){
-                setMsg("不是合法数字时间戳",true);
-                return;
-            }
-            let ms;
-            if(numStr.length === 10){
-                ms = num * 1000;
-            }else if(numStr.length ===13){
-                ms = num;
-            }else{
-                setMsg("仅支持10位秒 /13位毫秒时间戳",true);
-                return;
-            }
+        function displayResults(ms){
             const d = new Date(ms);
-            if(isNaN(d.getTime())){
-                setMsg("时间戳非法",true);
-                return;
-            }
-            const sec = Math.floor(ms /1000);
+            if(isNaN(d.getTime())){ setMsg("❌ 时间数值非法", true); return; }
+
+            const sec = Math.floor(ms / 1000);
             const tz = timezoneSelect.value;
+            const localStr = formatDate(d);
+            const utcStr = formatUtcDate(d);
+            const tzStr = formatTimezoneDate(ms, tz) + ` (${tz})`;
 
             secTsEl.innerText = sec;
             msTsEl.innerText = ms;
-            localTimeEl.innerText = formatDate(d);
-            utcTimeEl.innerText = formatUtcDate(d);
-            const tzFormatted = formatTimezoneDate(ms, tz);
-            tzTimeEl.innerText = `${tzFormatted} (${tz})`;
+            localTimeEl.innerText = localStr;
+            utcTimeEl.innerText = utcStr;
+            tzTimeEl.innerText = tzStr;
 
-            lastSecTs = String(sec);
-            lastMsTs = String(ms);
-            lastLocal = formatDate(d);
-            lastUtc = formatUtcDate(d);
-            lastTz = tzFormatted;
-            syncCopyBtnData();
-            setMsg("✅ 时间戳解析完成");
+            lastResultData = {
+                seconds: sec,
+                milliseconds: ms,
+                localTime: localStr,
+                utcTime: utcStr,
+                timezone: tz,
+                timezoneTime: tzStr
+            };
+            btnExportJson.classList.remove('hidden');
         }
 
-        // 时间字符串转时间戳
-        function timeToTs(){
-            resetDetail();
+        document.getElementById('btnNowTs').onclick = () => {
+            const now = Date.now();
+            inputDom.value = String(Math.floor(now / 1000));
+            displayResults(now);
+            setMsg("✅ 已获取当前系统时间戳");
+        };
+
+        document.getElementById('btnNowStr').onclick = () => {
+            const now = Date.now();
+            inputDom.value = formatDate(new Date(now));
+            displayResults(now);
+            setMsg("✅ 已获取当前系统时间字符串");
+        };
+
+        document.getElementById('btnTsToTime').onclick = () => {
             const raw = inputDom.value.trim();
-            if(!raw){
-                setMsg("请输入时间字符串",true);
-                return;
-            }
+            if(!raw){ setMsg("⚠️ 请输入时间戳！", true); return; }
+            let num = Number(raw);
+            if(isNaN(num)){ setMsg("⚠️ 输入的不是有效数字！", true); return; }
+            let ms = raw.length === 10 ? num * 1000 : num;
+            displayResults(ms);
+            setMsg("✅ 时间戳解析成功");
+        };
+
+        document.getElementById('btnTimeToTs').onclick = () => {
+            const raw = inputDom.value.trim();
+            if(!raw){ setMsg("⚠️ 请输入时间字符串！", true); return; }
             const d = new Date(raw);
-            if(isNaN(d.getTime())){
-                setMsg("❌ 时间解析失败，请使用 yyyy‑MM‑dd HH:mm:ss",true);
-                return;
-            }
-            const ms = d.getTime();
-            const sec = Math.floor(ms /1000);
-            const tz = timezoneSelect.value;
+            if(isNaN(d.getTime())){ setMsg("❌ 时间格式错误，请使用 yyyy-MM-dd HH:mm:ss", true); return; }
+            displayResults(d.getTime());
+            setMsg("✅ 时间转时间戳成功");
+        };
 
-            secTsEl.innerText = sec;
-            msTsEl.innerText = ms;
-            localTimeEl.innerText = formatDate(d);
-            utcTimeEl.innerText = formatUtcDate(d);
-            const tzFormatted = formatTimezoneDate(ms, tz);
-            tzTimeEl.innerText = `${tzFormatted} (${tz})`;
+        // 独立文件拖拽上传获取修改时间戳
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
 
-            lastSecTs = String(sec);
-            lastMsTs = String(ms);
-            lastLocal = formatDate(d);
-            lastUtc = formatUtcDate(d);
-            lastTz = tzFormatted;
-            syncCopyBtnData();
-            setMsg("✅ 时间转时间戳完成");
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        };
+        fileInput.onchange = (e) => { if(e.target.files.length) handleFile(e.target.files[0]); };
+
+        function handleFile(file){
+            const modTime = file.lastModified; // 毫秒级时间戳
+            inputDom.value = String(Math.floor(modTime / 1000));
+            displayResults(modTime);
+            setMsg(`✅ 成功提取文件 [${file.name}] 修改时间戳`);
         }
 
-        function clearAll(){
+        document.getElementById('btnClear').onclick = () => {
             inputDom.value = "";
-            resetDetail();
-            setMsg("");
-        }
+            secTsEl.innerText = "-";
+            msTsEl.innerText = "-";
+            localTimeEl.innerText = "-";
+            utcTimeEl.innerText = "-";
+            tzTimeEl.innerText = "-";
+            lastResultData = null;
+            btnExportJson.classList.add('hidden');
+            setMsg("已清空");
+        };
 
-        function bindEvents(){
-            document.getElementById('btnNowTs').onclick = getNowTs;
-            document.getElementById('btnNowStr').onclick = getNowStr;
-            document.getElementById('btnTsToTime').onclick = tsToTime;
-            document.getElementById('btnTimeToTs').onclick = timeToTs;
-            document.getElementById('btnClear').onclick = clearAll;
-        }
+        btnExportJson.onclick = () => {
+            if(!lastResultData) return;
+            const jsonStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(lastResultData, null, 2));
+            const a = document.createElement('a');
+            a.href = jsonStr;
+            a.download = `timestamp_report_${lastResultData.seconds}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setMsg("✅ 时间报告 JSON 已成功导出");
+        };
 
-        initTheme();
-        bindThemeToggle();
-        bindEvents();
+        // 行内复制
+        document.querySelectorAll('.copy-btn-inline').forEach(btn => {
+            btn.onclick = async () => {
+                const targetId = btn.getAttribute('data-target');
+                const val = document.getElementById(targetId).innerText;
+                if(!val || val === "-"){ setMsg("⚠️ 暂无内容可复制！", true); return; }
+                try {
+                    await navigator.clipboard.writeText(val);
+                    setMsg(`✅ 已复制: ${val}`);
+                } catch(e){
+                    setMsg("❌ 复制失败", true);
+                }
+            };
+        });
     </script>
 </body>
 </html>

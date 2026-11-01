@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>二维码生成解析</title>
+    <title>二维码生成 & 解析工具</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- qrcode生成库 -->
@@ -24,19 +24,20 @@
     <style type="text/tailwindcss">
         @layer utilities {
             .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400; }
-            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200; }
-            .btn-primary { @apply bg-primary text-white hover:bg-primary/80; }
-            .btn-danger { @apply bg-red-500 text-white hover:bg-red-500/80; }
+            .btn { @apply px-4 py-2 rounded-lg transition-all duration-200 font-medium inline-flex items-center justify-center gap-2 cursor-pointer select-none; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primary/80 active:scale-[0.98]; }
+            .btn-secondary { @apply bg-cyan-600 text-white hover:bg-cyan-600/80 active:scale-[0.98]; }
+            .btn-danger { @apply bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white; }
             .btn-outline { @apply border border-[var(--border)] hover:bg-[var(--card-sub)]; }
-            .drop-area { @apply border-2 border-dashed border-[var(--border)] rounded-lg p-6 text-center transition-colors; }
-            .drop-area.active { @apply border-primary bg-primary/5; }
+            .drop-area { @apply border-2 border-dashed border-[var(--border)] rounded-xl p-6 text-center transition-all cursor-pointer relative overflow-hidden hover:border-primary; }
+            .drop-area.active { @apply border-primary ring-2 ring-primary/20; }
         }
         html[data-theme="dark"] {
             --bg: #0f172a;--card: #1e293b;--card-sub: #334155;--border: #475569;
             --text-main: #e2e8f0;--text-sub: #94a3b8;
         }
         html[data-theme="light"] {
-            --bg: #f8fafc;--card: #ffffff;--card-sub: #e2e8f0;--border: #cbd5e1;
+            --bg: #f8fafc;--card: #ffffff;--card-sub: #f1f5f9;--border: #cbd5e1;
             --text-main: #111827;--text-sub: #64748b;
         }
         body {
@@ -54,166 +55,308 @@
             background-size:28px 28px;
         }
         .nav-bar-bg { background-color: var(--card); border-color: var(--border); transition: 0.35s; }
-        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .tool-card { background-color: var(--card); border:1px solid var(--border); box-shadow:0 4px 20px rgba(0,0,0,0.08); }
         .sub-panel-bg { background-color: var(--card-sub); }
         .text-sub-color { color: var(--text-sub); }
-        textarea,input,select {
-            background-color: var(--card); border:1px solid var(--border); color:var(--text-main);
-            font-family: Consolas,Menlo,monospace;
+        textarea, input[type="text"], input[type="number"], select {
+            background-color: var(--card-sub); border:1px solid var(--border); color:var(--text-main);
+            font-family: Consolas,Menlo,monospace; border-radius: 0.5rem; padding: 0.5rem 0.75rem;
         }
-        textarea:focus,input:focus,select:focus { outline:none; border-color:#3b82f6; }
-        .copy-btn-inline { cursor:pointer; opacity:0.65; margin-left:8px; }
-        .copy-btn-inline:hover { opacity:1; }
+        textarea:focus, input:focus, select:focus { outline:none; border-color:#3b82f6; }
+        input[type="color"] {
+            background-color: transparent; border: 1px solid var(--border); cursor: pointer; border-radius: 0.5rem; padding: 2px;
+        }
     </style>
 </head>
 <body class="flex flex-col">
-    <header class="nav-bar-bg sticky top-0 z-10 border-b">
+    <!-- 头部导航 -->
+    <header class="nav-bar-bg sticky top-0 z-10 border-b backdrop-blur-md bg-opacity-80">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+            <a href="/toolkit/index.html" class="btn btn-outline text-sm">
                 <i class="fa-solid fa-arrow-left"></i><span>返回首页</span>
             </a>
-            <h1 class="text-xl font-bold text-gradient">二维码生成 & 解析</h1>
-            <button id="themeToggle" class="btn btn-outline" title="切换深浅主题">
+            <h1 class="text-xl font-bold text-gradient flex items-center gap-2">
+                <i class="fa-solid fa-qrcode text-primary"></i>二维码生成 & 解析
+            </h1>
+            <button id="themeToggle" class="btn btn-outline" title="切换主题">
                 <i class="fa-solid fa-moon" id="themeIcon"></i>
             </button>
         </div>
     </header>
+
+    <!-- 主体区域 -->
     <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
-        <div class="tool-card p-6 rounded-xl">
-            <!-- Tab切换：生成 / 解析 -->
-            <div class="flex gap-3 mb-6">
-                <button id="tabGen" class="btn btn-primary">生成二维码</button>
-                <button id="tabDecode" class="btn btn-outline">解析二维码</button>
+        <div class="tool-card p-6 md:p-8 rounded-2xl">
+            <!-- 模式切换标签 -->
+            <div class="flex border-b border-[var(--border)] mb-8 gap-2">
+                <button id="tabGen" class="px-6 py-3 font-semibold border-b-2 border-primary text-primary transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>生成二维码
+                </button>
+                <button id="tabDecode" class="px-6 py-3 font-semibold border-b-2 border-transparent text-sub-color hover:text-primary transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-expand"></i>解析二维码
+                </button>
             </div>
 
-            <!-- 生成面板 -->
+            <!-- ================= 生成二维码面板 ================= -->
             <div id="panelGen">
-                <div class="grid md:grid-cols-2 gap-6">
-                    <div class="flex flex-col gap-4">
-                        <label class="text-sub-color">二维码内容</label>
-                        <textarea id="qrContent" rows="4" class="w-full" placeholder="支持文本、链接、手机号等">https://example.com</textarea>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="flex flex-col gap-2">
-                                <label class="text-sub-color">尺寸(px)</label>
-                                <input type="number" id="qrSize" value="280" min="100" max="1000">
+                <div class="grid lg:grid-cols-12 gap-8">
+                    <!-- 左侧参数配置区 -->
+                    <div class="lg:col-span-7 flex flex-col gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 text-main flex items-center gap-2">
+                                <i class="fa-solid fa-pen-to-square text-primary"></i>二维码文本内容
+                            </label>
+                            <textarea id="qrContent" rows="3" class="w-full text-sm" placeholder="支持文本、网址链接、WiFi信息、手机号等">https://example.com</textarea>
+                        </div>
+
+                        <!-- 参数设置网格 -->
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-xs text-sub-color">输出尺寸 (px)</label>
+                                <input type="number" id="qrSize" value="300" min="120" max="1200" step="10">
                             </div>
-                            <div class="flex flex-col gap-2">
-                                <label class="text-sub-color">边距(margin)</label>
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-xs text-sub-color">边距 (Margin)</label>
                                 <input type="number" id="qrMargin" value="2" min="0" max="10">
                             </div>
-                            <div class="flex flex-col gap-2">
-                                <label class="text-sub-color">前景色</label>
-                                <input type="color" id="qrDark" value="#000000">
-                            </div>
-                            <div class="flex flex-col gap-2">
-                                <label class="text-sub-color">背景色</label>
-                                <input type="color" id="qrLight" value="#ffffff">
-                            </div>
-                            <div class="flex flex-col gap-2">
-                                <label class="text-sub-color">纠错等级</label>
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-xs text-sub-color">纠错等级</label>
                                 <select id="qrECL">
-                                    <option value="L">L - 7%</option>
-                                    <option value="M" selected>M - 15%</option>
-                                    <option value="Q">Q - 25%</option>
-                                    <option value="H">H - 30%</option>
+                                    <option value="L">L - 7% 容错</option>
+                                    <option value="M" selected>M - 15% 容错</option>
+                                    <option value="Q">Q - 25% 容错</option>
+                                    <option value="H">H - 30% (推荐加Logo)</option>
                                 </select>
                             </div>
-                            <div class="flex flex-col gap-2">
-                                <label class="text-sub-color">中心Logo（可选）</label>
-                                <input type="file" id="logoFile" accept="image/*" class="text-sm">
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-xs text-sub-color">前景色 (码点)</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="color" id="qrDark" value="#000000" class="w-full h-9">
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-xs text-sub-color">背景色</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="color" id="qrLight" value="#ffffff" class="w-full h-9">
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-xs text-sub-color">码点造型</label>
+                                <select id="qrDotStyle">
+                                    <option value="square" selected>方块 (默认)</option>
+                                    <option value="dots">圆点 (Dots)</option>
+                                    <option value="rounded">液态圆角</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="flex gap-2 mt-2">
-                            <button class="btn btn-primary" id="btnMake">生成</button>
-                            <button class="btn btn-primary" id="btnDownload">下载PNG</button>
-                            <button class="btn btn-danger" id="btnClearGen">清空</button>
+
+                        <!-- Logo 上传及配置卡片 -->
+                        <div class="sub-panel-bg p-4 rounded-xl border border-[var(--border)] space-y-3">
+                            <div class="flex items-center justify-between">
+                                <label class="text-sm font-semibold text-main flex items-center gap-2">
+                                    <i class="fa-solid fa-image text-primary"></i>中心 Logo 图标（可选）
+                                </label>
+                                <span id="logoStatusTip" class="text-xs text-sub-color">未选择图标</span>
+                            </div>
+
+                            <div id="logoDropArea" class="drop-area !p-4 flex flex-col items-center justify-center bg-[var(--card)]/50">
+                                <input type="file" id="logoFile" accept="image/*" class="hidden">
+                                
+                                <div id="logoUploadPrompt" class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-lg">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <p class="text-xs font-semibold text-main">点击选择 / 拖拽 Logo 图片</p>
+                                        <p class="text-[11px] text-sub-color">建议使用正方形 PNG/JPG 图片</p>
+                                    </div>
+                                </div>
+
+                                <!-- Logo 预览与控件 -->
+                                <div id="logoPreviewContainer" class="hidden w-full flex items-center justify-between gap-4">
+                                    <div class="flex items-center gap-3">
+                                        <img id="logoPreviewImg" class="w-12 h-12 object-contain rounded-lg border border-[var(--border)] bg-white/10 p-1">
+                                        <div class="text-left">
+                                            <p id="logoFileName" class="text-xs font-semibold text-main truncate max-w-[150px]">logo.png</p>
+                                            <button type="button" id="btnRemoveLogo" class="text-[11px] text-red-400 hover:underline flex items-center gap-1 mt-0.5">
+                                                <i class="fa-solid fa-trash-can"></i>移除图片
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-3">
+                                        <div class="text-right">
+                                            <label class="text-[11px] text-sub-color block">Logo 占比</label>
+                                            <input type="range" id="logoSizeRatio" min="0.12" max="0.30" step="0.02" value="0.22" class="w-20 h-1 accent-primary">
+                                        </div>
+                                        <div class="text-right">
+                                            <label class="text-[11px] text-sub-color block">圆角遮罩</label>
+                                            <input type="checkbox" id="logoRoundBg" checked class="accent-primary rounded">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 按钮组 -->
+                        <div class="flex flex-wrap gap-3">
+                            <button class="btn btn-primary flex-1" id="btnMake">
+                                <i class="fa-solid fa-rotate"></i>生成二维码
+                            </button>
+                            <div class="relative group">
+                                <button class="btn btn-secondary" id="btnDownload">
+                                    <i class="fa-solid fa-download"></i>下载图片
+                                </button>
+                                <div class="absolute right-0 bottom-full mb-2 hidden group-hover:flex bg-[var(--card)] border border-[var(--border)] shadow-xl rounded-lg p-1 gap-1 z-20">
+                                    <button class="px-2 py-1 text-xs hover:bg-[var(--card-sub)] rounded" onclick="downloadFormat('png')">PNG</button>
+                                    <button class="px-2 py-1 text-xs hover:bg-[var(--card-sub)] rounded" onclick="downloadFormat('jpg')">JPG</button>
+                                </div>
+                            </div>
+                            <button class="btn btn-danger" id="btnClearGen">
+                                <i class="fa-solid fa-trash-can"></i>清空
+                            </button>
                         </div>
                     </div>
-                    <div class="flex flex-col items-center gap-4">
-                        <label class="text-sub-color">预览</label>
-                        <div class="border border-[var(--border)] rounded-lg p-4 min-h-[300px] flex items-center justify-center">
-                            <canvas id="qrCanvas"></canvas>
-                            <span id="tipQr" class="text-sub-color"></span>
+
+                    <!-- 右侧预览区 -->
+                    <div class="lg:col-span-5 flex flex-col items-center justify-center">
+                        <div class="w-full h-full min-h-[320px] sub-panel-bg rounded-2xl border border-[var(--border)] p-6 flex flex-col items-center justify-center relative overflow-hidden">
+                            <span class="text-xs font-semibold text-sub-color absolute top-4 left-4 flex items-center gap-1.5">
+                                <i class="fa-solid fa-eye"></i>实时预览
+                            </span>
+                            
+                            <div id="canvasWrapper" class="p-4 bg-white rounded-xl shadow-lg border border-slate-100 flex items-center justify-center">
+                                <canvas id="qrCanvas"></canvas>
+                            </div>
+                            <span id="tipQr" class="text-xs text-sub-color mt-4 text-center">输入内容后点击生成</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 解析面板 -->
+            <!-- ================= 解析二维码面板 ================= -->
             <div id="panelDecode" class="hidden">
-                <div class="grid md:grid-cols-2 gap-6">
-                    <div>
-                        <div id="decodeDrop" class="drop-area mb-4">
-                            <i class="fa-solid fa-upload text-3xl text-sub-color"></i>
-                            <p class="mt-2 text-sub-color">拖拽二维码图片 / 点击上传 / Ctrl+V粘贴</p>
+                <div class="grid md:grid-cols-12 gap-8">
+                    <!-- 左侧上传与预览 -->
+                    <div class="md:col-span-6 flex flex-col gap-4">
+                        <label class="block text-sm font-semibold text-main flex items-center gap-2">
+                            <i class="fa-solid fa-file-arrow-up text-primary"></i>上传/粘贴二维码图片
+                        </label>
+                        
+                        <div id="decodeDrop" class="drop-area min-h-[160px] flex flex-col items-center justify-center gap-2 bg-[var(--card)]/50">
+                            <div class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-qrcode"></i>
+                            </div>
+                            <div class="space-y-1">
+                                <p class="text-sm font-semibold text-main">点击选择图片 / 拖拽图片至此处</p>
+                                <p class="text-xs text-sub-color">支持截图后直接使用 <kbd class="px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)] font-mono">Ctrl+V</kbd> 粘贴</p>
+                            </div>
                             <input type="file" id="decodeFile" accept="image/*" class="hidden">
                         </div>
-                        <div class="border border-[var(--border)] rounded-lg p-3 min-h-[240px] flex items-center justify-center">
-                            <img id="decodeImg" class="max-w-full max-h-56 object-contain hidden">
-                            <span id="tipDecodeImg" class="text-sub-color">等待图片</span>
+
+                        <!-- 解析图片显示 -->
+                        <div class="sub-panel-bg border border-[var(--border)] rounded-xl p-4 min-h-[220px] flex flex-col items-center justify-center relative overflow-hidden">
+                            <div id="decodeImgContainer" class="relative max-w-full max-h-[260px] hidden">
+                                <img id="decodeImg" class="max-w-full max-h-[260px] object-contain rounded-lg">
+                                <canvas id="decodeOverlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
+                            </div>
+                            <div id="tipDecodeImg" class="flex flex-col items-center gap-2 text-sub-color">
+                                <i class="fa-regular fa-image text-3xl opacity-50"></i>
+                                <span class="text-xs">等待上传二维码图片</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex flex-col gap-3">
-                        <label class="text-sub-color">识别结果</label>
-                        <textarea id="decodeResult" rows="8" readonly placeholder="识别出的二维码内容会显示在这里"></textarea>
-                        <div class="flex gap-2">
-                            <button class="btn btn-primary" id="btnCopyResult">复制结果</button>
-                            <button class="btn btn-danger" id="btnClearDecode">清空</button>
+
+                    <!-- 右侧解析结果 -->
+                    <div class="md:col-span-6 flex flex-col justify-between gap-4">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm font-semibold text-main flex items-center gap-2">
+                                    <i class="fa-solid fa-square-poll-vertical text-primary"></i>识别解析结果
+                                </label>
+                                <span id="decodeStatusBadge" class="text-xs px-2 py-0.5 rounded-full bg-slate-500/10 text-sub-color hidden">未解析</span>
+                            </div>
+                            <textarea id="decodeResult" rows="8" class="w-full text-sm leading-relaxed" readonly placeholder="上传二维码图片后，识别出的文本内容将显示在此处..."></textarea>
+                        </div>
+
+                        <!-- 快捷动作与操作 -->
+                        <div class="space-y-3">
+                            <div class="flex flex-wrap gap-2">
+                                <button class="btn btn-primary flex-1" id="btnCopyResult">
+                                    <i class="fa-solid fa-copy"></i>复制结果
+                                </button>
+                                <button class="btn btn-outline flex-1 hidden" id="btnOpenUrl" target="_blank">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>打开链接
+                                </button>
+                                <button class="btn btn-danger" id="btnClearDecode">
+                                    <i class="fa-solid fa-trash-can"></i>清空
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="mt-6">
-                <label class="block mb-1 text-sub-color">状态信息</label>
-                <div id="msgBox" class="p-3 rounded-lg sub-panel-bg min-h-[50px] text-sub-color"></div>
+            <!-- 底部状态提示条 -->
+            <div class="mt-8 pt-4 border-t border-[var(--border)] flex items-center gap-3">
+                <i class="fa-solid fa-circle-info text-primary"></i>
+                <div id="msgBox" class="text-xs text-sub-color truncate">就绪：选择功能并输入内容</div>
             </div>
         </div>
     </main>
+
+    <!-- 页脚 -->
     <footer class="nav-bar-bg border-t py-6 mt-10">
-        <div class="container mx-auto px-4 text-center text-sub-color text-sm">
+        <div class="container mx-auto px-4 text-center text-sub-color text-sm space-y-1">
             <p>悟已往之不谏，知来者之可追</p>
-            <p class="mt-1">© 2026 工具集 | 纯前端本地处理</p>
+            <p class="text-xs opacity-70">© 2026 工具集 | 纯前端本地安全处理</p>
         </div>
     </footer>
+
     <script>
+        // ==== 主题初始化 ====
         function initTheme(){
-            const t=localStorage.getItem("toolTheme")||"dark";
-            document.documentElement.setAttribute("data-theme",t);
+            const t = localStorage.getItem("toolTheme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
             updateThemeIcon(t);
         }
         function updateThemeIcon(t){
-            document.getElementById("themeIcon").className = t==="dark"?"fa-solid fa-moon":"fa-solid fa-sun";
+            document.getElementById("themeIcon").className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
         }
-        document.getElementById("themeToggle").onclick=()=>{
-            const c=document.documentElement.getAttribute("data-theme");
-            const n=c==="dark"?"light":"dark";
-            document.documentElement.setAttribute("data-theme",n);
-            localStorage.setItem("toolTheme",n);
+        document.getElementById("themeToggle").onclick = () => {
+            const c = document.documentElement.getAttribute("data-theme");
+            const n = c === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", n);
+            localStorage.setItem("toolTheme", n);
             updateThemeIcon(n);
-        }
+        };
 
-        // Tab
+        // ==== Tab 切换逻辑 ====
         const tabGen = document.getElementById('tabGen');
         const tabDecode = document.getElementById('tabDecode');
         const panelGen = document.getElementById('panelGen');
         const panelDecode = document.getElementById('panelDecode');
-        tabGen.onclick = ()=>{
-            tabGen.className="btn btn-primary"; tabDecode.className="btn btn-outline";
-            panelGen.classList.remove('hidden'); panelDecode.classList.add('hidden');
-        }
-        tabDecode.onclick = ()=>{
-            tabDecode.className="btn btn-primary"; tabGen.className="btn btn-outline";
-            panelDecode.classList.remove('hidden'); panelGen.classList.add('hidden');
-        }
+
+        tabGen.onclick = () => {
+            tabGen.className = "px-6 py-3 font-semibold border-b-2 border-primary text-primary transition-all flex items-center gap-2";
+            tabDecode.className = "px-6 py-3 font-semibold border-b-2 border-transparent text-sub-color hover:text-primary transition-all flex items-center gap-2";
+            panelGen.classList.remove('hidden'); 
+            panelDecode.classList.add('hidden');
+        };
+        tabDecode.onclick = () => {
+            tabDecode.className = "px-6 py-3 font-semibold border-b-2 border-primary text-primary transition-all flex items-center gap-2";
+            tabGen.className = "px-6 py-3 font-semibold border-b-2 border-transparent text-sub-color hover:text-primary transition-all flex items-center gap-2";
+            panelDecode.classList.remove('hidden'); 
+            panelGen.classList.add('hidden');
+        };
 
         const msgBox = document.getElementById('msgBox');
-        function setMsg(txt,err=false){
-            msgBox.innerText=txt;
-            msgBox.style.color=err?"#f87171":"var(--text-sub)";
+        function setMsg(txt, err = false){
+            msgBox.innerText = txt;
+            msgBox.className = "text-xs truncate " + (err ? "text-red-400 font-medium" : "text-sub-color");
         }
 
-        // ==== 生成二维码逻辑 ====
+        // ==== 二维码生成逻辑 ====
         const qrCanvas = document.getElementById('qrCanvas');
         const tipQr = document.getElementById('tipQr');
         const qrContent = document.getElementById('qrContent');
@@ -222,122 +365,307 @@
         const qrDark = document.getElementById('qrDark');
         const qrLight = document.getElementById('qrLight');
         const qrECL = document.getElementById('qrECL');
+        const qrDotStyle = document.getElementById('qrDotStyle');
+
+        // Logo 控件组
+        const logoDropArea = document.getElementById('logoDropArea');
         const logoFile = document.getElementById('logoFile');
+        const logoUploadPrompt = document.getElementById('logoUploadPrompt');
+        const logoPreviewContainer = document.getElementById('logoPreviewContainer');
+        const logoPreviewImg = document.getElementById('logoPreviewImg');
+        const logoFileName = document.getElementById('logoFileName');
+        const btnRemoveLogo = document.getElementById('btnRemoveLogo');
+        const logoStatusTip = document.getElementById('logoStatusTip');
+        const logoSizeRatio = document.getElementById('logoSizeRatio');
+        const logoRoundBg = document.getElementById('logoRoundBg');
         let logoImg = null;
 
-        logoFile.onchange = async ()=>{
+        // Logo 拖拽与上传处理
+        logoDropArea.onclick = (e) => {
+            if(e.target.closest('#logoPreviewContainer')) return;
+            logoFile.click();
+        };
+        logoDropArea.ondragover = (e) => { e.preventDefault(); logoDropArea.classList.add('active'); };
+        logoDropArea.ondragleave = () => logoDropArea.classList.remove('active');
+        logoDropArea.ondrop = async (e) => {
+            e.preventDefault(); logoDropArea.classList.remove('active');
+            const f = e.dataTransfer.files[0];
+            if(f && f.type.startsWith('image/')) await handleLogoFile(f);
+        };
+        logoFile.onchange = async () => {
             const f = logoFile.files[0];
-            if(!f) { logoImg=null; return; }
-            logoImg = await loadImage(URL.createObjectURL(f));
-            setMsg("✅ Logo已加载");
+            if(f) await handleLogoFile(f);
+        };
+
+        async function handleLogoFile(file) {
+            try {
+                logoImg = await loadImage(URL.createObjectURL(file));
+                logoPreviewImg.src = logoImg.src;
+                logoFileName.innerText = file.name;
+                logoUploadPrompt.classList.add('hidden');
+                logoPreviewContainer.classList.remove('hidden');
+                logoStatusTip.innerText = "已加载 Logo";
+                logoStatusTip.className = "text-xs text-primary font-medium";
+                setMsg("✅ Logo 图标加载成功");
+                document.getElementById('btnMake').click();
+            } catch(e) {
+                setMsg("❌ Logo 加载失败: " + e.message, true);
+            }
         }
+
+        btnRemoveLogo.onclick = (e) => {
+            e.stopPropagation();
+            logoFile.value = "";
+            logoImg = null;
+            logoUploadPrompt.classList.remove('hidden');
+            logoPreviewContainer.classList.add('hidden');
+            logoStatusTip.innerText = "未选择图标";
+            logoStatusTip.className = "text-xs text-sub-color";
+            setMsg("已移除 Logo 图标");
+            document.getElementById('btnMake').click();
+        };
+
         function loadImage(src){
-            return new Promise((res,rej)=>{
+            return new Promise((res, rej) => {
                 const img = new Image();
-                img.onload=()=>res(img); img.onerror=rej;
-                img.src=src;
-            })
+                img.onload = () => res(img); 
+                img.onerror = rej;
+                img.src = src;
+            });
         }
-        document.getElementById('btnMake').onclick = async ()=>{
+
+        // 执行生成
+        document.getElementById('btnMake').onclick = async () => {
             const text = qrContent.value.trim();
-            if(!text){ setMsg("请输入二维码内容",true); return; }
+            if(!text){ setMsg("请输入二维码内容", true); return; }
             tipQr.classList.add('hidden');
-            try{
+
+            try {
+                // 1. 使用 QRCode.toCanvas 绘制标准方形二维码
                 await QRCode.toCanvas(qrCanvas, text, {
                     width: Number(qrSize.value),
                     margin: Number(qrMargin.value),
-                    color:{ dark:qrDark.value, light:qrLight.value },
-                    errorCorrectionLevel: qrECL.value
+                    color: { dark: qrDark.value, light: qrLight.value },
+                    errorCorrectionLevel: logoImg ? 'H' : qrECL.value
                 });
-                // 叠加logo
-                if(logoImg){
-                    const ctx = qrCanvas.getContext('2d');
-                    const s = qrCanvas.width * 0.22;
-                    const x = (qrCanvas.width - s)/2;
-                    ctx.drawImage(logoImg, x, x, s, s);
+
+                const ctx = qrCanvas.getContext('2d');
+
+                // 2. 如果选择圆点或圆角造型，重新进行像素点阵绘制
+                if(qrDotStyle.value !== 'square') {
+                    applyCustomDotStyle(qrCanvas, qrDotStyle.value, qrDark.value, qrLight.value);
                 }
+
+                // 3. 叠加 Logo 逻辑
+                if(logoImg){
+                    const size = qrCanvas.width * parseFloat(logoSizeRatio.value);
+                    const x = (qrCanvas.width - size) / 2;
+                    const y = (qrCanvas.height - size) / 2;
+
+                    ctx.save();
+                    if(logoRoundBg.checked){
+                        const pad = 6;
+                        ctx.fillStyle = qrLight.value;
+                        ctx.beginPath();
+                        ctx.roundRect(x - pad, y - pad, size + pad*2, size + pad*2, 8);
+                        ctx.fill();
+                    }
+                    ctx.drawImage(logoImg, x, y, size, size);
+                    ctx.restore();
+                }
+
                 setMsg("✅ 二维码生成成功");
-            }catch(e){
-                setMsg("❌ 生成失败："+e.message,true);
+            } catch(e) {
+                setMsg("❌ 生成失败：" + e.message, true);
+            }
+        };
+
+        // ==== 码点造型重绘核心算法 ====
+        function applyCustomDotStyle(canvas, style, darkColor, lightColor) {
+            const ctx = canvas.getContext('2d');
+            const size = canvas.width;
+            const imgData = ctx.getImageData(0, 0, size, size);
+            const data = imgData.data;
+
+            // 获取前景色 RGB
+            const tempDiv = document.createElement('div');
+            tempDiv.style.color = darkColor;
+            document.body.appendChild(tempDiv);
+            const darkRgb = getComputedStyle(tempDiv).color.match(/\d+/g).map(Number);
+            document.body.removeChild(tempDiv);
+
+            // 采样网格尺寸判断 (检测单个模块的大小 cellSize)
+            let cellSize = 1;
+            for (let x = 0; x < size; x++) {
+                const isDark = isPixelDark(data, x, Math.floor(size / 2), size, darkRgb);
+                if (isDark) {
+                    let w = 0;
+                    while (x + w < size && isPixelDark(data, x + w, Math.floor(size / 2), size, darkRgb)) {
+                        w++;
+                    }
+                    if (w > 1) { cellSize = w; break; }
+                }
+            }
+
+            // 清空画布并填充背景
+            ctx.fillStyle = lightColor;
+            ctx.fillRect(0, 0, size, size);
+            ctx.fillStyle = darkColor;
+
+            const gridCount = Math.round(size / cellSize);
+
+            for (let row = 0; row < gridCount; row++) {
+                for (let col = 0; col < gridCount; col++) {
+                    const cx = Math.floor(col * cellSize + cellSize / 2);
+                    const cy = Math.floor(row * cellSize + cellSize / 2);
+
+                    if (isPixelDark(data, cx, cy, size, darkRgb)) {
+                        const x = col * cellSize;
+                        const y = row * cellSize;
+
+                        // 保留三个角定位图形（Finder Patterns）为实心，避免扫不出来
+                        const isFinderPattern = (row < 8 && col < 8) || 
+                                                (row < 8 && col >= gridCount - 8) || 
+                                                (row >= gridCount - 8 && col < 8);
+
+                        if (isFinderPattern) {
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                        } else if (style === 'dots') {
+                            // 圆点模式
+                            ctx.beginPath();
+                            ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize * 0.42, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else if (style === 'rounded') {
+                            // 圆角模式
+                            ctx.beginPath();
+                            ctx.roundRect(x + 0.5, y + 0.5, cellSize - 1, cellSize - 1, cellSize * 0.35);
+                            ctx.fill();
+                        }
+                    }
+                }
             }
         }
-        document.getElementById('btnDownload').onclick = ()=>{
-            const link = document.createElement('a');
-            link.href = qrCanvas.toDataURL("image/png");
-            link.download = "qrcode.png";
-            link.click();
-        }
-        document.getElementById('btnClearGen').onclick = ()=>{
-            qrContent.value="https://example.com";
-            logoFile.value=""; logoImg=null;
-            const ctx = qrCanvas.getContext('2d');
-            ctx.clearRect(0,0,qrCanvas.width,qrCanvas.height);
-            tipQr.classList.remove('hidden');
-            setMsg("");
+
+        function isPixelDark(data, x, y, width, darkRgb) {
+            if (x < 0 || y < 0 || x >= width) return false;
+            const idx = (y * width + x) * 4;
+            const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3];
+            if (a < 128) return false;
+            // 颜色相似度比对
+            return Math.abs(r - darkRgb[0]) < 60 && Math.abs(g - darkRgb[1]) < 60 && Math.abs(b - darkRgb[2]) < 60;
         }
 
-        // ==== 解析二维码逻辑 ====
+        document.getElementById('btnDownload').onclick = () => downloadFormat('png');
+        function downloadFormat(fmt) {
+            if(!qrCanvas.width) return;
+            const link = document.createElement('a');
+            link.href = qrCanvas.toDataURL(`image/${fmt}`);
+            link.download = `qrcode_${Date.now()}.${fmt}`;
+            link.click();
+        }
+
+        document.getElementById('btnClearGen').onclick = () => {
+            qrContent.value = "https://example.com";
+            btnRemoveLogo.click();
+            const ctx = qrCanvas.getContext('2d');
+            ctx.clearRect(0, 0, qrCanvas.width, qrCanvas.height);
+            tipQr.classList.remove('hidden');
+            setMsg("已清空内容");
+        };
+
+        // ==== 二维码解析逻辑 ====
         const decodeDrop = document.getElementById('decodeDrop');
         const decodeFile = document.getElementById('decodeFile');
         const decodeImg = document.getElementById('decodeImg');
+        const decodeImgContainer = document.getElementById('decodeImgContainer');
         const tipDecodeImg = document.getElementById('tipDecodeImg');
         const decodeResult = document.getElementById('decodeResult');
+        const btnOpenUrl = document.getElementById('btnOpenUrl');
+        const decodeStatusBadge = document.getElementById('decodeStatusBadge');
 
-        decodeDrop.onclick = ()=> decodeFile.click();
-        decodeDrop.ondragover = e=>{e.preventDefault(); decodeDrop.classList.add('active');}
-        decodeDrop.ondragleave = ()=> decodeDrop.classList.remove('active');
-        decodeDrop.ondrop = async e=>{
-            e.preventDefault(); decodeDrop.classList.remove('active');
+        decodeDrop.onclick = () => decodeFile.click();
+        decodeDrop.ondragover = (e) => { e.preventDefault(); decodeDrop.classList.add('active'); };
+        decodeDrop.ondragleave = () => decodeDrop.classList.remove('active');
+        decodeDrop.ondrop = async (e) => {
+            e.preventDefault(); 
+            decodeDrop.classList.remove('active');
             const f = e.dataTransfer.files[0];
             if(f && f.type.startsWith('image/')) await doDecodeFile(f);
-        }
-        document.addEventListener('paste',async e=>{
+        };
+
+        document.addEventListener('paste', async (e) => {
             const item = e.clipboardData.items[0];
             if(item && item.type.startsWith('image/')){
                 await doDecodeFile(item.getAsFile());
             }
-        })
-        decodeFile.onchange = async ()=>{
+        });
+
+        decodeFile.onchange = async () => {
             const f = decodeFile.files[0];
             if(f) await doDecodeFile(f);
-        }
+        };
+
         async function doDecodeFile(file){
-            try{
+            try {
                 const img = await loadImage(URL.createObjectURL(file));
                 decodeImg.src = img.src;
-                decodeImg.classList.remove('hidden');
+                decodeImgContainer.classList.remove('hidden');
                 tipDecodeImg.classList.add('hidden');
-                // draw to canvas for jsQR
+
                 const cv = document.createElement('canvas');
-                cv.width = img.width; cv.height = img.height;
+                cv.width = img.width; 
+                cv.height = img.height;
                 const c = cv.getContext('2d');
-                c.drawImage(img,0,0);
-                const imgData = c.getImageData(0,0,cv.width,cv.height);
+                c.drawImage(img, 0, 0);
+
+                const imgData = c.getImageData(0, 0, cv.width, cv.height);
                 const qr = jsQR(imgData.data, cv.width, cv.height);
-                if(qr){
+
+                if(qr) {
                     decodeResult.value = qr.data;
-                    setMsg("✅ 识别成功");
-                }else{
+                    decodeStatusBadge.innerText = "解析成功";
+                    decodeStatusBadge.className = "text-xs px-2.5 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium border border-green-500/20";
+                    decodeStatusBadge.classList.remove('hidden');
+
+                    if(qr.data.startsWith('http://') || qr.data.startsWith('https://')) {
+                        btnOpenUrl.classList.remove('hidden');
+                        btnOpenUrl.onclick = () => window.open(qr.data, '_blank');
+                    } else {
+                        btnOpenUrl.classList.add('hidden');
+                    }
+
+                    setMsg("✅ 二维码解析成功");
+                } else {
                     decodeResult.value = "";
-                    setMsg("⚠️ 图片中未识别到二维码",true);
+                    decodeStatusBadge.innerText = "未识别到二维码";
+                    decodeStatusBadge.className = "text-xs px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-400 font-medium border border-red-500/20";
+                    decodeStatusBadge.classList.remove('hidden');
+                    btnOpenUrl.classList.add('hidden');
+                    setMsg("⚠️ 图片中未检测到有效的二维码", true);
                 }
-            }catch(err){
-                setMsg("❌ 识别异常："+err.message,true);
+            } catch(err) {
+                setMsg("❌ 识别异常：" + err.message, true);
             }
         }
-        document.getElementById('btnCopyResult').onclick = async ()=>{
-            if(!decodeResult.value) { setMsg("暂无内容",true); return; }
+
+        document.getElementById('btnCopyResult').onclick = async () => {
+            if(!decodeResult.value) { setMsg("暂无可复制的解析结果", true); return; }
             await navigator.clipboard.writeText(decodeResult.value);
-            setMsg("✅ 已复制");
-        }
-        document.getElementById('btnClearDecode').onclick = ()=>{
-            decodeFile.value="";
-            decodeImg.classList.add('hidden'); tipDecodeImg.classList.remove('hidden');
-            decodeResult.value="";
-            setMsg("");
-        }
+            setMsg("✅ 识别结果已成功复制至剪贴板");
+        };
+
+        document.getElementById('btnClearDecode').onclick = () => {
+            decodeFile.value = "";
+            decodeImgContainer.classList.add('hidden'); 
+            tipDecodeImg.classList.remove('hidden');
+            decodeResult.value = "";
+            decodeStatusBadge.classList.add('hidden');
+            btnOpenUrl.classList.add('hidden');
+            setMsg("已清空解析信息");
+        };
 
         initTheme();
+        document.getElementById('btnMake').click();
     </script>
 </body>
 </html>

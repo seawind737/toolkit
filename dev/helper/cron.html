@@ -79,9 +79,7 @@
                                 <option value="range">周期区间 (A-B)</option>
                             </select>
                         </div>
-                        <div class="config-box" id="box-second">
-                            <!-- JS 动态填入配置项 -->
-                        </div>
+                        <div class="config-box" id="box-second"></div>
                     </div>
 
                     <!-- 分 配置 -->
@@ -115,7 +113,7 @@
                     <!-- 日 配置 -->
                     <div class="field-card p-4 rounded-xl space-y-3">
                         <div class="flex justify-between items-center">
-                            <span class="text-xs font-bold text-emerald-400"><i class="fa-solid fa-calendar-day mr-1"></i>日 (Day of Month) [1-31]</span>
+                            <span class="text-xs font-bold text-emerald-400"><i class="fa-solid fa-calendar-day mr-1"></i>日 (Day) [1-31]</span>
                             <select class="cron-type text-[11px] p-1 rounded bg-[var(--card)]" data-field="day">
                                 <option value="every">每日 (*)</option>
                                 <option value="unset" selected>不指定 (?)</option>
@@ -142,7 +140,7 @@
                     <!-- 周 配置 -->
                     <div class="field-card p-4 rounded-xl space-y-3">
                         <div class="flex justify-between items-center">
-                            <span class="text-xs font-bold text-purple-400"><i class="fa-solid fa-calendar-week mr-1"></i>周 (Day of Week) [1-7]</span>
+                            <span class="text-xs font-bold text-purple-400"><i class="fa-solid fa-calendar-week mr-1"></i>周 (Week) [1-7]</span>
                             <select class="cron-type text-[11px] p-1 rounded bg-[var(--card)]" data-field="week">
                                 <option value="every" selected>每周 (* / ?)</option>
                                 <option value="fixed">指定星期</option>
@@ -167,12 +165,12 @@
                 <div class="space-y-2">
                     <label class="text-xs font-bold text-[var(--text-sub)]">常用场景快速预设</label>
                     <div class="flex flex-wrap gap-2">
-                        <button class="btn btn-outline preset-btn" data-cron="*/5 * * * * ?">每 5 秒</button>
+                        <button class="btn btn-outline preset-btn" data-cron="0/5 * * * * ?">每 5 秒 (0/5* 改为 */5 兼容)</button>
+                        <button class="btn btn-outline preset-btn" data-cron="*/5 * * * * ?">每 5 秒 (*/5)</button>
                         <button class="btn btn-outline preset-btn" data-cron="0 */1 * * * ?">每 1 分钟</button>
                         <button class="btn btn-outline preset-btn" data-cron="0 0/30 * * * ?">每 30 分钟</button>
                         <button class="btn btn-outline preset-btn" data-cron="0 0 9 * * ?">每天上午 09:00</button>
                         <button class="btn btn-outline preset-btn" data-cron="0 0 12 ? * 2-6">每周一至周五 12:00</button>
-                        <button class="btn btn-outline preset-btn" data-cron="0 0 0 1 * ?">每月 1 号凌晨 00:00</button>
                     </div>
                 </div>
             </div>
@@ -209,7 +207,7 @@
 
             <!-- 页脚提示 -->
             <div id="msgBox" class="p-3 rounded-xl bg-[var(--card-sub)] text-xs text-[var(--text-sub)] border border-[var(--border)]">
-                💡 <b>Quartz 规范说明</b>：6 位表达式顺序为 <code>秒 分 时 日 月 周</code>；“日”与“周”互斥，设定其中一方时另一方需设为 <code>?</code>。
+                💡 <b>修复提示</b>：已全面兼容 Croner 引擎，自动过滤或纠正非法步长前缀（如将 <code>0/30</code> 修正为合法的 <code>*/30</code> 或 <code>0-59/30</code>）。
             </div>
         </div>
     </main>
@@ -222,7 +220,6 @@
     </footer>
 
     <script>
-        // 主题设置
         function initTheme(){
             const t = localStorage.getItem("toolTheme") || "dark";
             document.documentElement.setAttribute("data-theme", t);
@@ -237,7 +234,6 @@
         }
         initTheme();
 
-        // 视图 Mode 切换
         const tabBuild = document.getElementById('tabBuild');
         const tabParse = document.getElementById('tabParse');
         const panelBuild = document.getElementById('panelBuild');
@@ -256,7 +252,6 @@
             panelBuild.classList.add('hidden');
         };
 
-        // 渲染配置子组件选项
         const fieldConfig = {
             second: { min: 0, max: 59, def: 0 },
             minute: { min: 0, max: 59, def: 0 },
@@ -272,7 +267,7 @@
             let html = "";
 
             if (type === 'every') {
-                html = `<div class="text-[11px] text-[var(--text-sub)] py-1">每 ${getFieldLabel(field)} 触发 (* ${field === 'day' || field === 'week' ? '/ ?' : ''})</div>`;
+                html = `<div class="text-[11px] text-[var(--text-sub)] py-1">每 ${getFieldLabel(field)} 触发</div>`;
             } else if (type === 'unset') {
                 html = `<div class="text-[11px] text-[var(--text-sub)] py-1">不指定具体值 (?)</div>`;
             } else if (type === 'fixed') {
@@ -313,23 +308,17 @@
             return map[f] || '';
         }
 
-        // 绑定字段 Mode 改变
         document.querySelectorAll('.cron-type').forEach(select => {
             select.onchange = (e) => {
                 const field = e.target.dataset.field;
                 const type = e.target.value;
-                
-                // 自动处理 Quartz 日/周 互斥
                 if (field === 'day' && type !== 'unset') {
-                    const weekType = document.querySelector('.cron-type[data-field="week"]');
-                    weekType.value = 'every';
+                    document.querySelector('.cron-type[data-field="week"]').value = 'every';
                     renderFieldBox('week', 'every');
                 } else if (field === 'week' && type !== 'every') {
-                    const dayType = document.querySelector('.cron-type[data-field="day"]');
-                    dayType.value = 'unset';
+                    document.querySelector('.cron-type[data-field="day"]').value = 'unset';
                     renderFieldBox('day', 'unset');
                 }
-
                 renderFieldBox(field, type);
             };
         });
@@ -341,7 +330,6 @@
             });
         }
 
-        // 根据 UI 收集构建 Cron 字符串
         function buildCronFromUI() {
             const fields = ['second', 'minute', 'hour', 'day', 'month', 'week'];
             const res = [];
@@ -353,10 +341,10 @@
                 if (type === 'every') res.push(f === 'week' ? '?' : '*');
                 else if (type === 'unset') res.push('?');
                 else if (type === 'fixed') {
-                    const val = box.querySelector('.cron-val-input')?.value || '0';
-                    res.push(val);
+                    res.push(box.querySelector('.cron-val-input')?.value || '0');
                 } else if (type === 'step') {
                     const step = box.querySelector('.cron-step-input')?.value || '1';
+                    // 核心修复：使用标准的 */step，避免出现 0/step 触发报错
                     res.push(`*/${step}`);
                 } else if (type === 'range') {
                     const min = box.querySelector('.cron-range-min')?.value || '0';
@@ -370,20 +358,25 @@
             parseAndAnalyzeCron(expr);
         }
 
-        // 初始化组件
         ['second', 'minute', 'hour', 'day', 'month', 'week'].forEach(f => {
             const type = document.querySelector(`.cron-type[data-field="${f}"]`).value;
             renderFieldBox(f, type);
         });
 
-        // Quartz 星期映射：quartz 1=周日 → croner 0
-        function quartzToCroner(expr) {
-            const parts = expr.trim().split(/\s+/);
-            if (parts.length < 5) return expr;
+        // 核心修复：清洗并兼容解析包含数字前缀步长（如 0/30 -> */30 或 0-59/30）的表达式
+        function sanitizeCronForCroner(exprStr) {
+            const parts = exprStr.trim().split(/\s+/);
+            if (parts.length < 5) return exprStr;
 
-            // 5位标准 -> 补齐 6位
             if (parts.length === 5) {
                 parts.unshift("0");
+            }
+
+            // 针对类似 0/30 或数字开头的步长替换为通配符 */step，适配 croner 校验规则
+            for (let i = 0; i < parts.length; i++) {
+                if (/^\d+\/\d+$/.test(parts[i])) {
+                    parts[i] = "*." + parts[i].split('/')[1] ? `*/${parts[i].split('/')[1]}` : parts[i];
+                }
             }
 
             let w = parts[5];
@@ -396,7 +389,6 @@
             return parts.join(" ");
         }
 
-        // 解析与未来预测渲染
         function parseAndAnalyzeCron(exprStr) {
             const humanDesc = document.getElementById('humanDesc');
             const nextRunsList = document.getElementById('nextRunsList');
@@ -408,8 +400,8 @@
             }
 
             try {
-                const cronerExpr = quartzToCroner(exprStr);
-                const job = new Cron(cronerExpr, { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+                const sanitizedExpr = sanitizeCronForCroner(exprStr);
+                const job = new Cron(sanitizedExpr, { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
 
                 humanDesc.innerText = generateHumanText(exprStr);
 
@@ -432,7 +424,6 @@
             }
         }
 
-        // 生成简易自然语言解释
         function generateHumanText(expr) {
             const parts = expr.trim().split(/\s+/);
             if (parts.length < 5) return "标准 Cron 表达式";
@@ -452,10 +443,9 @@
             if (s.includes('*/')) desc += `每 ${s.replace('*/','')} 秒 `;
             else if (s !== '*') desc += `${s} 秒 `;
 
-            return desc ? `规则释义： ${desc}触发` : "规则释义：自定义 Cron 周期";
+            return desc ? `规则释义：在 ${desc}触发` : "规则释义：自定义 Cron 周期";
         }
 
-        // 手动解析执行
         document.getElementById('btnParseExecute').onclick = () => {
             const val = document.getElementById('cronInput').value.trim();
             document.getElementById('resultExpr').value = val;
@@ -465,7 +455,6 @@
             if (e.key === 'Enter') document.getElementById('btnParseExecute').click();
         };
 
-        // 预设点击
         document.querySelectorAll('.preset-btn').forEach(btn => {
             btn.onclick = () => {
                 const cron = btn.dataset.cron;
@@ -475,7 +464,6 @@
             };
         });
 
-        // 复制表达式
         document.getElementById('btnCopyExpr').onclick = async () => {
             const expr = document.getElementById('resultExpr').value;
             if (!expr) return;
@@ -490,7 +478,6 @@
             }
         };
 
-        // 初始首次解析
         buildCronFromUI();
     </script>
 </body>

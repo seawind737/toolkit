@@ -237,7 +237,7 @@
                         name: '开发辅助',
                         icon:"fa-wrench",
                         children: [
-                            { name: 'JSON转多语言数据结构生成器', url: './dev/helper/json-generator.html', icon: 'fa-file-code', desc:"JSON 自动生成对应语言的数据结构类型定义", homeRecommend:true },
+                            { name: 'JSON转多语言数据结构', url: './dev/helper/json-generator.html', icon: 'fa-file-code', desc:"JSON 自动生成对应语言的数据结构类型定义", homeRecommend:true },
                             { name: 'Cron表达式', url: './dev/helper/cron.html', icon: 'fa-clock', desc:"Cron解析、生成、预览", homeRecommend:true },
                             { name: 'ID生成器', url: './dev/helper/idgen.html', icon: 'fa-hashtag', desc:"UUID、雪花ID、随机ID", homeRecommend:true },
                             { name: 'Unicode', url: './dev/helper/unicode.html', icon: 'fa-solid fa-u', desc:"unicode", homeRecommend:true },
@@ -282,21 +282,32 @@
             },
             {
                 name: '图片媒体',
-                icon: 'fa-image',
+                icon: 'fa-photo-film',
                 groupName:"图片媒体",
-                groupIcon:"fa-image",
+                groupIcon:"fa-photo-film",
                 groupColor:"text-amber-400",
                 bgColor:"bg-amber-400/15",
                 children: [
-                    { name: '图片压缩', url: './media/image/compress.html', icon: 'fa-image', desc:"本地无损压缩图片", homeRecommend:true },
-                    { name: '图片格式转换', url: './media/image/imgconvert.html', icon: 'fa-exchange-alt', desc:"JPG/PNG/WebP互转", homeRecommend:true },
-                    { name: 'SVG编辑器', url: './media/image/svg.html', icon: 'fa-bezier-curve', desc:"SVG简单编辑预览", homeRecommend:true },
-                    { name: '图片去水印', url: './media/image/watermark.html', icon: 'fa-droplet-slash', desc:"本地涂抹修复水印，图片不上传服务器", homeRecommend:true },
-                    { name: '图片裁剪&改尺寸', url: './media/image/image-resize.html', icon: 'fa-crop-simple', desc: '自由框选裁剪、头像裁切、图片缩放，支持锁定比例', homeRecommend:true },
-                    { name: 'Favicon图标生成', url: './media/favicon-generator.html', icon: 'fa-icons', desc: "一键裁剪并生成全尺寸网站 Favicon 图标", homeRecommend: true },
-                    { name: 'GIF动图处理', url: './media/gif-tool.html', icon: 'fa-film', desc: "纯前端多图合成 GIF 动图与帧率预览", homeRecommend: true },
-                    { name: '屏幕录制截图', url: './media/media-recorder.html', icon: 'fa-video', desc: "网页端录制屏幕、摄像头与一键截图", homeRecommend: true },
-                    { name: '二维码', url: './media/qrcode.html', icon: 'fa-qrcode', desc:"文本链接生成二维码", homeRecommend:true },
+                    {
+                        name: '图片工具',
+                        icon:"fa-image",
+                        children: [
+                            { name: '图片压缩', url: './media/image/compress.html', icon: 'fa-image', desc:"本地无损压缩图片", homeRecommend:true },
+                            { name: '图片格式转换', url: './media/image/imgconvert.html', icon: 'fa-exchange-alt', desc:"JPG/PNG/WebP互转", homeRecommend:true },
+                            { name: 'SVG编辑器', url: './media/image/svg.html', icon: 'fa-bezier-curve', desc:"SVG简单编辑预览", homeRecommend:true },
+                            { name: '图片去水印', url: './media/image/watermark.html', icon: 'fa-droplet-slash', desc:"本地涂抹修复水印，图片不上传服务器", homeRecommend:true },
+                            { name: '图片裁剪&改尺寸', url: './media/image/image-resize.html', icon: 'fa-crop-simple', desc: '自由框选裁剪、头像裁切、图片缩放，支持锁定比例', homeRecommend:true },
+                            { name: 'Favicon图标生成', url: './media/favicon-generator.html', icon: 'fa-icons', desc: "一键裁剪并生成全尺寸网站 Favicon 图标", homeRecommend: true },
+                            { name: 'GIF动图处理', url: './media/gif-tool.html', icon: 'fa-film', desc: "纯前端多图合成 GIF 动图与帧率预览", homeRecommend: true },
+                            { name: '二维码', url: './media/qrcode.html', icon: 'fa-qrcode', desc:"文本链接生成二维码", homeRecommend:true },
+                            { name: '图片EXIF查看', url: './media/image/exif.html', icon: 'fa-info-circle', desc: '读取照片拍摄时间、GPS、相机参数', homeRecommend: true },
+                            { name: '图片合并拼接', url: './media/image/merge-img.html', icon: 'fa-object-group', desc: '多张图片横向/纵向拼接', homeRecommend: true },
+                            { name: '图片滤镜', url: './media/image/img-filter.html', icon: 'fa-wand-magic-sparkles', desc: '亮度对比度、复古、黑白滤镜', homeRecommend: true },
+                            { name: '色板生成器', url: './media/palette.html', icon: 'fa-palette', desc: '图片提取主色、配色方案生成', homeRecommend: true }
+                        ]
+                    },
+                    { name: '屏幕录制截图', url: './media/media-recorder.html', icon: 'fa-video', desc: "网页端录制屏幕、摄像头与一键截图", homeRecommend: true }, 
+                    { name: '音频裁剪', url: './media/audio-cut.html', icon: 'fa-music', desc: '本地音频裁剪、格式转换（wav/mp3）', homeRecommend: true },
                 ]
             },
             {

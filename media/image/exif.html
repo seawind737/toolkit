@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片EXIF查看 - 在线工具</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+  <style>
+    :root[data-theme="dark"] {
+      --bg: #0f172a; --card: #1e293b; --sub-bg: #334155;
+      --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8;
+    }
+    :root[data-theme="light"] {
+      --bg: #f8fafc; --card: #ffffff; --sub-bg: #e2e8f0;
+      --border: #cbd5e1; --text-main: #1e293b; --text-sub: #64748b;
+    }
+    body { background-color: var(--bg); color: var(--text-main); font-family: system-ui, -apple-system, sans-serif; }
+    .card { background-color: var(--card); border: 1px solid var(--border); border-radius: 0.75rem; }
+    .text-sub { color: var(--text-sub); }
+    .text-gradient {
+      background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .btn { padding: 0.5rem 0.75rem; border-radius: 0.5rem; transition: all 0.2s; font-size: 0.875rem; cursor: pointer; }
+    .btn-primary { background-color: #3b82f6; color: #ffffff; }
+    .btn-primary:hover { opacity: 0.8; }
+    .btn-outline { border: 1px solid var(--border); }
+    .btn-outline:hover { background-color: var(--sub-bg); }
+    .editor-input { background-color: #020617; color: #e5e7eb; font-family: Consolas, Monaco, monospace; border: 1px solid var(--border); }
+    .editor-input:focus { outline: none; border-color: #3b82f6; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- 顶部导航 -->
+  <header class="card !rounded-none border-x-0 border-t-0 p-4 sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+        <i class="fa-solid fa-arrow-left"></i> 返回
+      </a>
+      <h1 class="text-xl font-bold flex items-center gap-2">
+        <i class="fa-solid fa-info-circle text-[#3b82f6]"></i>
+        <span class="text-gradient">图片EXIF查看</span>
+      </h1>
+      <button id="themeToggle" class="btn btn-outline" title="切换主题">
+        <i id="themeIcon" class="fa-solid fa-moon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 主体内容 -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-6">
+    <!-- 上传区域 -->
+    <section class="card p-6 border-dashed border-2 flex flex-col items-center justify-center cursor-pointer hover:border-[#3b82f6] transition-colors" id="dropArea">
+      <input type="file" id="fileInput" accept="image/jpeg,image/tiff" class="hidden">
+      <i class="fa-solid fa-cloud-arrow-up text-4xl text-sub mb-3"></i>
+      <p class="font-medium mb-1">点击或拖拽 JPEG/TIFF 图片至此处</p>
+      <p class="text-xs text-sub">读取拍摄时间、相机参数、GPS 等 EXIF 信息（完全本地解析）</p>
+    </section>
+
+    <!-- 结果预览区 -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="card p-4 flex flex-col items-center justify-center min-h-[250px]">
+        <img id="imgPreview" class="max-h-64 max-w-full object-contain rounded hidden" alt="预览">
+        <p id="imgPlaceholder" class="text-sub text-sm">暂无图片预览</p>
+      </div>
+
+      <div class="card p-4 md:col-span-2 flex flex-col">
+        <h3 class="font-bold border-b pb-2 mb-4 border-[var(--border)] flex items-center justify-between">
+          <span><i class="fa-solid fa-list-check mr-2 text-[#3b82f6]"></i>EXIF 参数元数据</span>
+          <button id="copyBtn" class="btn btn-outline !py-1 !text-xs hidden"><i class="fa-solid fa-copy mr-1"></i>复制JSON</button>
+        </h3>
+        <div class="flex-1 overflow-auto max-h-[350px]">
+          <table class="w-full text-sm text-left border-collapse" id="exifTable">
+            <thead>
+              <tr class="border-b border-[var(--border)] text-sub">
+                <th class="py-2 px-3">属性</th>
+                <th class="py-2 px-3">值</th>
+              </tr>
+            </thead>
+            <tbody id="exifBody">
+              <tr><td colspan="2" class="py-4 text-center text-sub">请选择图片进行解析</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // 主题控制
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('toolTheme', theme);
+      themeIcon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+    }
+    const savedTheme = localStorage.getItem('toolTheme') || 'dark';
+    applyTheme(savedTheme);
+    themeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    });
+
+    // 逻辑实现
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('fileInput');
+    const imgPreview = document.getElementById('imgPreview');
+    const imgPlaceholder = document.getElementById('imgPlaceholder');
+    const exifBody = document.getElementById('exifBody');
+    const copyBtn = document.getElementById('copyBtn');
+    let currentExifData = null;
+
+    dropArea.addEventListener('click', () => fileInput.click());
+    dropArea.addEventListener('dragover', (e) => { e.preventDefault(); dropArea.classList.add('border-[#3b82f6]'); });
+    dropArea.addEventListener('dragleave', () => dropArea.classList.remove('border-[#3b82f6]'));
+    dropArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropArea.classList.remove('border-[#3b82f6]');
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+    function handleFile(file) {
+      const url = URL.createObjectURL(file);
+      imgPreview.src = url;
+      imgPreview.classList.remove('hidden');
+      imgPlaceholder.classList.add('hidden');
+
+      EXIF.getData(file, function() {
+        const allMetaData = EXIF.getAllTags(this);
+        currentExifData = allMetaData;
+        exifBody.innerHTML = '';
+        
+        if (Object.keys(allMetaData).length === 0) {
+          exifBody.innerHTML = '<tr><td colspan="2" class="py-4 text-center text-sub">未找到任何 EXIF 元数据</td></tr>';
+          copyBtn.classList.add('hidden');
+          return;
+        }
+
+        copyBtn.classList.remove('hidden');
+        for (let key in allMetaData) {
+          if (typeof allMetaData[key] !== 'object' || Array.isArray(allMetaData[key])) {
+            const tr = document.createElement('tr');
+            tr.className = 'border-b border-[var(--border)] hover:bg-[var(--sub-bg)]';
+            tr.innerHTML = `<td class="py-2 px-3 font-mono text-sub">${key}</td><td class="py-2 px-3 font-mono">${allMetaData[key]}</td>`;
+            exifBody.appendChild(tr);
+          }
+        }
+      });
+    }
+
+    copyBtn.addEventListener('click', () => {
+      if (!currentExifData) return;
+      const jsonStr = JSON.stringify(currentExifData, null, 2);
+      navigator.clipboard.writeText(jsonStr).then(() => {
+        alert('EXIF JSON 已复制到剪贴板');
+      }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = jsonStr;
+        document.body.appendChild(textarea);
+        textarea.select();
+        alert('复制失败，请按 Ctrl+C 手动复制选中文本');
+        document.body.removeChild(textarea);
+      });
+    });
+  </script>
+</body>
+</html>

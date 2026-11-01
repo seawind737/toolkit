@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片自由拼接与排版 - 在线工具</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root[data-theme="dark"] {
+      --bg: #0f172a; --card: #1e293b; --sub-bg: #334155;
+      --border: #475569; --text-main: #e2e8f0; --text-sub: #94a3b8;
+    }
+    :root[data-theme="light"] {
+      --bg: #f8fafc; --card: #ffffff; --sub-bg: #e2e8f0;
+      --border: #cbd5e1; --text-main: #1e293b; --text-sub: #64748b;
+    }
+    body { background-color: var(--bg); color: var(--text-main); font-family: system-ui, -apple-system, sans-serif; }
+    .card { background-color: var(--card); border: 1px solid var(--border); border-radius: 0.75rem; }
+    .text-sub { color: var(--text-sub); }
+    .text-gradient {
+      background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .btn { padding: 0.5rem 0.75rem; border-radius: 0.5rem; transition: all 0.2s; font-size: 0.875rem; cursor: pointer; }
+    .btn-primary { background-color: #8b5cf6; color: #ffffff; }
+    .btn-primary:hover { opacity: 0.8; }
+    .btn-outline { border: 1px solid var(--border); }
+    .btn-outline:hover { background-color: var(--sub-bg); }
+    /* 全屏状态样式 */
+    #canvasSection:fullscreen {
+      width: 100vw; height: 100vh; background: #020617; padding: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 0;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <header class="card !rounded-none border-x-0 border-t-0 p-4 sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <a href="/toolkit/index.html" class="btn btn-outline flex items-center gap-2">
+        <i class="fa-solid fa-arrow-left"></i> 返回
+      </a>
+      <h1 class="text-xl font-bold flex items-center gap-2">
+        <i class="fa-solid fa-object-group text-[#8b5cf6]"></i>
+        <span class="text-gradient">图片自由拼接与排版</span>
+      </h1>
+      <button id="themeToggle" class="btn btn-outline" title="切换主题">
+        <i id="themeIcon" class="fa-solid fa-moon"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 relative">
+    <!-- 左侧控制面板 -->
+    <section class="card p-4 space-y-4 lg:col-span-1 flex flex-col">
+      <h2 class="font-bold text-sm border-b pb-2 border-[var(--border)]"><i class="fa-solid fa-sliders mr-1 text-[#8b5cf6]"></i>画布尺寸与添加</h2>
+      
+      <div id="dropArea" class="border-dashed border-2 rounded-lg p-4 text-center cursor-pointer hover:border-[#8b5cf6] transition-colors">
+        <input type="file" id="fileInput" accept="image/*" multiple class="hidden">
+        <i class="fa-solid fa-cloud-arrow-up text-2xl text-sub mb-1"></i>
+        <p class="text-xs font-medium">添加图片</p>
+      </div>
+
+      <div class="space-y-3 pt-2">
+        <div>
+          <label class="text-xs text-sub block mb-1">画布宽度 (px)</label>
+          <input type="number" id="canvasWidth" value="1200" min="100" max="4000" class="btn btn-outline w-full bg-[var(--bg)] font-mono">
+        </div>
+        <div>
+          <label class="text-xs text-sub block mb-1">画布高度 (px)</label>
+          <input type="number" id="canvasHeight" value="800" min="100" max="4000" class="btn btn-outline w-full bg-[var(--bg)] font-mono">
+        </div>
+      </div>
+
+      <div class="card p-3 bg-[var(--sub-bg)] text-xs space-y-2 text-sub">
+        <p class="font-bold text-main"><i class="fa-solid fa-circle-info mr-1 text-[#8b5cf6]"></i>操作提示：</p>
+        <p>• <b>四角</b>拖动：等比缩放</p>
+        <p>• <b>左右边</b>拖动：独立调宽</p>
+        <p>• <b>上下边</b>拖动：独立调高</p>
+        <p>• <b>右键点击图片</b>：呼出高级图层与变换菜单</p>
+      </div>
+
+      <div class="mt-auto pt-4 space-y-2">
+        <button id="clearBtn" class="btn btn-outline w-full text-xs"><i class="fa-solid fa-trash mr-1"></i>清空所有</button>
+        <button id="downloadBtn" class="btn btn-primary w-full"><i class="fa-solid fa-download mr-1"></i>导出合成图片</button>
+      </div>
+    </section>
+
+    <!-- 右侧交互画布区 -->
+    <section id="canvasSection" class="card p-4 lg:col-span-3 flex items-center justify-center overflow-auto min-h-[500px] relative bg-[#020617]">
+      <!-- 全屏按钮 -->
+      <button id="fullscreenBtn" class="absolute top-4 right-4 z-10 btn btn-outline bg-[var(--card)] !py-1 !px-2 text-xs" title="全屏查看">
+        <i class="fa-solid fa-expand"></i> 全屏
+      </button>
+
+      <canvas id="canvas" class="border border-[var(--border)] shadow-2xl bg-white"></canvas>
+      <div id="placeholder" class="absolute text-sub text-sm pointer-events-none flex flex-col items-center">
+        <i class="fa-solid fa-hand-pointer text-3xl mb-2 animate-bounce"></i>
+        <span>添加图片后，可直接在画布中拖拽、拉伸边缘调整宽高，右键呼出菜单</span>
+      </div>
+
+      <!-- 右键悬浮菜单 -->
+      <div id="contextMenu" class="hidden absolute z-50 card bg-[var(--card)] shadow-2xl py-1 min-w-[140px] text-xs border border-[var(--border)]">
+        <div class="px-3 py-1.5 hover:bg-[var(--sub-bg)] cursor-pointer flex items-center gap-2" data-action="bring-front"><i class="fa-solid fa-arrow-up text-[#8b5cf6]"></i> 置于最顶层</div>
+        <div class="px-3 py-1.5 hover:bg-[var(--sub-bg)] cursor-pointer flex items-center gap-2" data-action="bring-up"><i class="fa-solid fa-chevron-up text-[#8b5cf6]"></i> 上移一层</div>
+        <div class="px-3 py-1.5 hover:bg-[var(--sub-bg)] cursor-pointer flex items-center gap-2" data-action="send-down"><i class="fa-solid fa-chevron-down text-[#8b5cf6]"></i> 下移一层</div>
+        <div class="px-3 py-1.5 hover:bg-[var(--sub-bg)] cursor-pointer flex items-center gap-2" data-action="send-back"><i class="fa-solid fa-arrow-down text-[#8b5cf6]"></i> 置于最底层</div>
+        <div class="border-t border-[var(--border)] my-1"></div>
+        <div class="px-3 py-1.5 hover:bg-[var(--sub-bg)] cursor-pointer flex items-center gap-2" data-action="center-h"><i class="fa-solid fa-align-center text-blue-400"></i> 水平居中</div>
+        <div class="px-3 py-1.5 hover:bg-[var(--sub-bg)] cursor-pointer flex items-center gap-2" data-action="clone"><i class="fa-solid fa-copy text-green-400"></i> 复制副本</div>
+        <div class="border-t border-[var(--border)] my-1"></div>
+        <div class="px-3 py-1.5 hover:bg-[var(--sub-bg)] cursor-pointer flex items-center gap-2 text-red-400" data-action="delete"><i class="fa-solid fa-trash"></i> 删除图片</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // 主题切换
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('toolTheme', theme);
+      themeIcon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+    }
+    applyTheme(localStorage.getItem('toolTheme') || 'dark');
+    themeToggle.addEventListener('click', () => {
+      applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('fileInput');
+    const canvasWidthInput = document.getElementById('canvasWidth');
+    const canvasHeightInput = document.getElementById('canvasHeight');
+    const placeholder = document.getElementById('placeholder');
+    const clearBtn = document.getElementById('clearBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const canvasSection = document.getElementById('canvasSection');
+    const contextMenu = document.getElementById('contextMenu');
+
+    let images = []; 
+    let selectedIndex = -1;
+    let actionType = null; // 'drag', 'resize-nw', 'resize-ne', 'resize-se', 'resize-sw', 'resize-n', 'resize-s', 'resize-w', 'resize-e'
+    let startX = 0, startY = 0;
+    let initialImageState = null;
+
+    function updateCanvasSize() {
+      canvas.width = parseInt(canvasWidthInput.value) || 1200;
+      canvas.height = parseInt(canvasHeightInput.value) || 800;
+      redraw();
+    }
+    canvasWidthInput.addEventListener('input', updateCanvasSize);
+    canvasHeightInput.addEventListener('input', updateCanvasSize);
+    updateCanvasSize();
+
+    // 全屏切换
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        canvasSection.requestFullscreen().catch(err => alert(`无法进入全屏: ${err.message}`));
+      } else {
+        document.exitFullscreen();
+      }
+    });
+    document.addEventListener('fullscreenchange', () => {
+      fullscreenBtn.innerHTML = document.fullscreenElement ? '<i class="fa-solid fa-compress"></i> 退出全屏' : '<i class="fa-solid fa-expand"></i> 全屏';
+    });
+
+    dropArea.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+    function handleFiles(files) {
+      Array.from(files).filter(f => f.type.startsWith('image/')).forEach(file => {
+        const imgObj = new Image();
+        imgObj.src = URL.createObjectURL(file);
+        imgObj.onload = () => {
+          const defaultW = Math.min(imgObj.width, 400);
+          const defaultH = (imgObj.height / imgObj.width) * defaultW;
+          images.push({
+            img: imgObj,
+            x: (canvas.width - defaultW) / 2 + (Math.random() * 40 - 20),
+            y: (canvas.height - defaultH) / 2 + (Math.random() * 40 - 20),
+            width: defaultW,
+            height: defaultH
+          });
+          selectedIndex = images.length - 1;
+          redraw();
+        };
+      });
+    }
+
+    function redraw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (images.length === 0) {
+        placeholder.classList.remove('hidden');
+      } else {
+        placeholder.classList.add('hidden');
+      }
+
+      images.forEach((item, index) => {
+        ctx.drawImage(item.img, item.x, item.y, item.width, item.height);
+        
+        // 选中时绘制边框、控制句柄以及实时尺寸浮窗
+        if (index === selectedIndex) {
+          ctx.strokeStyle = '#8b5cf6';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(item.x, item.y, item.width, item.height);
+
+          const hs = 8;
+          ctx.fillStyle = '#8b5cf6';
+          // 四角句柄
+          ctx.fillRect(item.x - hs/2, item.y - hs/2, hs, hs); // NW
+          ctx.fillRect(item.x + item.width - hs/2, item.y - hs/2, hs, hs); // NE
+          ctx.fillRect(item.x + item.width - hs/2, item.y + item.height - hs/2, hs, hs); // SE
+          ctx.fillRect(item.x - hs/2, item.y + item.height - hs/2, hs, hs); // SW
+          // 四边中点句柄
+          ctx.fillRect(item.x + item.width/2 - hs/2, item.y - hs/2, hs, hs); // N
+          ctx.fillRect(item.x + item.width/2 - hs/2, item.y + item.height - hs/2, hs, hs); // S
+          ctx.fillRect(item.x - hs/2, item.y + item.height/2 - hs/2, hs, hs); // W
+          ctx.fillRect(item.x + item.width - hs/2, item.y + item.height/2 - hs/2, hs, hs); // E
+
+          // 画布中直接展示宽高尺寸标签
+          const labelText = `${Math.round(item.width)} × ${Math.round(item.height)}px`;
+          ctx.font = '12px sans-serif';
+          const textMetrics = ctx.measureText(labelText);
+          const bgW = textMetrics.width + 12;
+          const bgH = 22;
+          
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+          ctx.fillRect(item.x, item.y - bgH - 6, bgW, bgH);
+          ctx.strokeStyle = '#8b5cf6';
+          ctx.strokeRect(item.x, item.y - bgH - 6, bgW, bgH);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(labelText, item.x + 6, item.y - bgH + 9);
+        }
+      });
+    }
+
+    function getCanvasCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      contextMenu.classList.add('hidden');
+      if (e.button !== 0) return; // 仅左键响应交互
+
+      const pos = getCanvasCoords(e);
+      const mouseX = pos.x;
+      const mouseY = pos.y;
+
+      selectedIndex = -1;
+      actionType = null;
+
+      for (let i = images.length - 1; i >= 0; i--) {
+        const item = images[i];
+        const hs = 12; // 句柄判定热区
+
+        // 判定四角
+        if (Math.abs(mouseX - item.x) <= hs && Math.abs(mouseY - item.y) <= hs) { selectedIndex = i; actionType = 'resize-nw'; break; }
+        if (Math.abs(mouseX - (item.x + item.width)) <= hs && Math.abs(mouseY - item.y) <= hs) { selectedIndex = i; actionType = 'resize-ne'; break; }
+        if (Math.abs(mouseX - (item.x + item.width)) <= hs && Math.abs(mouseY - (item.y + item.height)) <= hs) { selectedIndex = i; actionType = 'resize-se'; break; }
+        if (Math.abs(mouseX - item.x) <= hs && Math.abs(mouseY - (item.y + item.height)) <= hs) { selectedIndex = i; actionType = 'resize-sw'; break; }
+
+        // 判定四边中点
+        if (Math.abs(mouseX - (item.x + item.width/2)) <= hs && Math.abs(mouseY - item.y) <= hs) { selectedIndex = i; actionType = 'resize-n'; break; }
+        if (Math.abs(mouseX - (item.x + item.width/2)) <= hs && Math.abs(mouseY - (item.y + item.height)) <= hs) { selectedIndex = i; actionType = 'resize-s'; break; }
+        if (Math.abs(mouseX - item.x) <= hs && Math.abs(mouseY - (item.y + item.height/2)) <= hs) { selectedIndex = i; actionType = 'resize-w'; break; }
+        if (Math.abs(mouseX - (item.x + item.width)) <= hs && Math.abs(mouseY - (item.y + item.height/2)) <= hs) { selectedIndex = i; actionType = 'resize-e'; break; }
+
+        // 判定内部拖动
+        if (mouseX >= item.x && mouseX <= item.x + item.width &&
+            mouseY >= item.y && mouseY <= item.y + item.height) {
+          selectedIndex = i; actionType = 'drag'; break;
+        }
+      }
+
+      if (selectedIndex !== -1) {
+        startX = mouseX;
+        startY = mouseY;
+        initialImageState = { ...images[selectedIndex] };
+      }
+      redraw();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!actionType || selectedIndex === -1) return;
+      const pos = getCanvasCoords(e);
+      const dx = pos.x - startX;
+      const dy = pos.y - startY;
+      const item = images[selectedIndex];
+      const init = initialImageState;
+
+      if (actionType === 'drag') {
+        item.x = init.x + dx;
+        item.y = init.y + dy;
+      } else if (actionType === 'resize-se') {
+        item.width = Math.max(20, init.width + dx);
+        item.height = Math.max(20, init.height + dy);
+      } else if (actionType === 'resize-nw') {
+        let newW = Math.max(20, init.width - dx);
+        let newH = Math.max(20, init.height - dy);
+        item.x = init.x + (init.width - newW);
+        item.y = init.y + (init.height - newH);
+        item.width = newW;
+        item.height = newH;
+      } else if (actionType === 'resize-ne') {
+        let newW = Math.max(20, init.width + dx);
+        let newH = Math.max(20, init.height - dy);
+        item.y = init.y + (init.height - newH);
+        item.width = newW;
+        item.height = newH;
+      } else if (actionType === 'resize-sw') {
+        let newW = Math.max(20, init.width - dx);
+        let newH = Math.max(20, init.height + dy);
+        item.x = init.x + (init.width - newW);
+        item.width = newW;
+        item.height = newH;
+      } else if (actionType === 'resize-e') {
+        item.width = Math.max(20, init.width + dx);
+      } else if (actionType === 'resize-w') {
+        let newW = Math.max(20, init.width - dx);
+        item.x = init.x + (init.width - newW);
+        item.width = newW;
+      } else if (actionType === 'resize-s') {
+        item.height = Math.max(20, init.height + dy);
+      } else if (actionType === 'resize-n') {
+        let newH = Math.max(20, init.height - dy);
+        item.y = init.y + (init.height - newH);
+        item.height = newH;
+      }
+
+      redraw();
+    });
+
+    window.addEventListener('mouseup', () => { actionType = null; });
+
+    // 右键菜单支持
+    canvas.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const pos = getCanvasCoords(e);
+      selectedIndex = -1;
+      for (let i = images.length - 1; i >= 0; i--) {
+        const item = images[i];
+        if (pos.x >= item.x && pos.x <= item.x + item.width &&
+            pos.y >= item.y && pos.y <= item.y + item.height) {
+          selectedIndex = i;
+          break;
+        }
+      }
+      redraw();
+
+      if (selectedIndex !== -1) {
+        contextMenu.style.left = `${e.offsetX}px`;
+        contextMenu.style.top = `${e.offsetY}px`;
+        contextMenu.classList.remove('hidden');
+      } else {
+        contextMenu.classList.add('hidden');
+      }
+    });
+
+    // 右键菜单动作响应
+    contextMenu.addEventListener('click', (e) => {
+      const action = e.target.closest('[data-action]')?.dataset.action;
+      if (!action || selectedIndex === -1) return;
+
+      const item = images[selectedIndex];
+      if (action === 'bring-front') {
+        images.push(images.splice(selectedIndex, 1)[0]);
+        selectedIndex = images.length - 1;
+      } else if (action === 'bring-up') {
+        if (selectedIndex < images.length - 1) {
+          const temp = images[selectedIndex];
+          images[selectedIndex] = images[selectedIndex + 1];
+          images[selectedIndex + 1] = temp;
+          selectedIndex++;
+        }
+      } else if (action === 'send-down') {
+        if (selectedIndex > 0) {
+          const temp = images[selectedIndex];
+          images[selectedIndex] = images[selectedIndex - 1];
+          images[selectedIndex - 1] = temp;
+          selectedIndex--;
+        }
+      } else if (action === 'send-back') {
+        images.unshift(images.splice(selectedIndex, 1)[0]);
+        selectedIndex = 0;
+      } else if (action === 'center-h') {
+        item.x = (canvas.width - item.width) / 2;
+      } else if (action === 'clone') {
+        images.push({ ...item, x: item.x + 20, y: item.y + 20 });
+        selectedIndex = images.length - 1;
+      } else if (action === 'delete') {
+        images.splice(selectedIndex, 1);
+        selectedIndex = -1;
+      }
+
+      contextMenu.classList.add('hidden');
+      redraw();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      images = [];
+      selectedIndex = -1;
+      contextMenu.classList.add('hidden');
+      redraw();
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (images.length === 0) return alert('当前没有可导出的图片');
+      selectedIndex = -1;
+      contextMenu.classList.add('hidden');
+      redraw();
+      canvas.toBlob(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `custom-merged-${Date.now()}.png`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    });
+  </script>
+</body>
+</html>

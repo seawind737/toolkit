@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII 艺术字 & 趣味 Banner 生成器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @layer utilities {
+      .btn {
+        padding: 0.5rem 0.85rem;
+        border-radius: 0.5rem;
+        transition: all 0.2s duration-200;
+        font-size: 0.875rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        font-weight: 500;
+        user-select: none;
+      }
+      .btn-primary {
+        background-color: var(--primary);
+        color: #ffffff;
+      }
+      .btn-primary:hover {
+        opacity: 0.85;
+        transform: translateY(-1px);
+      }
+      .btn-outline {
+        border: 1px solid var(--border);
+        color: var(--text-main);
+        background-color: var(--card);
+      }
+      .btn-outline:hover {
+        background-color: var(--sub-bg);
+        border-color: var(--primary);
+      }
+      .text-gradient {
+        background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --sub-bg: #334155;
+      --border: #475569;
+      --text-main: #e2e8f0;
+      --text-sub: #94a3b8;
+      --primary: #f59e0b;
+      --code-bg: #020617;
+    }
+    :root[data-theme="light"] {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --sub-bg: #e2e8f0;
+      --border: #cbd5e1;
+      --text-main: #111827;
+      --text-sub: #64748b;
+      --primary: #d97706;
+      --code-bg: #0f172a;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+    }
+
+    .card {
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+    }
+
+    .text-sub {
+      color: var(--text-sub);
+    }
+
+    .editor-input {
+      background-color: var(--code-bg);
+      color: #e2e8f0;
+      font-family: Consolas, Monaco, 'Courier New', monospace;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      width: 100%;
+      padding: 0.75rem;
+      transition: border-color 0.2s;
+    }
+
+    .editor-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .ascii-output {
+      background-color: var(--code-bg);
+      font-family: 'Consolas', 'Monaco', 'Lucida Console', 'Courier New', monospace;
+      white-space: pre;
+      overflow-x: auto;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      padding: 1.25rem;
+      line-height: 1.15;
+    }
+
+    /* 终端高亮配色 */
+    .color-emerald { color: #34d399; }
+    .color-cyan { color: #38bdf8; }
+    .color-amber { color: #fbbf24; }
+    .color-purple { color: #c084fc; }
+    .color-white { color: #f8fafc; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- 1. 顶部导航栏 -->
+  <header class="card !rounded-none border-x-0 border-t-0 p-4 sticky top-0 z-50 shadow-md">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <a href="/toolkit/index.html" class="btn btn-outline !py-1.5 !px-3 text-xs">
+        <i class="fa-solid fa-arrow-left"></i> 返回首页
+      </a>
+      <h1 class="text-xl font-bold flex items-center gap-2">
+        <i class="fa-solid fa-font text-amber-500"></i>
+        <span class="text-gradient">ASCII 艺术字 & 趣味 Banner 生成器</span>
+      </h1>
+      <button id="themeToggle" class="btn btn-outline !py-1.5 !px-3" title="切换主题">
+        <i id="themeIcon" class="fa-solid fa-moon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 主体内容区域 -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-6">
+    
+    <!-- 2. 趣味预设快捷栏 (大号程序佛祖、神兽、企鹅、火箭等) -->
+    <section class="card p-4 md:p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+          <span class="font-bold text-sm">一键预设趣味 Banner 与大号字符画</span>
+        </div>
+        <span class="text-xs text-sub">点击瞬间加载高清预设</span>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2" id="presetContainer"></div>
+    </section>
+
+    <!-- 3. 自定义输入与配置区 -->
+    <section class="card p-4 md:p-6 space-y-5">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        <!-- 左侧多行文本输入 -->
+        <div class="lg:col-span-7 space-y-2">
+          <div class="flex justify-between items-center">
+            <label for="customText" class="text-xs font-semibold text-sub flex items-center gap-1">
+              <i class="fa-solid fa-keyboard text-amber-500"></i> 输入文本内容（支持中英文、多行、特殊符号）
+            </label>
+            <div class="flex gap-2">
+              <button id="uppercaseBtn" class="text-[11px] text-amber-500 hover:underline">大写</button>
+              <span class="text-sub">|</span>
+              <button id="lowercaseBtn" class="text-[11px] text-amber-500 hover:underline">小写</button>
+            </div>
+          </div>
+          <textarea id="customText" rows="5" class="editor-input !text-sm leading-relaxed" placeholder="在此输入文字内容...">HELLO WORLD</textarea>
+        </div>
+
+        <!-- 右侧高阶字体与排版参数 -->
+        <div class="lg:col-span-5 space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="fontSelect" class="text-xs font-semibold text-sub block mb-1">排版字体风格</label>
+              <select id="fontSelect" class="editor-input !py-1.5 text-xs">
+                <option value="standard" selected>标准块状 (Block)</option>
+                <option value="slant">斜体网格 (Slant)</option>
+                <option value="cyber">赛博矩阵 (Cyber)</option>
+                <option value="shadow">3D 阴影 (3D Shadow)</option>
+                <option value="customChar">自定义字符填充</option>
+              </select>
+            </div>
+            <div>
+              <label for="fillCharInput" class="text-xs font-semibold text-sub block mb-1">填充字符 (自定义时)</label>
+              <input type="text" id="fillCharInput" value="#" max="2" class="editor-input !py-1 text-xs text-center" placeholder="如 #, *, @">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="borderSelect" class="text-xs font-semibold text-sub block mb-1">修饰边框风格</label>
+              <select id="borderSelect" class="editor-input !py-1.5 text-xs">
+                <option value="none" selected>无边框 (None)</option>
+                <option value="double">双线边框 (Double Line)</option>
+                <option value="star">星空边框 (Star Border)</option>
+                <option value="comment">代码注释框 (/* ... */)</option>
+                <option value="cmd">CMD 命令行框</option>
+              </select>
+            </div>
+            <div>
+              <label for="layoutSelect" class="text-xs font-semibold text-sub block mb-1">水平对齐</label>
+              <select id="layoutSelect" class="editor-input !py-1.5 text-xs">
+                <option value="left" selected>居左对齐</option>
+                <option value="center">居中对齐</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="colorSelect" class="text-xs font-semibold text-sub block mb-1">终端配色</label>
+            <select id="colorSelect" class="editor-input !py-1.5 text-xs">
+              <option value="color-amber" selected>琥珀黄 (Amber)</option>
+              <option value="color-emerald">黑客绿 (Emerald)</option>
+              <option value="color-cyan">赛博青 (Cyan)</option>
+              <option value="color-purple">霓虹紫 (Purple)</option>
+              <option value="color-white">极客白 (White)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作按钮排 -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[var(--border)]">
+        <div class="flex items-center gap-2">
+          <button id="generateBtn" class="btn btn-primary">
+            <i class="fa-solid fa-rotate"></i> 重新生成
+          </button>
+          <button id="clearBtn" class="btn btn-outline text-red-400 hover:border-red-400">
+            <i class="fa-solid fa-trash-can"></i> 清空
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-sub">字号微调:</span>
+          <button class="btn btn-outline !py-1 !px-2.5 text-xs" id="zoomOutBtn"><i class="fa-solid fa-minus"></i></button>
+          <button class="btn btn-outline !py-1 !px-2.5 text-xs" id="zoomInBtn"><i class="fa-solid fa-plus"></i></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. 结果预览与导出区 -->
+    <section class="card p-4 md:p-6 space-y-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-square-poll-vertical text-amber-500"></i>
+          <span class="font-bold text-sm">ASCII 艺术字生成预览</span>
+          <span id="statusTip" class="text-xs text-sub"></span>
+        </div>
+        <div class="flex gap-2">
+          <button id="copyBtn" class="btn btn-primary !py-1.5 !px-3 !text-xs">
+            <i class="fa-solid fa-copy"></i> 复制字符画
+          </button>
+          <button id="downloadBtn" class="btn btn-outline !py-1.5 !px-3 !text-xs">
+            <i class="fa-solid fa-download"></i> 导出为 TXT
+          </button>
+        </div>
+      </div>
+
+      <div class="relative group">
+        <pre id="asciiResult" class="ascii-output min-h-[260px] color-amber">正在绘制 ASCII 字符画...</pre>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ---------------- 1. 主题持久化管理 ----------------
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('toolTheme', theme);
+      themeIcon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+    }
+
+    const savedTheme = localStorage.getItem('toolTheme') || 'dark';
+    applyTheme(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    });
+
+    // ---------------- 2. 丰富预设库 (含大号程序佛祖、神兽、企鹅等) ----------------
+    const presets = [
+      { 
+        name: '🙏 巨型程序佛祖', 
+        type: 'raw', 
+        content: `
+                            _ooOoo_
+                           o8888888o
+                           88" . "88
+                           (| -_- |)
+                           O\\  =  /O
+                        ____/\`---'\\____
+                      .'  \\\\|     |//  '.
+                     /  \\\\|||  :  |||//  \\
+                    /  _||||| -:- |||||-  \\
+                   |   | \\\\\\  -  /// |   |
+                   | \\_|  ''\\---/''  |_/ |
+                   \\  .-\\__  \`-\`  ___/-. /
+                 ===\`-.____\`\`\`----\`\`\`____.-'===
+                            \`=---='
+
+           /\`\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\"\\
+          /                                              \\
+         /     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       \\
+        |      佛祖保佑       永无 BUG       永不宕机      |
+         \\     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       /
+          \\                                              /
+           \\_/_\\_/_\\_/_\\_/_\\_/_\\_/_\\_/_\\_/_\\_/_\\_/_\\_/_/`
+      },
+      { 
+        name: '🐧 Linux Tux 企鹅', 
+        type: 'raw', 
+        content: `
+           .--.
+          |o_o |
+          |:_/ |
+         //   \\ \\
+        (|     | )
+       /'\\_   _/\`\\
+       \\___)=(___/
+    Linux Inside - Code Forever` 
+      },
+      { 
+        name: '🐱 招财喵喵机', 
+        type: 'raw', 
+        content: `
+     /\\_/\\  
+    ( o.o ) 🐾 喵喵保佑：
+     > ^ <  代码一次过，需求不变更！` 
+      },
+      { 
+        name: '🚀 登月计划', text: 'TO THE MOON', font: 'slant' 
+      },
+      { 
+        name: '💻 码农无敌', text: 'NO BUG CODE', font: 'cyber' 
+      },
+      { 
+        name: '☕ 咖啡续命', text: 'COFFEE TIME', font: 'standard' 
+      },
+      { 
+        name: '💀 赛博朋克', text: 'CYBERPUNK', font: 'shadow' 
+      },
+      { 
+        name: '🎉 成功爆红', text: 'SUCCESS', font: 'customChar' 
+      }
+    ];
+
+    const presetContainer = document.getElementById('presetContainer');
+    const customText = document.getElementById('customText');
+    const fontSelect = document.getElementById('fontSelect');
+    const borderSelect = document.getElementById('borderSelect');
+    const fillCharInput = document.getElementById('fillCharInput');
+    const layoutSelect = document.getElementById('layoutSelect');
+    const colorSelect = document.getElementById('colorSelect');
+    const asciiResult = document.getElementById('asciiResult');
+    const generateBtn = document.getElementById('generateBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const statusTip = document.getElementById('statusTip');
+    const uppercaseBtn = document.getElementById('uppercaseBtn');
+    const lowercaseBtn = document.getElementById('lowercaseBtn');
+
+    // 渲染预设按钮
+    presets.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-outline !py-1.5 !px-2 !text-xs truncate hover:border-amber-500 hover:text-amber-400';
+      btn.innerHTML = p.name;
+      btn.onclick = () => {
+        if (p.type === 'raw') {
+          customText.value = p.content.trim();
+          asciiResult.textContent = p.content.trim();
+          statusTip.textContent = '(已加载预设字符画)';
+        } else {
+          customText.value = p.text;
+          fontSelect.value = p.font;
+          renderAscii();
+        }
+      };
+      presetContainer.appendChild(btn);
+    });
+
+    // ---------------- 3. 全量中英文排版引擎 ----------------
+    const charMatrix = {
+      'A': [' ███ ', 'A   A', 'AAAAA', 'A   A', 'A   A'],
+      'B': ['BBBB ', 'B   B', 'BBBB ', 'B   B', 'BBBB '],
+      'C': [' CCC ', 'C    ', 'C    ', 'C    ', ' CCC '],
+      'D': ['DDDD ', 'D   D', 'D   D', 'D   D', 'DDDD '],
+      'E': ['EEEEE', 'E    ', 'EEE  ', 'E    ', 'EEEEE'],
+      'F': ['FFFFF', 'F    ', 'FFF  ', 'F    ', 'F    '],
+      'G': [' GGG ', 'G    ', 'G  GG', 'G   G', ' GGG '],
+      'H': ['H   H', 'H   H', 'HHHHH', 'H   H', 'H   H'],
+      'I': [' III ', '  I  ', '  I  ', '  I  ', ' III '],
+      'J': ['JJJJJ', '   J ', '   J ', 'J  J ', ' JJJ '],
+      'K': ['K   K', 'K  K ', 'KKK  ', 'K  K ', 'K   K'],
+      'L': ['L    ', 'L    ', 'L    ', 'L    ', 'LLLLL'],
+      'M': ['M   M', 'MM MM', 'M M M', 'M   M', 'M   M'],
+      'N': ['N   N', 'NN  N', 'N N N', 'N  NN', 'N   N'],
+      'O': [' OOO ', 'O   O', 'O   O', 'O   O', ' OOO '],
+      'P': ['PPPP ', 'P   P', 'PPPP ', 'P    ', 'P    '],
+      'Q': [' QQQ ', 'Q   Q', 'Q   Q', 'Q Q Q', ' QQQQ'],
+      'R': ['RRRR ', 'R   R', 'RRRR ', 'R R  ', 'R  R '],
+      'S': [' SSS ', 'S    ', ' SSS ', '    S', 'SSSS '],
+      'T': ['TTTTT', '  T  ', '  T  ', '  T  ', '  T  '],
+      'U': ['U   U', 'U   U', 'U   U', 'U   U', ' MMM '],
+      'V': ['V   V', 'V   V', 'V   V', ' V V ', '  V  '],
+      'W': ['W   W', 'W   W', 'W W W', 'WW WW', 'W   W'],
+      'X': ['X   X', ' X X ', '  X  ', ' X X ', 'X   X'],
+      'Y': ['Y   Y', ' Y Y ', '  Y  ', '  Y  ', '  Y  '],
+      'Z': ['ZZZZZ', '   Z ', '  Z  ', ' Z   ', 'ZZZZZ'],
+      ' ': ['     ', '     ', '     ', '     ', '     ']
+    };
+
+    function renderAscii() {
+      const text = customText.value;
+      const font = fontSelect.value;
+      const border = borderSelect.value;
+      const fillChar = fillCharInput.value || '#';
+      const align = layoutSelect.value;
+
+      if (!text.trim()) {
+        asciiResult.textContent = '请在上方输入框输入文本...';
+        statusTip.textContent = '';
+        return;
+      }
+
+      const lines = text.split('\n');
+      let renderedLines = [];
+
+      lines.forEach(line => {
+        if (!line.trim()) {
+          renderedLines.push('');
+          return;
+        }
+
+        const hasChinese = /[\u4e00-\u9fa5]/.test(line);
+        if (hasChinese || font === 'standard') {
+          let block = '';
+          for (let char of line) {
+            block += `[ ${char} ] `;
+          }
+          renderedLines.push(block);
+          return;
+        }
+
+        const matrixLines = ['', '', '', '', ''];
+        for (let char of line.toUpperCase()) {
+          const matrix = charMatrix[char] || ['     ', `  ${char}  `, '     ', '     ', '     '];
+          for (let i = 0; i < 5; i++) {
+            let rowStr = matrix[i];
+            if (font === 'slant') rowStr = rowStr.split('').join('/');
+            if (font === 'cyber') rowStr = rowStr.replace(/ /g, '.');
+            if (font === 'shadow') rowStr += ' ▌';
+            if (font === 'customChar') rowStr = rowStr.replace(/[^ ]/g, fillChar);
+            matrixLines[i] += rowStr + '  ';
+          }
+        }
+
+        matrixLines.forEach(ml => {
+          let finalLine = ml;
+          if (align === 'center') {
+            finalLine = '    ' + ml;
+          }
+          renderedLines.push(finalLine);
+        });
+      });
+
+      let outputStr = renderedLines.join('\n');
+
+      // 边框加固包裹引擎
+      if (border !== 'none') {
+        const lineArr = outputStr.split('\n');
+        const maxLen = Math.max(...lineArr.map(l => l.length));
+        
+        if (border === 'double') {
+          const topBorder = '╔' + '═'.repeat(maxLen + 2) + '╗';
+          const bottomBorder = '╚' + '═'.repeat(maxLen + 2) + '╝';
+          const framed = lineArr.map(l => '║ ' + l.padEnd(maxLen, ' ') + ' ║');
+          outputStr = [topBorder, ...framed, bottomBorder].join('\n');
+        } else if (border === 'star') {
+          const starLine = '*'.repeat(maxLen + 4);
+          const framed = lineArr.map(l => '* ' + l.padEnd(maxLen, ' ') + ' *');
+          outputStr = [starLine, ...framed, starLine].join('\n');
+        } else if (border === 'comment') {
+          const topBorder = '/*' + '*'.repeat(maxLen + 2);
+          const bottomBorder = ' ' + '*'.repeat(maxLen + 2) + '*/';
+          const framed = lineArr.map(l => ' * ' + l.padEnd(maxLen, ' '));
+          outputStr = [topBorder, ...framed, bottomBorder].join('\n');
+        } else if (border === 'cmd') {
+          const topBorder = '┌──[ TERMINAL BANNER ]' + '─'.repeat(Math.max(0, maxLen - 20)) + '┐';
+          const bottomBorder = '└' + '─'.repeat(maxLen + 2) + '┘';
+          const framed = lineArr.map(l => '│ ' + l.padEnd(maxLen, ' ') + ' │');
+          outputStr = [topBorder, ...framed, bottomBorder].join('\n');
+        }
+      }
+
+      asciiResult.textContent = outputStr;
+      statusTip.textContent = `(已生成 - 风格: ${font}, 边框: ${border})`;
+    }
+
+    // ---------------- 4. 颜色与字号调节 ----------------
+    colorSelect.addEventListener('change', (e) => {
+      asciiResult.className = `ascii-output min-h-[260px] ${e.target.value}`;
+    });
+
+    let fontSize = 13;
+    document.getElementById('zoomInBtn').onclick = () => {
+      if (fontSize < 24) {
+        fontSize += 1;
+        asciiResult.style.fontSize = `${fontSize}px`;
+      }
+    };
+
+    document.getElementById('zoomOutBtn').onclick = () => {
+      if (fontSize > 8) {
+        fontSize -= 1;
+        asciiResult.style.fontSize = `${fontSize}px`;
+      }
+    };
+
+    // ---------------- 5. 大小写与事件绑定 ----------------
+    uppercaseBtn.onclick = () => {
+      customText.value = customText.value.toUpperCase();
+      renderAscii();
+    };
+
+    lowercaseBtn.onclick = () => {
+      customText.value = customText.value.toLowerCase();
+      renderAscii();
+    };
+
+    customText.addEventListener('input', renderAscii);
+    fontSelect.addEventListener('change', renderAscii);
+    borderSelect.addEventListener('change', renderAscii);
+    fillCharInput.addEventListener('input', renderAscii);
+    layoutSelect.addEventListener('change', renderAscii);
+    generateBtn.addEventListener('click', renderAscii);
+
+    clearBtn.addEventListener('click', () => {
+      customText.value = '';
+      asciiResult.textContent = '';
+      statusTip.textContent = '';
+    });
+
+    copyBtn.addEventListener('click', () => {
+      const content = asciiResult.textContent;
+      if (!content) return;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(content).then(() => {
+          alert('ASCII 字符画已成功复制到剪贴板！');
+        });
+      }
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const content = asciiResult.textContent;
+      if (!content) return;
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ascii-banner-${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    window.onload = () => {
+      asciiResult.style.fontSize = `${fontSize}px`;
+      renderAscii();
+    };
+  </script>
+</body>
+</html>

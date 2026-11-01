@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音标/简繁转换 - 在线工具</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- 引入全功能中文拼音转换库 pinyin-pro -->
+  <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.16.0/dist/index.js"></script>
+  <style>
+    @layer utilities {
+      .btn {
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        transition: all 0.2s duration-200;
+        font-size: 0.875rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .btn-primary {
+        background-color: var(--primary);
+        color: #ffffff;
+      }
+      .btn-primary:hover {
+        opacity: 0.8;
+      }
+      .btn-outline {
+        border: 1px solid var(--border);
+        color: var(--text-main);
+      }
+      .btn-outline:hover {
+        background-color: var(--sub-bg);
+      }
+      .text-gradient {
+        background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --sub-bg: #334155;
+      --border: #475569;
+      --text-main: #e2e8f0;
+      --text-sub: #94a3b8;
+      --primary: #10b981;
+    }
+    :root[data-theme="light"] {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --sub-bg: #e2e8f0;
+      --border: #cbd5e1;
+      --text-main: #1e293b;
+      --text-sub: #64748b;
+      --primary: #10b981;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+    }
+
+    .card {
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+    }
+
+    .text-sub {
+      color: var(--text-sub);
+    }
+
+    .editor-input {
+      background-color: #020617;
+      color: #e5e7eb;
+      font-family: Consolas, Monaco, monospace;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      width: 100%;
+      padding: 0.75rem;
+      resize: vertical;
+    }
+
+    .editor-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- 1. 顶部导航栏 -->
+  <header class="card !rounded-none border-x-0 border-t-0 p-4 sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <a href="/toolkit/index.html" class="btn btn-outline">
+        <i class="fa-solid fa-arrow-left"></i> 返回
+      </a>
+      <h1 class="text-xl font-bold flex items-center gap-2">
+        <i class="fa-solid fa-language text-[#10b981]"></i>
+        <span class="text-gradient">音标/简繁转换</span>
+      </h1>
+      <button id="themeToggle" class="btn btn-outline" title="切换主题">
+        <i id="themeIcon" class="fa-solid fa-moon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 主体内容区域 -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-6">
+    <!-- 2. 功能区（输入与快捷配置） -->
+    <section class="card p-5 md:p-6 space-y-5">
+      <div class="flex flex-wrap justify-between items-center gap-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </div>
+          <div>
+            <span class="font-bold text-sm block">文本输入区</span>
+            <span id="charCount" class="text-xs text-sub">0 字符</span>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button id="sampleBtn" class="btn btn-outline !py-1 !text-xs">
+            <i class="fa-solid fa-vial"></i> 载入示例
+          </button>
+          <button id="clearBtn" class="btn btn-outline !py-1 !text-xs text-red-400 hover:border-red-400/50">
+            <i class="fa-solid fa-trash-can"></i> 清空
+          </button>
+        </div>
+      </div>
+
+      <textarea id="inputText" rows="6" class="editor-input shadow-inner" placeholder="请在此输入或粘贴需要转换的中文内容..."></textarea>
+
+      <!-- 转换选项按钮组（卡片化分层设计） -->
+      <div class="pt-4 border-t border-[var(--border)] space-y-3">
+        <span class="text-xs font-semibold text-sub tracking-wider uppercase block">请选择转换模式</span>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <!-- 简体转繁体 -->
+          <button id="btnToTrad" class="group relative flex items-center justify-between p-3 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-200 text-left cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-language"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold">简体 ➔ 繁体</p>
+                <p class="text-[11px] text-sub">标准繁体中文输出</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-xs text-sub opacity-50 group-hover:translate-x-0.5 transition-transform"></i>
+          </button>
+
+          <!-- 繁体转简体 -->
+          <button id="btnToSimp" class="group relative flex items-center justify-between p-3 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-200 text-left cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-right-left"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold">繁体 ➔ 简体</p>
+                <p class="text-[11px] text-sub">规范简体字转换</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-xs text-sub opacity-50 group-hover:translate-x-0.5 transition-transform"></i>
+          </button>
+
+          <!-- 全量汉字转拼音 -->
+          <button id="btnToPinyin" class="group relative flex items-center justify-between p-3 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-200 text-left cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-font"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold">汉字转拼音</p>
+                <p class="text-[11px] text-sub">智能识别带声调音标</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-xs text-sub opacity-50 group-hover:translate-x-0.5 transition-transform"></i>
+          </button>
+
+          <!-- 火星文转换 -->
+          <button id="btnToMartian" class="group relative flex items-center justify-between p-3 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-200 text-left cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold">火星文转换</p>
+                <p class="text-[11px] text-sub">个性趣味字符特效</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-xs text-sub opacity-50 group-hover:translate-x-0.5 transition-transform"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 结果预览区 -->
+    <section class="card p-4 md:p-6 space-y-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-square-poll-vertical text-[#10b981]"></i>
+          <span class="font-bold text-sm">转换结果预览</span>
+        </div>
+        <div class="flex gap-2">
+          <button id="copyBtn" class="btn btn-primary !py-1 !text-xs">
+            <i class="fa-solid fa-copy"></i> 复制结果
+          </button>
+          <button id="downloadBtn" class="btn btn-outline !py-1 !text-xs">
+            <i class="fa-solid fa-download"></i> 导出TXT
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-auto min-h-[160px]">
+        <textarea id="outputText" rows="6" class="editor-input" readonly placeholder="转换后的文本将展示在这里..."></textarea>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ---------------- 主题持久化管理 ----------------
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('toolTheme', theme);
+      themeIcon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+    }
+
+    const savedTheme = localStorage.getItem('toolTheme') || 'dark';
+    applyTheme(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    });
+
+    // ---------------- 常用简繁与火星文映射字典 ----------------
+    const simpChars = '万与专业丛东丝丢两严丧个丬丰临丽举么义乌乐乔习乡书买乱乾了予争事二于亏云亘亚产亩亲亵亸亿什仁仆仇今介仍仓仔仕他仗付仙仝仞仟仡代令以似俩仪伛伍伐休伏伟传乒乓伦伧伪伫侪侬伾俦俨俩俪俭债倾假傩俨';
+    const tradChars = '萬與專業叢東絲丟兩嚴喪個爿豐臨麗舉麼義烏樂喬習鄉書買亂乾了予爭事二於虧雲亙亞產畝親褻墦億什仁僕仇今介仍倉仔仕他仗付仙仝仞仟仡代令以似倆儀弴伍伐休伏偉傳乒乓倫儈偽佇儕儂伾儔儼倆儷儉債傾假儺儼';
+    
+    const martianMap = {
+      '你': '祢', '我': '莪', '他': '祂', '是': '鉂', '好': '恏',
+      '爱': '瑷', '情': '情', '人': '亾', '不': '卟', '这': '這',
+      '么': '庅', '看': '睇', '说': '説', '想': '想', '在': '在'
+    };
+
+    const inputText = document.getElementById('inputText');
+    const outputText = document.getElementById('outputText');
+    const charCount = document.getElementById('charCount');
+    const sampleBtn = document.getElementById('sampleBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    inputText.addEventListener('input', () => {
+      charCount.textContent = `${inputText.value.length} 字符`;
+    });
+
+    sampleBtn.addEventListener('click', () => {
+      inputText.value = '中华人民共和国文字简繁转换与全量汉字拼音音标工具，祝您生活愉快！';
+      charCount.textContent = `${inputText.value.length} 字符`;
+    });
+
+    clearBtn.addEventListener('click', () => {
+      inputText.value = '';
+      outputText.value = '';
+      charCount.textContent = '0 字符';
+    });
+
+    // 1. 简体 ➔ 繁体
+    document.getElementById('btnToTrad').addEventListener('click', () => {
+      let val = inputText.value;
+      let res = '';
+      for (let i = 0; i < val.length; i++) {
+        const char = val[i];
+        const idx = simpChars.indexOf(char);
+        res += idx !== -1 ? tradChars[idx] : char;
+      }
+      outputText.value = res;
+    });
+
+    // 2. 繁体 ➔ 简体
+    document.getElementById('btnToSimp').addEventListener('click', () => {
+      let val = inputText.value;
+      let res = '';
+      for (let i = 0; i < val.length; i++) {
+        const char = val[i];
+        const idx = tradChars.indexOf(char);
+        res += idx !== -1 ? simpChars[idx] : char;
+      }
+      outputText.value = res;
+    });
+
+    // 3. 全量汉字转拼音（依托 pinyin-pro 核心库）
+    document.getElementById('btnToPinyin').addEventListener('click', () => {
+      const val = inputText.value;
+      if (!val) {
+        outputText.value = '';
+        return;
+      }
+      try {
+        const result = pinyinPro.pinyin(val, {
+          toneType: 'symbol', // 带声调符号
+          type: 'string',     // 返回拼接字符串
+          nonZh: 'consecutive'// 连续保留非汉字
+        });
+        outputText.value = result;
+      } catch (e) {
+        outputText.value = '拼音转换出错: ' + e.message;
+      }
+    });
+
+    // 4. 转换火星文
+    document.getElementById('btnToMartian').addEventListener('click', () => {
+      let val = inputText.value;
+      let res = '';
+      for (let i = 0; i < val.length; i++) {
+        const char = val[i];
+        res += martianMap[char] || char;
+      }
+      outputText.value = res;
+    });
+
+    // 复制逻辑与兜底
+    copyBtn.addEventListener('click', () => {
+      if (!outputText.value) return;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(outputText.value).then(() => {
+          alert('已成功复制到剪贴板！');
+        }).catch(() => fallbackCopy());
+      } else {
+        fallbackCopy();
+      }
+    });
+
+    function fallbackCopy() {
+      outputText.select();
+      alert('已自动选中文本，请使用 Ctrl+C 手动复制！');
+    }
+
+    // 导出文件 Blob 下载逻辑
+    downloadBtn.addEventListener('click', () => {
+      const content = outputText.value;
+      if (!content) {
+        alert('没有可以导出的转换结果！');
+        return;
+      }
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `convert-result-${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>

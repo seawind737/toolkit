@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>拼豆图纸生成器 - 在线工具</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @layer utilities {
+      .btn {
+        padding: 0.5rem 0.85rem;
+        border-radius: 0.5rem;
+        transition: all 0.2s duration-200;
+        font-size: 0.875rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        font-weight: 500;
+        user-select: none;
+      }
+      .btn-primary {
+        background-color: var(--primary);
+        color: #ffffff;
+      }
+      .btn-primary:hover {
+        opacity: 0.85;
+        transform: translateY(-1px);
+      }
+      .btn-outline {
+        border: 1px solid var(--border);
+        color: var(--text-main);
+        background-color: var(--card);
+      }
+      .btn-outline:hover {
+        background-color: var(--sub-bg);
+        border-color: var(--primary);
+      }
+      .text-gradient {
+        background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --sub-bg: #334155;
+      --border: #475569;
+      --text-main: #e2e8f0;
+      --text-sub: #94a3b8;
+      --primary: #ec4899;
+      --code-bg: #020617;
+    }
+    :root[data-theme="light"] {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --sub-bg: #e2e8f0;
+      --border: #cbd5e1;
+      --text-main: #111827;
+      --text-sub: #64748b;
+      --primary: #db2777;
+      --code-bg: #0f172a;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+    }
+
+    .card {
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+    }
+
+    .text-sub {
+      color: var(--text-sub);
+    }
+
+    .editor-input {
+      background-color: var(--code-bg);
+      color: #e2e8f0;
+      font-family: Consolas, Monaco, 'Courier New', monospace;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      transition: border-color 0.2s;
+    }
+
+    .editor-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- 1. 顶部导航栏 -->
+  <header class="card !rounded-none border-x-0 border-t-0 p-4 sticky top-0 z-50 shadow-md">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <a href="../../index.html" class="btn btn-outline !py-1.5 !px-3 text-xs">
+        <i class="fa-solid fa-arrow-left"></i> 返回首页
+      </a>
+      <h1 class="text-xl font-bold flex items-center gap-2">
+        <i class="fa-solid fa-shapes text-pink-500"></i>
+        <span class="text-gradient">拼豆图纸生成器</span>
+      </h1>
+      <button id="themeToggle" class="btn btn-outline !py-1.5 !px-3" title="切换主题">
+        <i id="themeIcon" class="fa-solid fa-moon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 主体内容区域 -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-6">
+    
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- 2. 控制参数区（左侧） -->
+      <section class="lg:col-span-4 space-y-5">
+        
+        <!-- 图片上传卡片 -->
+        <div class="card p-5 space-y-4">
+          <h2 class="font-bold text-sm border-b pb-2 border-[var(--border)] flex items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up text-pink-500"></i> 上传源图片
+          </h2>
+
+          <div id="dropArea" class="border-dashed border-2 border-[var(--border)] rounded-xl p-6 text-center cursor-pointer hover:border-pink-500 transition-colors bg-[var(--code-bg)]/40">
+            <input type="file" id="fileInput" accept="image/*" class="hidden">
+            <i class="fa-solid fa-image text-3xl text-sub mb-2"></i>
+            <p class="text-xs font-semibold">点击选择图片或拖拽至此</p>
+            <p class="text-[11px] text-sub mt-1">支持 PNG, JPG, WEBP 等常用格式</p>
+          </div>
+        </div>
+
+        <!-- 参数调节卡片 -->
+        <div class="card p-5 space-y-4">
+          <h2 class="font-bold text-sm border-b pb-2 border-[var(--border)] flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-pink-500"></i> 拼豆板与色彩参数
+          </h2>
+
+          <!-- 预设网格选择 -->
+          <div class="space-y-1.5">
+            <label class="text-xs text-sub font-semibold block">常用模版快捷选择</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button class="btn btn-outline !py-1 !px-2 text-xs" onclick="setPresetGrid(29)">29×29 (标准)</button>
+              <button class="btn btn-outline !py-1 !px-2 text-xs" onclick="setPresetGrid(50)">50×50 (中型)</button>
+              <button class="btn btn-outline !py-1 !px-2 text-xs" onclick="setPresetGrid(80)">80×80 (大型)</button>
+            </div>
+          </div>
+
+          <!-- 拼豆网格尺寸 -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="gridWidth" class="text-xs text-sub font-semibold block mb-1">横向拼豆数 (W)</label>
+              <input type="number" id="gridWidth" value="29" min="10" max="200" class="editor-input text-xs">
+            </div>
+            <div>
+              <label for="gridHeight" class="text-xs text-sub font-semibold block mb-1">纵向拼豆数 (H)</label>
+              <input type="number" id="gridHeight" value="29" min="10" max="200" class="editor-input text-xs">
+            </div>
+          </div>
+
+          <!-- 色彩压缩与滤镜 -->
+          <div class="space-y-3 pt-2 border-t border-[var(--border)]">
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="colorCount" class="text-xs text-sub font-semibold">颜色数量限制</label>
+                <span id="colorCountVal" class="text-xs font-mono text-pink-500">16 色</span>
+              </div>
+              <input type="range" id="colorCount" min="2" max="64" value="16" class="w-full accent-pink-500">
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="contrast" class="text-xs text-sub font-semibold">色彩对比度</label>
+                <span id="contrastVal" class="text-xs font-mono text-pink-500">0</span>
+              </div>
+              <input type="range" id="contrast" min="-50" max="50" value="0" class="w-full accent-pink-500">
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <label for="showGrid" class="text-xs text-sub font-semibold cursor-pointer">显示拼豆黑线网格</label>
+              <input type="checkbox" id="showGrid" checked class="accent-pink-500 rounded cursor-pointer">
+            </div>
+
+            <div class="flex items-center justify-between">
+              <label for="showNumbers" class="text-xs text-sub font-semibold cursor-pointer">显示色号/序号标识</label>
+              <input type="checkbox" id="showNumbers" class="accent-pink-500 rounded cursor-pointer">
+            </div>
+          </div>
+
+          <div class="pt-2">
+            <button id="renderBtn" class="btn btn-primary w-full">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> 重新生成图纸
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. 图纸预览与清单区（右侧） -->
+      <section class="lg:col-span-8 space-y-5">
+        
+        <!-- 画布渲染区 -->
+        <div class="card p-5 space-y-4 flex flex-col">
+          <div class="flex justify-between items-center border-b pb-3 border-[var(--border)]">
+            <h2 class="font-bold text-sm flex items-center gap-2">
+              <i class="fa-solid fa-chess-board text-pink-500"></i> 拼豆像素图纸预览
+            </h2>
+            <div class="flex gap-2">
+              <button id="downloadImgBtn" class="btn btn-primary !py-1 !px-2.5 !text-xs">
+                <i class="fa-solid fa-download"></i> 导出像素图纸
+              </button>
+            </div>
+          </div>
+
+          <div class="flex-1 flex items-center justify-center min-h-[380px] bg-[var(--code-bg)] rounded-xl overflow-auto p-4 relative">
+            <canvas id="beadsCanvas" class="max-w-full rounded shadow-2xl border border-[var(--border)] hidden"></canvas>
+            <div id="placeholder" class="text-center text-sub space-y-2">
+              <i class="fa-solid fa-cubes text-4xl mb-1"></i>
+              <p class="text-xs">请在左侧上传图片以生成拼豆图纸</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 拼豆用量统计表 -->
+        <div class="card p-5 space-y-4">
+          <div class="flex justify-between items-center border-b pb-2 border-[var(--border)]">
+            <h2 class="font-bold text-sm flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-pink-500"></i> 所需拼豆颜色与用量统计
+            </h2>
+            <span id="totalBeadsCount" class="text-xs text-sub">共计 0 颗</span>
+          </div>
+
+          <div class="max-h-[220px] overflow-y-auto">
+            <div id="paletteList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-xs">
+              <p class="text-sub col-span-full text-center py-4">暂无色彩统计</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+  </main>
+
+  <script>
+    // ---------------- 1. 主题控制 ----------------
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('toolTheme', theme);
+      themeIcon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+    }
+
+    const savedTheme = localStorage.getItem('toolTheme') || 'dark';
+    applyTheme(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    });
+
+    // ---------------- 2. 元素与状态 ----------------
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('fileInput');
+    const beadsCanvas = document.getElementById('beadsCanvas');
+    const placeholder = document.getElementById('placeholder');
+    const gridWidthInput = document.getElementById('gridWidth');
+    const gridHeightInput = document.getElementById('gridHeight');
+    const colorCountInput = document.getElementById('colorCount');
+    const colorCountVal = document.getElementById('colorCountVal');
+    const contrastInput = document.getElementById('contrast');
+    const contrastVal = document.getElementById('contrastVal');
+    const showGridInput = document.getElementById('showGrid');
+    const showNumbersInput = document.getElementById('showNumbers');
+    const renderBtn = document.getElementById('renderBtn');
+    const paletteList = document.getElementById('paletteList');
+    const totalBeadsCount = document.getElementById('totalBeadsCount');
+    const downloadImgBtn = document.getElementById('downloadImgBtn');
+
+    let sourceImg = null;
+
+    // ---------------- 3. 上传交互 ----------------
+    dropArea.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    dropArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropArea.classList.add('border-pink-500');
+    });
+    dropArea.addEventListener('dragleave', () => dropArea.classList.remove('border-pink-500'));
+    dropArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropArea.classList.remove('border-pink-500');
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+
+    function handleFile(file) {
+      if (!file.type.startsWith('image/')) return;
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        sourceImg = img;
+        placeholder.classList.add('hidden');
+        beadsCanvas.classList.remove('hidden');
+        processBeads();
+      };
+    }
+
+    function setPresetGrid(size) {
+      gridWidthInput.value = size;
+      gridHeightInput.value = size;
+      if (sourceImg) processBeads();
+    }
+
+    // 监听实时滑块
+    colorCountInput.addEventListener('input', () => {
+      colorCountVal.innerText = `${colorCountInput.value} 色`;
+    });
+    contrastInput.addEventListener('input', () => {
+      contrastVal.innerText = contrastInput.value;
+    });
+
+    renderBtn.addEventListener('click', () => {
+      if (sourceImg) processBeads();
+    });
+
+    // ---------------- 4. 拼豆图像量化算法 ----------------
+    function processBeads() {
+      if (!sourceImg) return;
+
+      const gw = parseInt(gridWidthInput.value) || 29;
+      const gh = parseInt(gridHeightInput.value) || 29;
+      const maxColors = parseInt(colorCountInput.value) || 16;
+      const contrast = parseInt(contrastInput.value) || 0;
+      const showGrid = showGridInput.checked;
+      const showNumbers = showNumbersInput.checked;
+
+      // 建立临时离屏 Canvas 抓取缩放像素
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = gw;
+      offCanvas.height = gh;
+      const offCtx = offCanvas.getContext('2d');
+
+      // 平铺缩放绘制
+      offCtx.drawImage(sourceImg, 0, 0, gw, gh);
+      const imgData = offCtx.getImageData(0, 0, gw, gh);
+      const pixels = imgData.data;
+
+      // 应用对比度调整
+      if (contrast !== 0) {
+        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+        for (let i = 0; i < pixels.length; i += 4) {
+          pixels[i] = factor * (pixels[i] - 128) + 128;
+          pixels[i+1] = factor * (pixels[i+1] - 128) + 128;
+          pixels[i+2] = factor * (pixels[i+2] - 128) + 128;
+        }
+      }
+
+      // 提取色彩并进行简单的量化 (Median Cut/K-means 简易聚类)
+      const colorPalette = buildPalette(pixels, maxColors);
+      
+      // 将像素映射到聚类调色板
+      const gridMap = [];
+      const colorCounts = {};
+
+      for (let y = 0; y < gh; y++) {
+        const row = [];
+        for (let x = 0; x < gw; x++) {
+          const idx = (y * gw + x) * 4;
+          const r = pixels[idx], g = pixels[idx+1], b = pixels[idx+2];
+          
+          const matchedColorIdx = findClosestColor(r, g, b, colorPalette);
+          row.push(matchedColorIdx);
+
+          colorCounts[matchedColorIdx] = (colorCounts[matchedColorIdx] || 0) + 1;
+        }
+        gridMap.push(row);
+      }
+
+      // 绘制高清放大图纸
+      renderBeadsChart(gridMap, colorPalette, gw, gh, showGrid, showNumbers);
+
+      // 绘制用量统计清单
+      renderPaletteList(colorPalette, colorCounts, gw * gh);
+    }
+
+    // 寻找最近相似色
+    function findClosestColor(r, g, b, palette) {
+      let minDistance = Infinity;
+      let closestIdx = 0;
+      palette.forEach((c, i) => {
+        const dist = Math.pow(r - c.r, 2) + Math.pow(g - c.g, 2) + Math.pow(b - c.b, 2);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestIdx = i;
+        }
+      });
+      return closestIdx;
+    }
+
+    // 主色调聚类分析
+    function buildPalette(pixels, k) {
+      const samples = [];
+      for (let i = 0; i < pixels.length; i += 16) {
+        samples.push({ r: pixels[i], g: pixels[i+1], b: pixels[i+2] });
+      }
+
+      // 极简聚类种子
+      const palette = [];
+      const step = Math.max(1, Math.floor(samples.length / k));
+      for (let i = 0; i < k && i * step < samples.length; i++) {
+        palette.push(samples[i * step]);
+      }
+      return palette;
+    }
+
+    // ---------------- 5. 图纸渲染 ----------------
+    function renderBeadsChart(gridMap, palette, gw, gh, showGrid, showNumbers) {
+      const cellSize = Math.max(12, Math.min(30, Math.floor(800 / Math.max(gw, gh))));
+      beadsCanvas.width = gw * cellSize;
+      beadsCanvas.height = gh * cellSize;
+      const ctx = beadsCanvas.getContext('2d');
+
+      ctx.clearRect(0, 0, beadsCanvas.width, beadsCanvas.height);
+
+      for (let y = 0; y < gh; y++) {
+        for (let x = 0; x < gw; x++) {
+          const colorIdx = gridMap[y][x];
+          const color = palette[colorIdx];
+          const px = x * cellSize;
+          const py = y * cellSize;
+
+          // 绘制圆形拼豆单元
+          ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
+          ctx.fillRect(px, py, cellSize, cellSize);
+
+          // 绘制拼豆空心小圆孔效果
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+          ctx.beginPath();
+          ctx.arc(px + cellSize/2, py + cellSize/2, cellSize * 0.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 绘制边框
+          if (showGrid) {
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(px, py, cellSize, cellSize);
+          }
+
+          // 绘制编号
+          if (showNumbers && cellSize >= 14) {
+            ctx.fillStyle = (color.r * 0.299 + color.g * 0.587 + color.b * 0.114) > 128 ? '#000' : '#fff';
+            ctx.font = `${Math.floor(cellSize * 0.45)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(colorIdx + 1, px + cellSize/2, py + cellSize/2);
+          }
+        }
+      }
+    }
+
+    // ---------------- 6. 统计用量渲染 ----------------
+    function renderPaletteList(palette, colorCounts, total) {
+      paletteList.innerHTML = '';
+      totalBeadsCount.innerText = `共计 ${total} 颗拼豆`;
+
+      palette.forEach((c, idx) => {
+        const count = colorCounts[idx] || 0;
+        if (count === 0) return;
+
+        const hex = rgbToHex(c.r, c.g, c.b);
+        const card = document.createElement('div');
+        card.className = 'card p-2 flex items-center gap-2 bg-[var(--sub-bg)]/40';
+        card.innerHTML = `
+          <div class="w-6 h-6 rounded-full border border-black/20 flex items-center justify-center font-bold text-[10px]" style="background-color: ${hex}; color: ${isLight(c.r, c.g, c.b) ? '#000' : '#fff'}">
+            ${idx + 1}
+          </div>
+          <div class="overflow-hidden">
+            <p class="font-mono font-bold truncate">${hex.toUpperCase()}</p>
+            <p class="text-sub text-[11px]">${count} 颗 (${((count/total)*100).toFixed(1)}%)</p>
+          </div>
+        `;
+        paletteList.appendChild(card);
+      });
+    }
+
+    function rgbToHex(r, g, b) {
+      return "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    function isLight(r, g, b) {
+      return (r * 0.299 + g * 0.587 + b * 0.114) > 128;
+    }
+
+    // 导出图片
+    downloadImgBtn.addEventListener('click', () => {
+      if (!sourceImg) return alert('请先上传图片并生成图纸');
+      beadsCanvas.toBlob(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `beads-pattern-${Date.now()}.png`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    });
+  </script>
+</body>
+</html>
